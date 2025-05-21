@@ -1,10 +1,10 @@
-package navigation.tabs
+package org.awi.fitness.navigation.tabs
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import navigation.BottomBarTab
+import org.awi.fitness.navigation.BottomBarTab
 
 object ProfileTab : BottomBarTab() {
     override val icon = Icons.Default.Person

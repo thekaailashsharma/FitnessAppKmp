@@ -1,4 +1,4 @@
-package navigation
+package org.awi.fitness.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector

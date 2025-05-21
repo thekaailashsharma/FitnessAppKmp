@@ -1,4 +1,4 @@
-package navigation
+package org.awi.fitness.navigation
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
@@ -12,10 +12,10 @@ import cafe.adriel.voyager.navigator.tab.CurrentTab
 import cafe.adriel.voyager.navigator.tab.LocalTabNavigator
 import cafe.adriel.voyager.navigator.tab.Tab
 import cafe.adriel.voyager.navigator.tab.TabNavigator
-import navigation.tabs.CaloriesTab
-import navigation.tabs.HomeTab
-import navigation.tabs.ProfileTab
-import navigation.tabs.WorkoutsTab
+import org.awi.fitness.navigation.tabs.CaloriesTab
+import org.awi.fitness.navigation.tabs.HomeTab
+import org.awi.fitness.navigation.tabs.ProfileTab
+import org.awi.fitness.navigation.tabs.WorkoutsTab
 
 @Composable
 fun BottomNavigation() {

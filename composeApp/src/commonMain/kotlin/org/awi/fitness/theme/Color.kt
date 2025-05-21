@@ -1,17 +1,19 @@
 package org.awi.fitness.theme
 
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 // Primary Colors
-val BackgroundDark = Color(0xFF000000)
-val YellowAccent = Color(0xFFFFF176)
+val BackgroundDark = Color(0xFF0A0A0A)
+val GreenAccent = Color(0xFF00B67A)
 val DarkGray = Color(0xFF1E1E1E)
 val TextWhite = Color(0xFFFFFFFF)
 val TextGray = Color(0xFF8E8E8E)
 
 // Card Colors
-val YellowCard = YellowAccent
+val GreenCard = Color(0xFF00B67A)
 val DarkCard = Color(0xFF1A1A1A)
 
 // Input Field Colors
@@ -19,18 +21,18 @@ val InputFieldBackground = Color(0xFF121212)
 val InputFieldBorder = Color(0xFF2C2C2C)
 
 // Button Colors
-val ButtonYellow = YellowAccent
-val ButtonText = Color(0xFF000000)
+val ButtonDark = Color(0xFF2A2A2A)
+val ButtonGreen = GreenAccent
 
 // Chip Colors
-val ChipSelectedBackground = YellowAccent
+val ChipSelectedBackground = GreenAccent
 val ChipUnselectedBackground = Color(0xFF1A1A1A)
 val ChipSelectedText = Color(0xFF000000)
 val ChipUnselectedText = Color(0xFF8E8E8E)
 
 // Icon Colors
-val IconSelected = Color(0xFF000000)
-val IconUnselected = Color(0xFF8E8E8E)
+val IconLight = Color(0xFFFFFFFF)
+val IconGray = Color(0xFF8E8E8E)
 
 // Search Bar Color
 val SearchBarDark = Color(0xFF1A1A1A)
@@ -44,10 +46,10 @@ val mainGradient = Brush.verticalGradient(
 )
 
 // Card Gradients
-val yellowCardGradient = Brush.linearGradient(
+val greenCardGradient = Brush.linearGradient(
     colors = listOf(
-        YellowCard,
-        YellowCard.copy(alpha = 0.9f)
+        GreenCard,
+        GreenCard.copy(alpha = 0.9f)
     )
 )
 
@@ -56,4 +58,48 @@ val darkCardGradient = Brush.linearGradient(
         DarkCard,
         DarkCard.copy(alpha = 0.9f)
     )
+)
+
+val DarkColorScheme = darkColorScheme(
+    primary = GreenAccent,
+    onPrimary = TextWhite,
+    primaryContainer = GreenCard,
+    onPrimaryContainer = TextWhite,
+    secondary = DarkGray,
+    onSecondary = TextWhite,
+    secondaryContainer = DarkCard,
+    onSecondaryContainer = TextWhite,
+    tertiary = ButtonDark,
+    onTertiary = TextWhite,
+    tertiaryContainer = ButtonDark,
+    onTertiaryContainer = TextWhite,
+    background = BackgroundDark,
+    onBackground = TextWhite,
+    surface = DarkCard,
+    onSurface = TextWhite,
+    surfaceVariant = DarkGray,
+    onSurfaceVariant = TextGray,
+    outline = TextGray
+)
+
+val LightColorScheme = lightColorScheme(
+    primary = GreenAccent,
+    onPrimary = TextWhite,
+    primaryContainer = GreenCard,
+    onPrimaryContainer = TextWhite,
+    secondary = DarkGray,
+    onSecondary = TextWhite,
+    secondaryContainer = DarkCard,
+    onSecondaryContainer = TextWhite,
+    tertiary = ButtonDark,
+    onTertiary = TextWhite,
+    tertiaryContainer = ButtonDark,
+    onTertiaryContainer = TextWhite,
+    background = BackgroundDark,
+    onBackground = TextWhite,
+    surface = DarkCard,
+    onSurface = TextWhite,
+    surfaceVariant = DarkGray,
+    onSurfaceVariant = TextGray,
+    outline = TextGray
 ) 

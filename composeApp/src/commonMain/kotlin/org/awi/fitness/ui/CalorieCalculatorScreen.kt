@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,22 +23,23 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.Button
-import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.Card
-import androidx.compose.material.ChipDefaults
-import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.FilterChip
-import androidx.compose.material.Icon
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.OutlinedTextField
-import androidx.compose.material.Text
-import androidx.compose.material.TextFieldDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -50,21 +52,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.font.FontWeight
-import compose.icons.FontAwesomeIcons
-import compose.icons.LineAwesomeIcons
 import compose.icons.TablerIcons
-import compose.icons.fontawesomeicons.Solid
-import compose.icons.fontawesomeicons.solid.Fire
-import compose.icons.fontawesomeicons.solid.InfoCircle
-import compose.icons.lineawesomeicons.BoltSolid
-import compose.icons.lineawesomeicons.ChartBar
 import compose.icons.tablericons.Activity
+import compose.icons.tablericons.Battery
 import compose.icons.tablericons.Flame
+import compose.icons.tablericons.Refresh
 import compose.icons.tablericons.Run
+import compose.icons.tablericons.Scale
 import compose.icons.tablericons.Social
 import compose.icons.tablericons.Walk
 import org.awi.fitness.data.ActivityLevel
@@ -76,20 +75,15 @@ import org.awi.fitness.theme.ChipSelectedText
 import org.awi.fitness.theme.ChipUnselectedBackground
 import org.awi.fitness.theme.ChipUnselectedText
 import org.awi.fitness.theme.DarkCard
-import org.awi.fitness.theme.IconSelected
-import org.awi.fitness.theme.IconUnselected
+import org.awi.fitness.theme.GreenAccent
 import org.awi.fitness.theme.InputFieldBackground
 import org.awi.fitness.theme.InputFieldBorder
 import org.awi.fitness.theme.TextGray
 import org.awi.fitness.theme.TextWhite
-import org.awi.fitness.theme.YellowAccent
 import org.awi.fitness.viewmodel.CalorieViewModel
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.width
-import androidx.compose.ui.graphics.vector.ImageVector
-import compose.icons.tablericons.Battery
-import compose.icons.tablericons.Refresh
-import compose.icons.tablericons.Scale
+
+private val IconSelected = GreenAccent
+private val IconUnselected = TextGray
 
 @Composable
 fun CalorieCalculatorScreen(
@@ -125,7 +119,6 @@ fun CalorieCalculatorScreen(
             }
         }
         
-        // Docked Calculate Button
         if (!uiState.isCalculated) {
             Button(
                 onClick = viewModel::calculateCalories,
@@ -133,23 +126,22 @@ fun CalorieCalculatorScreen(
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .padding(16.dp)
-                    .height(56.dp)
-                    .clip(RoundedCornerShape(28.dp)),
+                    .height(56.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = ButtonDefaults.buttonColors(
-                    backgroundColor = YellowAccent
+                    containerColor = GreenAccent,
+                    contentColor = Color.Black
                 )
             ) {
                 Text(
                     "Calculate",
-                    color = Color.Black,
-                    style = MaterialTheme.typography.button
+                    style = MaterialTheme.typography.labelLarge
                 )
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class)
 @Composable
 private fun CalorieInputForm(
     uiState: CalorieUiState,
@@ -166,7 +158,7 @@ private fun CalorieInputForm(
     ) {
         Text(
             text = "Calorie Calculator",
-            style = MaterialTheme.typography.h4,
+            style = MaterialTheme.typography.headlineMedium,
             color = TextWhite
         )
 
@@ -191,12 +183,11 @@ private fun CalorieInputForm(
             keyboardType = KeyboardType.Number
         )
 
-        // Gender Selection
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 "Gender",
                 color = TextWhite,
-                style = MaterialTheme.typography.h6
+                style = MaterialTheme.typography.titleLarge
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -212,18 +203,16 @@ private fun CalorieInputForm(
             }
         }
 
-        // Activity Level Selection
         ActivityLevelSelector(
             selectedLevel = uiState.activityLevel,
             onLevelSelected = onActivityLevelSelect
         )
 
-        // Goal Selection
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 "Goal",
                 color = TextWhite,
-                style = MaterialTheme.typography.h6
+                style = MaterialTheme.typography.titleLarge
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -234,18 +223,19 @@ private fun CalorieInputForm(
                         selected = goal == uiState.goal,
                         onClick = { onGoalSelect(goal) },
                         modifier = Modifier.weight(1f),
-                        colors = ChipDefaults.filterChipColors(
-                            selectedBackgroundColor = YellowAccent,
-                            backgroundColor = ChipUnselectedBackground,
-                            selectedContentColor = ChipSelectedText,
-                            contentColor = ChipUnselectedText
+                        label = { 
+                            Text(
+                                goal.name.replace("_", " "),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = GreenAccent,
+                            containerColor = ChipUnselectedBackground,
+                            selectedLabelColor = ChipSelectedText,
+                            labelColor = ChipUnselectedText
                         )
-                    ) {
-                        Text(
-                            goal.name.replace("_", " "),
-                            style = MaterialTheme.typography.body2
-                        )
-                    }
+                    )
                 }
             }
         }
@@ -254,13 +244,12 @@ private fun CalorieInputForm(
             Text(
                 text = error,
                 color = Color.Red,
-                style = MaterialTheme.typography.body2
+                style = MaterialTheme.typography.bodyMedium
             )
         }
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class)
 @Composable
 private fun CalorieInputField(
     value: String,
@@ -272,7 +261,7 @@ private fun CalorieInputField(
         Text(
             text = label,
             color = TextGray,
-            style = MaterialTheme.typography.caption
+            style = MaterialTheme.typography.bodySmall
         )
         OutlinedTextField(
             value = value,
@@ -281,19 +270,20 @@ private fun CalorieInputField(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp)),
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                textColor = TextWhite,
-                backgroundColor = InputFieldBackground,
+            colors = OutlinedTextFieldDefaults.colors(
+                unfocusedTextColor = TextWhite,
+                focusedTextColor = TextWhite,
+                unfocusedContainerColor = InputFieldBackground,
+                focusedContainerColor = InputFieldBackground,
                 unfocusedBorderColor = InputFieldBorder,
                 focusedBorderColor = InputFieldBorder,
                 cursorColor = TextWhite
             ),
-            textStyle = MaterialTheme.typography.body1
+            textStyle = MaterialTheme.typography.bodyLarge
         )
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class)
 @Composable
 private fun ActivityLevelChip(
     level: ActivityLevel,
@@ -305,17 +295,19 @@ private fun ActivityLevelChip(
         selected = selected,
         onClick = onSelect,
         modifier = modifier
-            .height(40.dp)
-            .clip(RoundedCornerShape(20.dp)),
-        colors = ChipDefaults.filterChipColors(
-            selectedBackgroundColor = YellowAccent,
-            backgroundColor = ChipUnselectedBackground,
-            selectedContentColor = ChipSelectedText,
-            contentColor = ChipUnselectedText
+            .height(40.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = GreenAccent,
+            containerColor = ChipUnselectedBackground,
+            selectedLabelColor = ChipSelectedText,
+            labelColor = ChipUnselectedText
         ),
-        border = BorderStroke(
-            width = 1.dp,
-            color = if (selected) YellowAccent else InputFieldBorder
+        border = FilterChipDefaults.filterChipBorder(
+            borderColor = if (selected) GreenAccent else InputFieldBorder,
+            borderWidth = 1.dp,
+            enabled = true,
+            selected = selected
         ),
         leadingIcon = {
             Icon(
@@ -330,17 +322,17 @@ private fun ActivityLevelChip(
                 modifier = Modifier.size(16.dp),
                 tint = if (selected) IconSelected else IconUnselected
             )
+        },
+        label = {
+            Text(
+                text = level.name.replace("_", " "),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
         }
-    ) {
-        Text(
-            text = level.name.replace("_", " "),
-            style = MaterialTheme.typography.body2,
-            modifier = Modifier.padding(horizontal = 4.dp)
-        )
-    }
+    )
 }
 
-@OptIn(ExperimentalMaterialApi::class)
 @Composable
 private fun GenderChip(
     gender: Gender,
@@ -351,24 +343,27 @@ private fun GenderChip(
         selected = selected,
         onClick = onSelect,
         modifier = Modifier
-            .height(40.dp)
-            .clip(RoundedCornerShape(20.dp)),
-        colors = ChipDefaults.filterChipColors(
-            selectedBackgroundColor = YellowAccent,
-            backgroundColor = ChipUnselectedBackground,
-            selectedContentColor = ChipSelectedText,
-            contentColor = ChipUnselectedText
+            .height(40.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = GreenAccent,
+            containerColor = ChipUnselectedBackground,
+            selectedLabelColor = ChipSelectedText,
+            labelColor = ChipUnselectedText
         ),
-        border = BorderStroke(
-            width = 1.dp,
-            color = if (selected) YellowAccent else InputFieldBorder
-        )
-    ) {
-        Text(
-            text = gender.name,
-            style = MaterialTheme.typography.body2
-        )
-    }
+        border = FilterChipDefaults.filterChipBorder(
+            borderColor = if (selected) GreenAccent else InputFieldBorder,
+            borderWidth = 1.dp,
+            enabled = true,
+            selected = true
+        ),
+        label = {
+            Text(
+                text = gender.name,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+    )
 }
 
 @Composable
@@ -387,13 +382,11 @@ private fun CalorieResultScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        // Calorie Circle
         CalorieCircle(
             calories = uiState.calculatedCalories,
             showDetails = showDetails
         )
 
-        // Info Cards
         AnimatedVisibility(
             visible = showDetails,
             enter = fadeIn() + expandVertically(
@@ -431,25 +424,24 @@ private fun CalorieResultScreen(
             }
         }
 
-        // Recalculate Button
         Button(
             onClick = onRecalculate,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp)
-                .clip(RoundedCornerShape(28.dp)),
+                .height(56.dp),
+            shape = RoundedCornerShape(28.dp),
             colors = ButtonDefaults.buttonColors(
-                backgroundColor = YellowAccent
+                containerColor = GreenAccent,
+                contentColor = Color.Black
             )
         ) {
             Icon(
                 imageVector = TablerIcons.Refresh,
                 contentDescription = null,
-                tint = Color.Black,
                 modifier = Modifier.size(20.dp)
             )
             Spacer(Modifier.width(8.dp))
-            Text("Recalculate", color = Color.Black)
+            Text("Recalculate")
         }
     }
 }
@@ -463,10 +455,14 @@ private fun InfoCard(
 ) {
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp)),
-        backgroundColor = DarkCard,
-        elevation = 0.dp
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = DarkCard
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 0.dp
+        )
     ) {
         Row(
             modifier = Modifier
@@ -477,7 +473,7 @@ private fun InfoCard(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = YellowAccent,
+                tint = GreenAccent,
                 modifier = Modifier.size(24.dp)
             )
             
@@ -486,18 +482,18 @@ private fun InfoCard(
             Column {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.subtitle1,
+                    style = MaterialTheme.typography.titleMedium,
                     color = TextWhite
                 )
                 Text(
                     text = value,
-                    style = MaterialTheme.typography.h4,
-                    color = YellowAccent,
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = GreenAccent,
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
                 Text(
                     text = description,
-                    style = MaterialTheme.typography.body2,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = TextGray
                 )
             }
@@ -516,7 +512,6 @@ private fun CalorieCircle(
             .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
-        // Background Circle
         CircularProgressIndicator(
             progress = 1f,
             modifier = Modifier.fillMaxSize(),
@@ -524,7 +519,6 @@ private fun CalorieCircle(
             color = DarkCard.copy(alpha = 0.3f)
         )
         
-        // Animated Progress
         val animatedProgress by animateFloatAsState(
             targetValue = if (showDetails) 1f else 0f,
             animationSpec = tween(1500, easing = FastOutSlowInEasing),
@@ -535,10 +529,9 @@ private fun CalorieCircle(
             progress = animatedProgress,
             modifier = Modifier.fillMaxSize(),
             strokeWidth = 24.dp,
-            color = YellowAccent
+            color = GreenAccent
         )
 
-        // Calorie Text
         Column(
             modifier = Modifier.scale(
                 animateFloatAsState(
@@ -560,16 +553,16 @@ private fun CalorieCircle(
             
             Text(
                 text = "$animatedCalories",
-                style = MaterialTheme.typography.h2.copy(
+                style = MaterialTheme.typography.headlineLarge.copy(
                     fontSize = 48.sp,
                     fontWeight = FontWeight.Bold
                 ),
-                color = YellowAccent
+                color = GreenAccent
             )
             Text(
                 text = "kcal/day",
-                style = MaterialTheme.typography.subtitle1,
-                color = YellowAccent,
+                style = MaterialTheme.typography.titleMedium,
+                color = GreenAccent,
                 modifier = Modifier.padding(top = 4.dp)
             )
         }
@@ -586,7 +579,7 @@ private fun ActivityLevelSelector(
         Text(
             "Activity Level",
             color = TextWhite,
-            style = MaterialTheme.typography.h6
+            style = MaterialTheme.typography.titleLarge
         )
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
