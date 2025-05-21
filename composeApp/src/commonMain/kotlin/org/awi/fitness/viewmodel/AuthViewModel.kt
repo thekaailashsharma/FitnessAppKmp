@@ -5,16 +5,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.awi.fitness.data.UserSettings
 import org.awi.fitness.repository.AuthRepository
+import org.awi.fitness.repository.ClientRepository
+import org.awi.fitness.repository.FirebaseException
 
 sealed class AuthState {
     data object Initial : AuthState()
     data object Loading : AuthState()
-    data class Error(val message: String) : AuthState()
+    data class Error(val message: String, val code: String = "") : AuthState()
     data class Success(val message: String) : AuthState()
 }
 
 class AuthViewModel(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val clientRepository: ClientRepository = ClientRepository()
 ) : StateScreenModel<AuthState>(AuthState.Initial) {
 
     private val userSettings = UserSettings.getInstance()
@@ -47,9 +50,14 @@ class AuthViewModel(
         
         val result = authRepository.signUp(email.value, password.value)
         
-        mutableState.value = result.fold(
-            onSuccess = { AuthState.Success("Successfully signed up!") },
-            onFailure = { AuthState.Error(it.message ?: "Unknown error occurred") }
+        result.fold(
+            onSuccess = { 
+                // After successful signup, verify if client exists
+                verifyClientExists()
+            },
+            onFailure = { 
+                handleAuthError(it)
+            }
         )
     }
 
@@ -60,9 +68,49 @@ class AuthViewModel(
         
         val result = authRepository.signIn(email.value, password.value)
         
-        mutableState.value = result.fold(
-            onSuccess = { AuthState.Success("Successfully signed in!") },
-            onFailure = { AuthState.Error(it.message ?: "Unknown error occurred") }
+        result.fold(
+            onSuccess = { 
+                // After successful signin, verify if client exists
+                verifyClientExists()
+            },
+            onFailure = { 
+                handleAuthError(it)
+            }
+        )
+    }
+
+    private fun handleAuthError(error: Throwable) {
+        val message = when (error) {
+            is FirebaseException -> error.errorType.message
+            else -> error.message ?: "Unknown error occurred"
+        }
+        mutableState.value = AuthState.Error(message)
+    }
+
+    private suspend fun verifyClientExists() {
+        val result = clientRepository.getClientByEmail(email.value)
+        
+        result.fold(
+            onSuccess = { client ->
+                if (client != null) {
+                    mutableState.value = AuthState.Success("Successfully authenticated!")
+                } else {
+                    // If client doesn't exist, logout and show error
+                    authRepository.logout()
+                    mutableState.value = AuthState.Error(
+                        "Your email is not registered in the system. Please contact administrator.",
+                        "CLIENT_NOT_FOUND"
+                    )
+                }
+            },
+            onFailure = {
+                // If client verification fails, logout and show error
+                authRepository.logout()
+                mutableState.value = AuthState.Error(
+                    "Email does not exist. Please ask the admin to add your details",
+                    "VERIFICATION_FAILED"
+                )
+            }
         )
     }
 

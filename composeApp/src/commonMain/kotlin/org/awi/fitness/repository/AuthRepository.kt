@@ -3,6 +3,7 @@ package org.awi.fitness.repository
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.isSuccess
 import kotlinx.datetime.Clock
+import org.awi.fitness.model.FirebaseErrorType
 import org.awi.fitness.model.SignUpFirebaseAuth
 import org.awi.fitness.model.SignUpFirebaseResponse
 import org.awi.fitness.network.ApiService
@@ -21,10 +22,11 @@ class AuthRepository : ApiService() {
                 saveUserSession(response)
                 Result.success(response)
             } else {
-                Result.failure(Exception(response.error?.error?.message ?: "Unknown error"))
+                val errorMessage = response.error?.error?.message ?: "Unknown error"
+                Result.failure(FirebaseException(FirebaseErrorType.fromErrorMessage(errorMessage)))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(FirebaseException(FirebaseErrorType.NetworkError))
         }
     }
 
@@ -37,10 +39,11 @@ class AuthRepository : ApiService() {
                 saveUserSession(response)
                 Result.success(response)
             } else {
-                Result.failure(Exception(response.error?.error?.message ?: "Unknown error"))
+                val errorMessage = response.error?.error?.message ?: "Unknown error"
+                Result.failure(FirebaseException(FirebaseErrorType.fromErrorMessage(errorMessage)))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(FirebaseException(FirebaseErrorType.NetworkError))
         }
     }
 
@@ -89,4 +92,6 @@ class AuthRepository : ApiService() {
         
         return true
     }
-} 
+}
+
+class FirebaseException(val errorType: FirebaseErrorType) : Exception(errorType.message) 

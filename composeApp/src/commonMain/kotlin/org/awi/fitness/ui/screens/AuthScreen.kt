@@ -21,6 +21,7 @@ import compose.icons.tablericons.UserOff
 import compose.icons.tablericons.UserPlus
 import kotlinx.coroutines.launch
 import org.awi.fitness.data.StringKey
+import org.awi.fitness.repository.ClientRepository
 import org.awi.fitness.ui.components.FitnessButton
 import org.awi.fitness.ui.components.FitnessCard
 import org.awi.fitness.viewmodel.AuthState
@@ -67,28 +68,25 @@ class AuthScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(24.dp),
+                    .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Logo and Title with Animation
+                Spacer(modifier = Modifier.weight(1f))
+
                 Icon(
                     imageVector = TablerIcons.Activity,
                     contentDescription = null,
-                    modifier = Modifier.size(80.dp),
+                    modifier = Modifier.size(64.dp),
                     tint = MaterialTheme.colorScheme.primary
                 )
-                
-                Spacer(modifier = Modifier.height(24.dp))
                 
                 Text(
                     text = languageViewModel.getString(StringKey.APP_NAME),
                     style = MaterialTheme.typography.displayMedium,
                     color = MaterialTheme.colorScheme.onBackground
                 )
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
+
                 Text(
                     text = if (isSignUp) 
                         languageViewModel.getString(StringKey.CREATE_ACCOUNT)
@@ -97,10 +95,7 @@ class AuthScreen(
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                
-                Spacer(modifier = Modifier.height(48.dp))
 
-                // Error message with animation
                 AnimatedVisibility(
                     visible = errorMessage != null,
                     enter = fadeIn() + expandVertically(),
@@ -110,27 +105,26 @@ class AuthScreen(
                         Text(
                             text = error,
                             color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.padding(bottom = 24.dp)
+                            style = MaterialTheme.typography.bodyLarge
                         )
                     }
                 }
 
-                // Login Form
                 FitnessCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(24.dp),
-                        verticalArrangement = Arrangement.spacedBy(24.dp)
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         OutlinedTextField(
                             value = email,
-                            onValueChange = viewModel::updateEmail,
+                            onValueChange = { 
+                                viewModel.updateEmail(it)
+                                errorMessage = null
+                            },
                             label = { Text(languageViewModel.getString(StringKey.EMAIL)) },
                             leadingIcon = { 
                                 Icon(
@@ -141,16 +135,10 @@ class AuthScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(64.dp),
+                                .height(56.dp),
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                             singleLine = true,
-                            shape = MaterialTheme.shapes.medium,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                                focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
-                                unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            shape = MaterialTheme.shapes.medium
                         )
 
                         OutlinedTextField(
@@ -167,16 +155,10 @@ class AuthScreen(
                             visualTransformation = PasswordVisualTransformation(),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(64.dp),
+                                .height(56.dp),
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                             singleLine = true,
-                            shape = MaterialTheme.shapes.medium,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                                focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
-                                unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            shape = MaterialTheme.shapes.medium
                         )
 
                         FitnessButton(
@@ -191,25 +173,24 @@ class AuthScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(56.dp),
+                                .height(48.dp),
                             loading = isLoading
                         ) {
-                            Icon(if (isSignUp) TablerIcons.UserPlus else TablerIcons.UserOff, null)
-                            Spacer(Modifier.width(12.dp))
+                            Icon(
+                                if (isSignUp) TablerIcons.UserPlus else TablerIcons.UserOff,
+                                contentDescription = null
+                            )
+                            Spacer(Modifier.width(8.dp))
                             Text(
                                 if (isSignUp) 
                                     languageViewModel.getString(StringKey.SIGN_UP)
                                 else 
-                                    languageViewModel.getString(StringKey.SIGN_IN),
-                                style = MaterialTheme.typography.titleMedium
+                                    languageViewModel.getString(StringKey.SIGN_IN)
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Toggle between Sign In and Sign Up
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center,
@@ -224,7 +205,10 @@ class AuthScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     TextButton(
-                        onClick = { isSignUp = !isSignUp }
+                        onClick = { 
+                            isSignUp = !isSignUp
+                            errorMessage = null
+                        }
                     ) {
                         Text(
                             text = if (isSignUp) 
@@ -236,6 +220,8 @@ class AuthScreen(
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.weight(1f))
             }
         }
     }
