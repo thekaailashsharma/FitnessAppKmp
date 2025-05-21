@@ -20,7 +20,7 @@ data class Client @OptIn(ExperimentalUuidApi::class) constructor(
     val assignedMeals: List<String> = emptyList(),
     val measurements: Map<String, Float> = emptyMap(),
     val progress: List<ProgressEntry> = emptyList(),
-    val validTill: String = "",
+    val endDate: String = "",
     val assignedWorkoutGroups: List<String> = emptyList(),
     val assignedMealGroups: List<String> = emptyList()
 )
@@ -43,9 +43,26 @@ fun Client.toFirestoreRequest(): FirestoreRequest {
             joinDate = StringValue(joinDate),
             plan = StringValue(plan),
             status = StringValue(status),
-            goal = StringValue(goal.orEmpty()),
-            notes = StringValue(notes.orEmpty()),
+            goal = StringValue(goal),
+            notes = StringValue(notes),
             password = password?.let { StringValue(it) }
         )
+    )
+}
+
+fun FirestoreDocument<ClientFields>.toClient(): Client {
+    val documentId = name?.split("/")?.last() ?: ""
+    return Client(
+        id = documentId,
+        firstName = fields?.firstName?.value ?: "",
+        lastName = fields?.lastName?.value ?: "",
+        email = fields?.email?.value ?: "",
+        phone = fields?.phone?.value ?: "",
+        plan = fields?.plan?.value ?: "",
+        joinDate = fields?.joinDate?.value ?: "",
+        goal = fields?.goal?.value ?: "",
+        notes = fields?.notes?.value ?: "",
+        status = fields?.status?.value ?: "Active",
+        endDate = fields?.endDate?.value ?: ""
     )
 }

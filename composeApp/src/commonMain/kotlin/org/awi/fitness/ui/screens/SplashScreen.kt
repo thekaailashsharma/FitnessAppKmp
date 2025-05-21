@@ -18,19 +18,27 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import compose.icons.TablerIcons
 import compose.icons.tablericons.Activity
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.awi.fitness.data.StringKey
+import org.awi.fitness.data.UserSettings
+import org.awi.fitness.repository.AuthRepository
 import org.awi.fitness.ui.components.FitnessPulsingDot
+import org.awi.fitness.ui.components.SnackbarManager
+import org.awi.fitness.utils.DateUtils
 import org.awi.fitness.viewmodel.AuthViewModel
 import org.awi.fitness.viewmodel.LanguageViewModel
 
 class SplashScreen(
     private val authViewModel: AuthViewModel,
-    private val languageViewModel: LanguageViewModel
+    private val languageViewModel: LanguageViewModel,
+    private val snackbarManager: SnackbarManager
 ) : Screen {
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         var startAnimation by remember { mutableStateOf(false) }
+        val scope = rememberCoroutineScope()
+        val authRepository = remember { AuthRepository() }
         
         // Logo scale animation
         val scale by animateFloatAsState(
@@ -46,10 +54,46 @@ class SplashScreen(
 
         LaunchedEffect(Unit) {
             startAnimation = true
-            delay(2000)
-            // Check auth state before navigating
+            delay(1000) // Initial animation delay
+            
+            // Check auth and client status
             if (authViewModel.checkAuthState()) {
-                navigator.replace(MainScreen())
+                scope.launch {
+                    try {
+                        val userSettings = UserSettings.getInstance()
+                        val email = userSettings.userEmail ?: ""
+                        val result = authRepository.getClientByEmail(email)
+                        
+                        result.fold(
+                            onSuccess = { client ->
+                                when {
+                                    client == null -> {
+                                        authViewModel.logout()
+                                        snackbarManager.showMessage("You were logged out")
+                                        navigator.replace(AuthScreen(authViewModel, languageViewModel))
+                                    }
+                                    !DateUtils.isDateValid(client.endDate) -> {
+                                        authViewModel.logout()
+                                        snackbarManager.showMessage("Your plan has expired")
+                                        navigator.replace(AuthScreen(authViewModel, languageViewModel))
+                                    }
+                                    else -> {
+                                        navigator.replace(MainScreen())
+                                    }
+                                }
+                            },
+                            onFailure = {
+                                authViewModel.logout()
+                                snackbarManager.showMessage("Failed to verify account status")
+                                navigator.replace(AuthScreen(authViewModel, languageViewModel))
+                            }
+                        )
+                    } catch (e: Exception) {
+                        authViewModel.logout()
+                        snackbarManager.showMessage("Failed to verify account status")
+                        navigator.replace(AuthScreen(authViewModel, languageViewModel))
+                    }
+                }
             } else {
                 navigator.replace(AuthScreen(authViewModel, languageViewModel))
             }
@@ -59,41 +103,39 @@ class SplashScreen(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
-            Box(
+            Column(
                 modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                Icon(
+                    imageVector = TablerIcons.Activity,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(96.dp)
+                        .scale(scale),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text(
+                    text = languageViewModel.getString(StringKey.APP_NAME),
+                    style = MaterialTheme.typography.displayMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.graphicsLayer { this.alpha = alpha }
+                )
+                
+                Spacer(modifier = Modifier.height(32.dp))
+                
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    // Animated Logo
-                    Icon(
-                        imageVector = TablerIcons.Activity,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(120.dp)
-                            .scale(scale),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    
-                    Spacer(modifier = Modifier.height(32.dp))
-                    
-                    // Animated Text
-                    Text(
-                        text = languageViewModel.getString(StringKey.APP_NAME),
-                        style = MaterialTheme.typography.displayLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.graphicsLayer(alpha = alpha)
-                    )
-                    
-                    Spacer(modifier = Modifier.height(48.dp))
-                    
-                    // Loading Indicator
-                    FitnessPulsingDot(
-                        color = MaterialTheme.colorScheme.primary,
-                        size = 16f
-                    )
+                    repeat(3) { index ->
+                        FitnessPulsingDot(
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
             }
         }

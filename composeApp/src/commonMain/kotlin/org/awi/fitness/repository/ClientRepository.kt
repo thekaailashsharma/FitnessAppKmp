@@ -8,11 +8,12 @@ import org.awi.fitness.model.FirestoreResponse
 import org.awi.fitness.model.toClient
 import org.awi.fitness.model.toFirestoreRequest
 import org.awi.fitness.network.ApiService
+import org.awi.fitness.utils.DateUtils
 
 
 class ClientRepository : ApiService() {
     companion object {
-        private const val PROJECT_ID = "fitness-admin-73a72" // Replace with your Firebase project ID
+        internal const val PROJECT_ID = "fitness-admin-73a72" // Replace with your Firebase project ID
     }
 
     suspend fun createClient(client: Client): Result<Client> {

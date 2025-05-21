@@ -29,7 +29,8 @@ data class ClientFields(
     val status: StringValue? = null,
     val goal: StringValue? = null,
     val notes: StringValue? = null,
-    val password: StringValue? = null
+    val password: StringValue? = null,
+    val endDate: StringValue? = null
 )
 
 @Serializable
@@ -57,22 +58,6 @@ data class FirestoreDocument<T>(
     @SerialName("fields")
     val fields: T? = null
 )
-
-fun FirestoreDocument<ClientFields>.toClient(): Client {
-    val documentId = name?.split("/")?.last() ?: ""
-    return Client(
-        id = documentId,
-        firstName = fields?.firstName?.value ?: "",
-        lastName = fields?.lastName?.value ?: "",
-        email = fields?.email?.value ?: "",
-        phone = fields?.phone?.value ?: "",
-        plan = fields?.plan?.value ?: "",
-        joinDate = fields?.joinDate?.value ?: "",
-        goal = fields?.goal?.value ?: "",
-        notes = fields?.notes?.value ?: "",
-        status = fields?.status?.value ?: "Active"
-    )
-}
 
 @Serializable
 data class ProgramFirestoreRequest(
@@ -131,7 +116,8 @@ fun FirestoreResponse<ClientFields>.toClient(): Client {
         joinDate = fields?.joinDate?.value ?: "",
         goal = fields?.goal?.value ?: "",
         notes = fields?.notes?.value ?: "",
-        status = fields?.status?.value ?: "Active"
+        status = fields?.status?.value ?: "Active",
+        endDate = fields?.endDate?.value ?: ""
     )
 }
 

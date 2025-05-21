@@ -3,10 +3,16 @@ package org.awi.fitness.repository
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.isSuccess
 import kotlinx.datetime.Clock
+import org.awi.fitness.model.Client
+import org.awi.fitness.model.ClientFields
 import org.awi.fitness.model.FirebaseErrorType
+import org.awi.fitness.model.FirestoreListResponse
 import org.awi.fitness.model.SignUpFirebaseAuth
 import org.awi.fitness.model.SignUpFirebaseResponse
+import org.awi.fitness.model.toClient
 import org.awi.fitness.network.ApiService
+import org.awi.fitness.repository.ClientRepository.Companion.PROJECT_ID
+import org.awi.fitness.utils.DateUtils
 
 class AuthRepository : ApiService() {
     companion object {
@@ -65,32 +71,35 @@ class AuthRepository : ApiService() {
 
     private suspend fun signUpFirebase(request: SignUpFirebaseAuth): Pair<SignUpFirebaseResponse, HttpStatusCode> {
         val signUpUrl = "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=$API_KEY"
-        return post(signUpUrl, request)
+        return unAuthenticatedPost(signUpUrl, request)
     }
 
     private suspend fun signInFirebase(request: SignUpFirebaseAuth): Pair<SignUpFirebaseResponse, HttpStatusCode> {
         val signInUrl = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=$API_KEY"
-        return post(signInUrl, request)
+        return unAuthenticatedPost(signInUrl, request)
+    }
+
+    suspend fun getClientByEmail(email: String): Result<Client?> {
+        return try {
+            val token = userSettings.authToken ?: return Result.failure(Exception("Not authenticated"))
+
+            val url = "https://firestore.googleapis.com/v1/projects/$PROJECT_ID/databases/(default)/documents/clients"
+
+            val (response, status) = unAuthenticatedGet<FirestoreListResponse<ClientFields>>(url, token)
+
+            if (status.isSuccess()) {
+                val clients = response.documents?.map { it.toClient() }?.firstOrNull { it.email == email && DateUtils.isDateValid(it.endDate) }
+                Result.success(clients)
+            } else {
+                Result.failure(Exception("Failed to fetch client"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     fun isLoggedIn(): Boolean {
         return userSettings.isLoggedIn
-    }
-
-    suspend fun checkAuthState(): Boolean {
-        val token = userSettings.authToken
-        val expiryTimeStr = userSettings.tokenExpiryTime
-        
-        if (token == null || expiryTimeStr == null) return false
-        
-        val expiryTime = expiryTimeStr.toLong()
-        val currentTime = Clock.System.now().toEpochMilliseconds()
-        
-        if (currentTime >= expiryTime - 5 * 60 * 1000) {
-            return refreshToken().isSuccess
-        }
-        
-        return true
     }
 }
 

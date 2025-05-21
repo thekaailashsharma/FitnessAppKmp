@@ -88,7 +88,7 @@ class AuthViewModel(
     }
 
     private suspend fun verifyClientExists() {
-        val result = clientRepository.getClientByEmail(email.value)
+        val result = authRepository.getClientByEmail(email.value)
         
         result.fold(
             onSuccess = { client ->
