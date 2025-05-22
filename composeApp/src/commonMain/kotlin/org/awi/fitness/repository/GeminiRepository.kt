@@ -6,6 +6,8 @@ import kotlinx.serialization.Serializable
 import org.awi.fitness.data.ActivityLevel
 import org.awi.fitness.data.Gender
 import org.awi.fitness.data.Goal
+import org.awi.fitness.data.MeasurementEntry
+import org.awi.fitness.data.WeighInEntry
 import org.awi.fitness.network.ApiService
 
 @Serializable
@@ -65,6 +67,13 @@ data class CalorieCalculationResponse(
     val bmr: Float,
     val tdee: Float,
     val targetCalories: Float
+)
+
+@Serializable
+data class MeasurementAnalysis(
+    val insights: List<String>,
+    val trends: Map<String, String>,
+    val recommendations: List<String>
 )
 
 class GeminiRepository : ApiService() {
@@ -208,6 +217,80 @@ class GeminiRepository : ApiService() {
                 Result.success(calorieResponse)
             } else {
                 Result.failure(Exception(response.error?.message ?: "Failed to calculate calories"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun analyzeMeasurements(
+        measurements: List<MeasurementEntry>,
+        weighIns: List<WeighInEntry>
+    ): Result<MeasurementAnalysis> {
+        return try {
+            val prompt = """
+                Analyze the following body measurements and weight data:
+                
+                Measurements (waist, hips, arms in cm):
+                ${measurements.joinToString("\n") { 
+                    "${it.date}: Waist=${it.waist}, Hips=${it.hips}, Arms=${it.arms}" 
+                }}
+                
+                Weight entries (in kg):
+                ${weighIns.joinToString("\n") { 
+                    "${it.date}: ${it.weight}kg ${if (it.note.isNotEmpty()) "- ${it.note}" else ""}" 
+                }}
+                
+                Please provide the response in this exact JSON format:
+                {
+                    "insights": [
+                        "Key observation 1",
+                        "Key observation 2"
+                    ],
+                    "trends": {
+                        "waist": "trend description",
+                        "hips": "trend description",
+                        "arms": "trend description",
+                        "weight": "trend description"
+                    },
+                    "recommendations": [
+                        "recommendation 1",
+                        "recommendation 2"
+                    ]
+                }
+                
+                Focus on meaningful changes and patterns. If there's insufficient data, mention that in the insights.
+            """.trimIndent()
+
+            val request = GeminiRequest(
+                contents = listOf(
+                    GeminiContent(
+                        parts = listOf(
+                            GeminiPart(text = prompt)
+                        )
+                    )
+                )
+            )
+
+            val url = "$GEMINI_BASE_URL?key=$GEMINI_API_KEY"
+            val (response, status) = post<GeminiResponse>(
+                url = url,
+                body = request
+            )
+
+            if (status.isSuccess()) {
+                val generatedText = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+                    ?: return Result.failure(Exception("No response generated"))
+
+                val cleanJson = generatedText
+                    .replace("```json", "")
+                    .replace("```", "")
+                    .trim()
+
+                val analysis = kotlinx.serialization.json.Json.decodeFromString<MeasurementAnalysis>(cleanJson)
+                Result.success(analysis)
+            } else {
+                Result.failure(Exception(response.error?.message ?: "Failed to analyze measurements"))
             }
         } catch (e: Exception) {
             Result.failure(e)

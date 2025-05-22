@@ -10,6 +10,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,9 +19,13 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -39,10 +44,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,24 +62,38 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import compose.icons.TablerIcons
 import compose.icons.tablericons.Activity
 import compose.icons.tablericons.Battery
+import compose.icons.tablericons.ChartLine
 import compose.icons.tablericons.Flame
 import compose.icons.tablericons.Refresh
+import compose.icons.tablericons.Ruler
 import compose.icons.tablericons.Run
 import compose.icons.tablericons.Scale
 import compose.icons.tablericons.Social
 import compose.icons.tablericons.Walk
+import kotlinx.datetime.Clock
+import kotlinx.datetime.toLocalDateTime
 import org.awi.fitness.data.ActivityLevel
 import org.awi.fitness.data.CalorieUiState
 import org.awi.fitness.data.Gender
 import org.awi.fitness.data.Goal
+import org.awi.fitness.data.MeasurementEntry
+import org.awi.fitness.data.UserSettings
+import org.awi.fitness.data.WeighInEntry
+import org.awi.fitness.repository.GeminiRepository
+import org.awi.fitness.repository.MeasurementAnalysis
 import org.awi.fitness.theme.BackgroundDark
 import org.awi.fitness.theme.ChipSelectedText
 import org.awi.fitness.theme.ChipUnselectedBackground
@@ -81,15 +105,23 @@ import org.awi.fitness.theme.InputFieldBorder
 import org.awi.fitness.theme.TextGray
 import org.awi.fitness.theme.TextWhite
 import org.awi.fitness.viewmodel.CalorieViewModel
+import kotlin.math.pow
 
 private val IconSelected = GreenAccent
 private val IconUnselected = TextGray
+
+private fun Float.formatToString(digits: Int = 1): String {
+    val multiplier = pow(digits).toFloat()
+    val roundedValue = kotlin.math.round(this * multiplier) / multiplier
+    return roundedValue.toString()
+}
 
 @Composable
 fun CalorieCalculatorScreen(
     viewModel: CalorieViewModel = remember { CalorieViewModel() }
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    var selectedTab by remember { mutableStateOf(0) }
+    val tabs = listOf("Calories", "Weight", "Measure")
     
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -101,83 +133,773 @@ fun CalorieCalculatorScreen(
                 .padding(bottom = 80.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            if (!uiState.isCalculated) {
-                CalorieInputForm(
-                    uiState = uiState,
-                    onWeightChange = viewModel::updateWeight,
-                    onHeightChange = viewModel::updateHeight,
-                    onAgeChange = viewModel::updateAge,
-                    onGenderSelect = viewModel::updateGender,
-                    onActivityLevelSelect = viewModel::updateActivityLevel,
-                    onGoalSelect = viewModel::updateGoal
-                )
-            } else {
-                CalorieResultScreen(
-                    uiState = uiState,
-                    onRecalculate = viewModel::resetCalculation
-                )
-            }
-
-            // Show error message if any
-            uiState.error?.let { error ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.Red.copy(alpha = 0.1f)
-                    ),
-                    border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.3f))
-                ) {
-                    Text(
-                        text = error,
-                        color = Color.Red,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(16.dp)
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = DarkCard,
+                contentColor = GreenAccent
+            ) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTab == index,
+                        onClick = { selectedTab = index },
+                        text = { 
+                            Text(
+                                text = title,
+                                maxLines = 1,
+                                style = MaterialTheme.typography.bodyMedium
+                            ) 
+                        }
                     )
                 }
             }
+
+            when (selectedTab) {
+                0 -> CalorieCalculatorContent(viewModel)
+                1 -> WeightTrackingScreen()
+                2 -> MeasurementTrackingScreen()
+            }
         }
-        
-        if (!uiState.isCalculated) {
+    }
+}
+
+@Composable
+private fun WeightTrackingScreen() {
+    val settings = remember { UserSettings.getInstance() }
+    val weighIns by settings.weighIns.collectAsState()
+    var showAddDialog by remember { mutableStateOf(false) }
+    var weight by remember { mutableStateOf("") }
+    var note by remember { mutableStateOf("") }
+    
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Weight Tracking",
+                style = MaterialTheme.typography.titleLarge,
+                color = TextWhite
+            )
+            
             Button(
-                onClick = viewModel::calculateCalories,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .height(56.dp),
-                shape = RoundedCornerShape(28.dp),
+                onClick = { showAddDialog = true },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = GreenAccent,
                     contentColor = Color.Black
                 ),
-                enabled = !uiState.isLoading
+                modifier = Modifier.height(36.dp)
             ) {
-                if (uiState.isLoading) {
+                Icon(
+                    TablerIcons.Scale,
+                    null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    "Add Weight",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+
+        // Weight graph
+        if (weighIns.size >= 2) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = DarkCard)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Progress Graph",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = TextWhite
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val latest = weighIns.maxBy { it.date }
+                            val oldest = weighIns.minBy { it.date }
+                            val diff = latest.weight - oldest.weight
+                            val diffText = if (diff > 0) {
+                                "+${diff.formatToString()}"
+                            } else {
+                                diff.formatToString()
+                            }
+                            val diffColor = when {
+                                diff > 0 -> Color.Red.copy(alpha = 0.8f)
+                                diff < 0 -> GreenAccent
+                                else -> TextWhite
+                            }
+                            
+                            Text(
+                                "$diffText kg",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = diffColor
+                            )
+                        }
+                    }
+                    WeightGraph(weighIns = weighIns)
+                }
+            }
+        } else if (weighIns.size == 1) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = DarkCard)
+            ) {
+                Text(
+                    "Add one more weight entry to see your progress graph",
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextGray
+                )
+            }
+        }
+
+        // Weight entries
+        weighIns.sortedByDescending { it.date }.forEach { entry ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = DarkCard)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            "${entry.weight} kg",
+                            color = GreenAccent,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        if (entry.note.isNotEmpty()) {
+                            Text(
+                                entry.note,
+                                color = TextWhite,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                    Text(
+                        formatDate(entry.date),
+                        color = TextGray,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        }
+    }
+
+    if (showAddDialog) {
+        Dialog(onDismissRequest = { showAddDialog = false }) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                colors = CardDefaults.cardColors(containerColor = DarkCard)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        "Add Weight Entry",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = TextWhite
+                    )
+                    
+                    OutlinedTextField(
+                        value = weight,
+                        onValueChange = { weight = it },
+                        label = { Text("Weight (kg)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedTextColor = TextWhite,
+                            focusedTextColor = TextWhite,
+                            unfocusedContainerColor = InputFieldBackground,
+                            focusedContainerColor = InputFieldBackground,
+                            unfocusedBorderColor = InputFieldBorder,
+                            focusedBorderColor = InputFieldBorder
+                        )
+                    )
+                    
+                    OutlinedTextField(
+                        value = note,
+                        onValueChange = { note = it },
+                        label = { Text("Note (optional)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedTextColor = TextWhite,
+                            focusedTextColor = TextWhite,
+                            unfocusedContainerColor = InputFieldBackground,
+                            focusedContainerColor = InputFieldBackground,
+                            unfocusedBorderColor = InputFieldBorder,
+                            focusedBorderColor = InputFieldBorder
+                        )
+                    )
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(onClick = { showAddDialog = false }) {
+                            Text("Cancel", color = TextGray)
+                        }
+                        Button(
+                            onClick = {
+                                weight.toFloatOrNull()?.let { weightValue ->
+                                    settings.addWeighIn(
+                                        WeighInEntry(
+                                            weight = weightValue,
+                                            date = Clock.System.now().epochSeconds,
+                                            note = note
+                                        )
+                                    )
+                                    showAddDialog = false
+                                    weight = ""
+                                    note = ""
+                                }
+                            },
+                            enabled = weight.toFloatOrNull() != null,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = GreenAccent,
+                                contentColor = Color.Black
+                            )
+                        ) {
+                            Text("Save")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MeasurementTrackingScreen() {
+    val settings = remember { UserSettings.getInstance() }
+    val measurements by settings.measurements.collectAsState()
+    var showAddDialog by remember { mutableStateOf(false) }
+    var waist by remember { mutableStateOf("") }
+    var hips by remember { mutableStateOf("") }
+    var arms by remember { mutableStateOf("") }
+    var note by remember { mutableStateOf("") }
+    
+    val repository = remember { GeminiRepository() }
+    var analysis by remember { mutableStateOf<MeasurementAnalysis?>(null) }
+    var isAnalyzing by remember { mutableStateOf(false) }
+    
+    // Load analysis only once when screen is opened
+    LaunchedEffect(Unit) {
+        if (measurements.isNotEmpty() && analysis == null) {
+            isAnalyzing = true
+            repository.analyzeMeasurements(
+                measurements = measurements,
+                weighIns = settings.weighIns.value
+            ).onSuccess {
+                analysis = it
+                isAnalyzing = false
+            }.onFailure {
+                isAnalyzing = false
+            }
+        }
+    }
+    
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Measurements",
+                style = MaterialTheme.typography.titleLarge,
+                color = TextWhite
+            )
+            
+            Button(
+                onClick = { showAddDialog = true },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = GreenAccent,
+                    contentColor = Color.Black
+                ),
+                modifier = Modifier.height(36.dp)
+            ) {
+                Icon(
+                    TablerIcons.Ruler,
+                    null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    "Add",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+
+        if (isAnalyzing) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = DarkCard)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = Color.Black,
+                        modifier = Modifier.size(32.dp),
+                        color = GreenAccent,
                         strokeWidth = 2.dp
                     )
-                } else {
                     Text(
-                        "Calculate",
-                        style = MaterialTheme.typography.labelLarge
+                        "Analyzing your measurements...",
+                        color = TextWhite,
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }
         }
 
-        // Loading overlay
-        if (uiState.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.5f)),
-                contentAlignment = Alignment.Center
+        // Analysis card
+        analysis?.let { measurementAnalysis ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = DarkCard)
             ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        "Analysis",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = TextWhite
+                    )
+                    
+                    measurementAnalysis.insights.forEach { insight ->
+                        Text(
+                            insight,
+                            color = TextWhite,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                    
+                    if (measurementAnalysis.recommendations.isNotEmpty()) {
+                        Text(
+                            "Recommendations",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = GreenAccent
+                        )
+                        measurementAnalysis.recommendations.forEach { recommendation ->
+                            Text(
+                                "• $recommendation",
+                                color = TextWhite,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Measurement entries
+        measurements.sortedByDescending { it.date }.forEach { entry ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = DarkCard)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            formatDate(entry.date),
+                            color = TextGray,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(
+                                "Waist",
+                                color = TextGray,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Text(
+                                "${entry.waist} cm",
+                                color = GreenAccent,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
+                        Column {
+                            Text(
+                                "Hips",
+                                color = TextGray,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Text(
+                                "${entry.hips} cm",
+                                color = GreenAccent,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
+                        Column {
+                            Text(
+                                "Arms",
+                                color = TextGray,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Text(
+                                "${entry.arms} cm",
+                                color = GreenAccent,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showAddDialog) {
+        Dialog(onDismissRequest = { showAddDialog = false }) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                colors = CardDefaults.cardColors(containerColor = DarkCard)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        "Add Measurements",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = TextWhite
+                    )
+                    
+                    OutlinedTextField(
+                        value = waist,
+                        onValueChange = { waist = it },
+                        label = { Text("Waist (cm)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedTextColor = TextWhite,
+                            focusedTextColor = TextWhite,
+                            unfocusedContainerColor = InputFieldBackground,
+                            focusedContainerColor = InputFieldBackground,
+                            unfocusedBorderColor = InputFieldBorder,
+                            focusedBorderColor = InputFieldBorder
+                        )
+                    )
+                    
+                    OutlinedTextField(
+                        value = hips,
+                        onValueChange = { hips = it },
+                        label = { Text("Hips (cm)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedTextColor = TextWhite,
+                            focusedTextColor = TextWhite,
+                            unfocusedContainerColor = InputFieldBackground,
+                            focusedContainerColor = InputFieldBackground,
+                            unfocusedBorderColor = InputFieldBorder,
+                            focusedBorderColor = InputFieldBorder
+                        )
+                    )
+                    
+                    OutlinedTextField(
+                        value = arms,
+                        onValueChange = { arms = it },
+                        label = { Text("Arms (cm)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedTextColor = TextWhite,
+                            focusedTextColor = TextWhite,
+                            unfocusedContainerColor = InputFieldBackground,
+                            focusedContainerColor = InputFieldBackground,
+                            unfocusedBorderColor = InputFieldBorder,
+                            focusedBorderColor = InputFieldBorder
+                        )
+                    )
+                    
+                    OutlinedTextField(
+                        value = note,
+                        onValueChange = { note = it },
+                        label = { Text("Note (optional)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedTextColor = TextWhite,
+                            focusedTextColor = TextWhite,
+                            unfocusedContainerColor = InputFieldBackground,
+                            focusedContainerColor = InputFieldBackground,
+                            unfocusedBorderColor = InputFieldBorder,
+                            focusedBorderColor = InputFieldBorder
+                        )
+                    )
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(onClick = { showAddDialog = false }) {
+                            Text("Cancel", color = TextGray)
+                        }
+                        Button(
+                            onClick = {
+                                val waistValue = waist.toFloatOrNull()
+                                val hipsValue = hips.toFloatOrNull()
+                                val armsValue = arms.toFloatOrNull()
+                                
+                                if (waistValue != null && hipsValue != null && armsValue != null) {
+                                    settings.addMeasurement(
+                                        MeasurementEntry(
+                                            waist = waistValue,
+                                            hips = hipsValue,
+                                            arms = armsValue,
+                                            date = Clock.System.now().epochSeconds,
+                                            note = note
+                                        )
+                                    )
+                                    showAddDialog = false
+                                    waist = ""
+                                    hips = ""
+                                    arms = ""
+                                    note = ""
+                                }
+                            },
+                            enabled = waist.toFloatOrNull() != null && 
+                                     hips.toFloatOrNull() != null && 
+                                     arms.toFloatOrNull() != null,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = GreenAccent,
+                                contentColor = Color.Black
+                            )
+                        ) {
+                            Text("Save")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeightGraph(weighIns: List<WeighInEntry>) {
+    if (weighIns.isEmpty()) return
+    
+    val sortedEntries = weighIns.sortedBy { it.date }
+    val minWeight = sortedEntries.minOf { it.weight }
+    val maxWeight = sortedEntries.maxOf { it.weight }
+    val weightRange = (maxWeight - minWeight).coerceAtLeast(1f)
+    
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(2f)
+            .padding(
+                start = 32.dp,
+                end = 16.dp,
+                top = 8.dp,
+                bottom = 32.dp
+            )
+    ) {
+        // Y-axis labels
+        Column(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .fillMaxHeight(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            val steps = 5
+            for (i in steps downTo 0) {
+                val weight = minWeight + (weightRange * (i.toFloat() / steps))
+                Text(
+                    weight.formatToString(),
+                    color = TextGray,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(end = 4.dp)
+                )
+            }
+        }
+        
+        // Graph
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(start = 24.dp)
+        ) {
+            val path = Path()
+            val points = sortedEntries.mapIndexed { index, entry ->
+                val x = size.width * (index.toFloat() / (sortedEntries.size - 1).coerceAtLeast(1))
+                val y = size.height * (1 - (entry.weight - minWeight) / weightRange)
+                Offset(x, y)
+            }
+            
+            // Draw horizontal grid lines
+            val steps = 5
+            for (i in 0..steps) {
+                val y = size.height * (i.toFloat() / steps)
+                drawLine(
+                    color = Color.White.copy(alpha = 0.1f),
+                    start = Offset(0f, y),
+                    end = Offset(size.width, y),
+                    strokeWidth = 1f
+                )
+            }
+            
+            // Draw the line
+            if (points.isNotEmpty()) {
+                path.moveTo(points.first().x, points.first().y)
+                for (i in 1 until points.size) {
+                    path.lineTo(points[i].x, points[i].y)
+                }
+                
+                drawPath(
+                    path = path,
+                    color = GreenAccent,
+                    style = Stroke(width = 3f)
+                )
+            }
+            
+            // Draw points
+            points.forEach { point ->
+                drawCircle(
+                    color = GreenAccent,
+                    radius = 6f,
+                    center = point
+                )
+            }
+        }
+        
+        // Weight values above points
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            sortedEntries.forEach { entry ->
+                Text(
+                    entry.weight.formatToString(),
+                    color = GreenAccent,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.offset(y = (-8).dp)
+                )
+            }
+        }
+    }
+}
+
+private fun formatDate(timestamp: Long): String {
+    val date = kotlinx.datetime.Instant.fromEpochSeconds(timestamp)
+        .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
+    return "${date.dayOfMonth}/${date.monthNumber}/${date.year}"
+}
+
+@Composable
+private fun CalorieCalculatorContent(viewModel: CalorieViewModel) {
+    val uiState by viewModel.uiState.collectAsState()
+    
+    if (!uiState.isCalculated) {
+        CalorieInputForm(
+            uiState = uiState,
+            onWeightChange = viewModel::updateWeight,
+            onHeightChange = viewModel::updateHeight,
+            onAgeChange = viewModel::updateAge,
+            onGenderSelect = viewModel::updateGender,
+            onActivityLevelSelect = viewModel::updateActivityLevel,
+            onGoalSelect = viewModel::updateGoal
+        )
+    } else {
+        CalorieResultScreen(
+            uiState = uiState,
+            onRecalculate = viewModel::resetCalculation
+        )
+    }
+
+    // Show error message if any
+    uiState.error?.let { error ->
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.Red.copy(alpha = 0.1f)
+            ),
+            border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.3f))
+        ) {
+            Text(
+                text = error,
+                color = Color.Red,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+    }
+    
+    if (!uiState.isCalculated) {
+        Button(
+            onClick = viewModel::calculateCalories,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp)
+                .height(56.dp),
+            shape = RoundedCornerShape(28.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = GreenAccent,
+                contentColor = Color.Black
+            ),
+            enabled = !uiState.isLoading
+        ) {
+            if (uiState.isLoading) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(48.dp),
-                    color = GreenAccent
+                    modifier = Modifier.size(24.dp),
+                    color = Color.Black,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text(
+                    "Calculate",
+                    style = MaterialTheme.typography.labelLarge
                 )
             }
         }

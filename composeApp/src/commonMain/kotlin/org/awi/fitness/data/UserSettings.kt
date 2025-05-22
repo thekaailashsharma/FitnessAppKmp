@@ -9,6 +9,25 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.internal.SynchronizedObject
 import kotlinx.coroutines.internal.synchronized
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+
+@Serializable
+data class WeighInEntry(
+    val weight: Float,
+    val date: Long,
+    val note: String = ""
+)
+
+@Serializable
+data class MeasurementEntry(
+    val waist: Float,
+    val hips: Float,
+    val arms: Float,
+    val date: Long,
+    val note: String = ""
+)
 
 class UserSettings internal constructor(private val settings: Settings) {
     companion object {
@@ -28,6 +47,11 @@ class UserSettings internal constructor(private val settings: Settings) {
         private const val KEY_CALCULATED_CALORIES = "calculated_calories"
         private const val KEY_BMR = "bmr"
         private const val KEY_TDEE = "tdee"
+        private const val KEY_WEIGH_INS = "weigh_ins"
+        private const val KEY_MEASUREMENTS = "measurements"
+        private const val KEY_LAST_REMINDER_CHECK = "last_reminder_check"
+        private const val KEY_WEIGH_IN_REMINDER_ENABLED = "weigh_in_reminder_enabled"
+        private const val KEY_MEASUREMENT_REMINDER_ENABLED = "measurement_reminder_enabled"
 
         private var instance: UserSettings? = null
 
@@ -139,6 +163,59 @@ class UserSettings internal constructor(private val settings: Settings) {
         get() = settings[KEY_TDEE, 0f]
         set(value) {
             settings[KEY_TDEE] = value
+        }
+
+    private val _weighIns = MutableStateFlow<List<WeighInEntry>>(emptyList())
+    val weighIns = _weighIns.asStateFlow()
+
+    private val _measurements = MutableStateFlow<List<MeasurementEntry>>(emptyList())
+    val measurements = _measurements.asStateFlow()
+
+    init {
+        loadWeighIns()
+        loadMeasurements()
+    }
+
+    private fun loadWeighIns() {
+        val weighInsJson = settings[KEY_WEIGH_INS, "[]"]
+        _weighIns.value = Json.decodeFromString(weighInsJson)
+    }
+
+    private fun loadMeasurements() {
+        val measurementsJson = settings[KEY_MEASUREMENTS, "[]"]
+        _measurements.value = Json.decodeFromString(measurementsJson)
+    }
+
+    fun addWeighIn(entry: WeighInEntry) {
+        val currentList = _weighIns.value.toMutableList()
+        currentList.add(entry)
+        _weighIns.value = currentList
+        settings[KEY_WEIGH_INS] = Json.encodeToString(currentList)
+    }
+
+    fun addMeasurement(entry: MeasurementEntry) {
+        val currentList = _measurements.value.toMutableList()
+        currentList.add(entry)
+        _measurements.value = currentList
+        settings[KEY_MEASUREMENTS] = Json.encodeToString(currentList)
+    }
+
+    var weighInReminderEnabled: Boolean
+        get() = settings[KEY_WEIGH_IN_REMINDER_ENABLED, false]
+        set(value) {
+            settings[KEY_WEIGH_IN_REMINDER_ENABLED] = value
+        }
+
+    var measurementReminderEnabled: Boolean
+        get() = settings[KEY_MEASUREMENT_REMINDER_ENABLED, false]
+        set(value) {
+            settings[KEY_MEASUREMENT_REMINDER_ENABLED] = value
+        }
+
+    var lastReminderCheck: Long
+        get() = settings[KEY_LAST_REMINDER_CHECK, 0L]
+        set(value) {
+            settings[KEY_LAST_REMINDER_CHECK] = value
         }
 
     fun clearUserData() {
