@@ -24,6 +24,7 @@ import org.awi.fitness.ui.CalorieCalculatorScreen
 sealed class BottomNavItem(val route: String) {
     object Home : BottomNavItem("home")
     object Workouts : BottomNavItem("workouts")
+    object Schedule : BottomNavItem("schedule")
     object Meals : BottomNavItem("meals")
     object Profile : BottomNavItem("profile")
 }
@@ -40,6 +41,7 @@ class MainScreen : Screen {
                     listOf(
                         BottomNavItem.Home,
                         BottomNavItem.Workouts,
+                        BottomNavItem.Schedule,
                         BottomNavItem.Meals,
                         BottomNavItem.Profile
                     ).forEach { item ->
@@ -51,6 +53,7 @@ class MainScreen : Screen {
                                     imageVector = when (item) {
                                         BottomNavItem.Home -> TablerIcons.Home
                                         BottomNavItem.Workouts -> TablerIcons.Walk
+                                        BottomNavItem.Schedule -> TablerIcons.CalendarEvent
                                         BottomNavItem.Meals -> SimpleIcons.Ifood
                                         BottomNavItem.Profile -> TablerIcons.User
                                     },
@@ -71,6 +74,7 @@ class MainScreen : Screen {
                 when (currentRoute) {
                     BottomNavItem.Home.route -> CalorieCalculatorScreen()
                     BottomNavItem.Workouts.route -> WorkoutScreen().Content()
+                    BottomNavItem.Schedule.route -> WorkoutSchedulerScreen().Content()
                     BottomNavItem.Meals.route -> MealScreen().Content()
                     BottomNavItem.Profile.route -> CalorieCalculatorScreen() // Temporary
                 }

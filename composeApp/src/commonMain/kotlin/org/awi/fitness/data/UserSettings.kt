@@ -29,6 +29,29 @@ data class MeasurementEntry(
     val note: String = ""
 )
 
+@Serializable
+data class WorkoutSchedule(
+    val id: String,
+    val title: String,
+    val description: String = "",
+    val startTime: Long,
+    val endTime: Long,
+    val workoutType: WorkoutType,
+    val recurringType: RecurringType = RecurringType.NONE,
+    val color: Long,
+    val isCompleted: Boolean = false
+)
+
+@Serializable
+enum class WorkoutType {
+    CARDIO, STRENGTH, FLEXIBILITY, HIIT, YOGA, OTHER
+}
+
+@Serializable
+enum class RecurringType {
+    NONE, DAILY, WEEKLY, MONTHLY
+}
+
 class UserSettings internal constructor(private val settings: Settings) {
     companion object {
         private const val KEY_AUTH_TOKEN = "auth_token"
@@ -52,6 +75,7 @@ class UserSettings internal constructor(private val settings: Settings) {
         private const val KEY_LAST_REMINDER_CHECK = "last_reminder_check"
         private const val KEY_WEIGH_IN_REMINDER_ENABLED = "weigh_in_reminder_enabled"
         private const val KEY_MEASUREMENT_REMINDER_ENABLED = "measurement_reminder_enabled"
+        private const val KEY_WORKOUT_SCHEDULES = "workout_schedules"
 
         private var instance: UserSettings? = null
 
@@ -171,9 +195,13 @@ class UserSettings internal constructor(private val settings: Settings) {
     private val _measurements = MutableStateFlow<List<MeasurementEntry>>(emptyList())
     val measurements = _measurements.asStateFlow()
 
+    private val _workoutSchedules = MutableStateFlow<List<WorkoutSchedule>>(emptyList())
+    val workoutSchedules: StateFlow<List<WorkoutSchedule>> = _workoutSchedules.asStateFlow()
+
     init {
         loadWeighIns()
         loadMeasurements()
+        loadWorkoutSchedules()
     }
 
     private fun loadWeighIns() {
@@ -184,6 +212,11 @@ class UserSettings internal constructor(private val settings: Settings) {
     private fun loadMeasurements() {
         val measurementsJson = settings[KEY_MEASUREMENTS, "[]"]
         _measurements.value = Json.decodeFromString(measurementsJson)
+    }
+
+    private fun loadWorkoutSchedules() {
+        val schedulesJson = settings[KEY_WORKOUT_SCHEDULES, "[]"]
+        _workoutSchedules.value = Json.decodeFromString(schedulesJson)
     }
 
     fun addWeighIn(entry: WeighInEntry) {
@@ -218,6 +251,30 @@ class UserSettings internal constructor(private val settings: Settings) {
             settings[KEY_LAST_REMINDER_CHECK] = value
         }
 
+    fun addWorkoutSchedule(schedule: WorkoutSchedule) {
+        val currentList = _workoutSchedules.value.toMutableList()
+        currentList.add(schedule)
+        _workoutSchedules.value = currentList
+        settings[KEY_WORKOUT_SCHEDULES] = Json.encodeToString(currentList)
+    }
+
+    fun updateWorkoutSchedule(schedule: WorkoutSchedule) {
+        val currentList = _workoutSchedules.value.toMutableList()
+        val index = currentList.indexOfFirst { it.id == schedule.id }
+        if (index != -1) {
+            currentList[index] = schedule
+            _workoutSchedules.value = currentList
+            settings[KEY_WORKOUT_SCHEDULES] = Json.encodeToString(currentList)
+        }
+    }
+
+    fun deleteWorkoutSchedule(scheduleId: String) {
+        val currentList = _workoutSchedules.value.toMutableList()
+        currentList.removeAll { it.id == scheduleId }
+        _workoutSchedules.value = currentList
+        settings[KEY_WORKOUT_SCHEDULES] = Json.encodeToString(currentList)
+    }
+
     fun clearUserData() {
         settings.clear()
         authToken = null
@@ -231,5 +288,8 @@ class UserSettings internal constructor(private val settings: Settings) {
         appleIdentityToken = null
         appleAuthorizationCode = null
         authProvider = null
+        _weighIns.value = emptyList()
+        _measurements.value = emptyList()
+        _workoutSchedules.value = emptyList()
     }
 } 
