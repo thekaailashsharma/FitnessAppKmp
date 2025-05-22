@@ -16,7 +16,6 @@ data class WorkoutUIState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val workoutPlans: List<WorkoutPlanWithExercises> = emptyList(),
-    val selectedDayOfWeek: Int = 1,
     val selectedPlanId: String? = null
 )
 
@@ -161,10 +160,6 @@ class WorkoutViewModel {
                 )
             }
         }
-    }
-
-    fun updateSelectedDay(day: Int) {
-        _state.update { it.copy(selectedDayOfWeek = day) }
     }
 
     suspend fun setExerciseCompleted(exercise: Exercise, completed: Boolean) {
