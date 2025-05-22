@@ -3,6 +3,9 @@ package org.awi.fitness.repository
 import io.ktor.client.request.*
 import io.ktor.http.*
 import kotlinx.serialization.Serializable
+import org.awi.fitness.data.ActivityLevel
+import org.awi.fitness.data.Gender
+import org.awi.fitness.data.Goal
 import org.awi.fitness.network.ApiService
 
 @Serializable
@@ -55,6 +58,13 @@ data class GeneratedExercise(
     val reps: Int,
     val restTime: Int,
     val tips: String
+)
+
+@Serializable
+data class CalorieCalculationResponse(
+    val bmr: Float,
+    val tdee: Float,
+    val targetCalories: Float
 )
 
 class GeminiRepository : ApiService() {
@@ -133,6 +143,71 @@ class GeminiRepository : ApiService() {
                 Result.success(workoutResponse)
             } else {
                 Result.failure(Exception(response.error?.message ?: "Failed to generate workout plan"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun calculateCalories(
+        weight: Float,
+        height: Float,
+        age: Int,
+        gender: Gender,
+        activityLevel: ActivityLevel,
+        goal: Goal
+    ): Result<CalorieCalculationResponse> {
+        return try {
+            val prompt = """
+                Calculate calories for a person with the following details:
+                Weight: $weight kg
+                Height: $height cm
+                Age: $age years
+                Gender: $gender
+                Activity Level: $activityLevel
+                Goal: $goal
+                
+                Please provide the response in this exact JSON format:
+                {
+                    "bmr": float,
+                    "tdee": float,
+                    "targetCalories": float
+                }
+                
+                BMR should be calculated using the Mifflin-St Jeor Equation.
+                TDEE should be BMR multiplied by activity level factor.
+                Target calories should be adjusted based on the goal.
+            """.trimIndent()
+
+            val request = GeminiRequest(
+                contents = listOf(
+                    GeminiContent(
+                        parts = listOf(
+                            GeminiPart(text = prompt)
+                        )
+                    )
+                )
+            )
+
+            val url = "$GEMINI_BASE_URL?key=$GEMINI_API_KEY"
+            val (response, status) = post<GeminiResponse>(
+                url = url,
+                body = request
+            )
+
+            if (status.isSuccess()) {
+                val generatedText = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+                    ?: return Result.failure(Exception("No response generated"))
+
+                val cleanJson = generatedText
+                    .replace("```json", "")
+                    .replace("```", "")
+                    .trim()
+
+                val calorieResponse = kotlinx.serialization.json.Json.decodeFromString<CalorieCalculationResponse>(cleanJson)
+                Result.success(calorieResponse)
+            } else {
+                Result.failure(Exception(response.error?.message ?: "Failed to calculate calories"))
             }
         } catch (e: Exception) {
             Result.failure(e)

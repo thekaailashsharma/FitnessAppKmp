@@ -1,14 +1,38 @@
 package org.awi.fitness.viewmodel
 
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.awi.fitness.data.*
+import org.awi.fitness.repository.GeminiRepository
 import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 
-class CalorieViewModel {
+class CalorieViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(CalorieUiState())
     val uiState: StateFlow<CalorieUiState> = _uiState.asStateFlow()
+    
+    private val userSettings = UserSettings.getInstance()
+    private val geminiRepository = GeminiRepository()
+
+    init {
+        // Load saved values from UserSettings if they exist
+        val savedCalories = userSettings.calculatedCalories
+        val savedBmr = userSettings.bmr
+        val savedTdee = userSettings.tdee
+        
+        if (savedCalories > 0) {
+            _uiState.value = _uiState.value.copy(
+                calculatedCalories = savedCalories,
+                bmr = savedBmr,
+                tdee = savedTdee,
+                isCalculated = true,
+                showRecalculate = true
+            )
+        }
+    }
 
     fun updateWeight(weight: String) {
         _uiState.value = _uiState.value.copy(weight = weight)
@@ -37,41 +61,59 @@ class CalorieViewModel {
     fun calculateCalories() {
         val state = _uiState.value
         
-        try {
-            val weight = state.weight.toFloatOrNull() ?: return
-            val height = state.height.toFloatOrNull() ?: return
-            val age = state.age.toIntOrNull() ?: return
+        viewModelScope.launch {
+            try {
+                val weight = state.weight.toFloatOrNull() ?: return@launch
+                val height = state.height.toFloatOrNull() ?: return@launch
+                val age = state.age.toIntOrNull() ?: return@launch
 
-            // Calculate BMR using Mifflin-St Jeor Equation
-            val bmr = when (state.gender) {
-                Gender.MALE -> (10 * weight) + (6.25 * height) - (5 * age) + 5
-                Gender.FEMALE -> (10 * weight) + (6.25 * height) - (5 * age) - 161
-                Gender.OTHER -> ((10 * weight) + (6.25 * height) - (5 * age) - 78) // Average
+                _uiState.value = state.copy(isLoading = true, error = null)
+
+                val result = geminiRepository.calculateCalories(
+                    weight = weight,
+                    height = height,
+                    age = age,
+                    gender = state.gender,
+                    activityLevel = state.activityLevel,
+                    goal = state.goal
+                )
+
+                result.onSuccess { response ->
+                    // Store in UserSettings
+                    userSettings.bmr = response.bmr
+                    userSettings.tdee = response.tdee
+                    userSettings.calculatedCalories = response.targetCalories.roundToInt()
+
+                    _uiState.value = state.copy(
+                        calculatedCalories = response.targetCalories.roundToInt(),
+                        bmr = response.bmr,
+                        tdee = response.tdee,
+                        isCalculated = true,
+                        showRecalculate = true,
+                        isLoading = false,
+                        error = null
+                    )
+                }.onFailure { error ->
+                    _uiState.value = state.copy(
+                        error = "Error calculating calories: ${error.message}",
+                        isLoading = false
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = state.copy(
+                    error = "Error calculating calories: ${e.message}",
+                    isLoading = false
+                )
             }
-
-            // Calculate TDEE
-            val tdee = bmr * state.activityLevel.factor
-
-            // Adjust calories based on goal
-            val finalCalories = (tdee + state.goal.calorieAdjustment).roundToInt()
-
-            _uiState.value = state.copy(
-                calculatedCalories = finalCalories,
-                bmr = bmr.toFloat(),
-                tdee = tdee.toFloat(),
-                isCalculated = true,
-                showRecalculate = true,
-                error = null
-            )
-        } catch (e: Exception) {
-            _uiState.value = state.copy(error = "Invalid input values")
         }
     }
 
     fun resetCalculation() {
         _uiState.value = _uiState.value.copy(
             isCalculated = false,
-            showRecalculate = false
+            showRecalculate = false,
+            isLoading = false,
+            error = null
         )
     }
 } 

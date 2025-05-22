@@ -35,13 +35,14 @@ data class CalorieUiState(
     val weight: String = "",
     val height: String = "",
     val age: String = "",
-    val gender: Gender = Gender.OTHER,
-    val activityLevel: ActivityLevel = ActivityLevel.SEDENTARY,
+    val gender: Gender = Gender.MALE,
+    val activityLevel: ActivityLevel = ActivityLevel.MODERATELY_ACTIVE,
     val goal: Goal = Goal.MAINTAIN,
     val calculatedCalories: Int = 0,
     val bmr: Float = 0f,
     val tdee: Float = 0f,
     val isCalculated: Boolean = false,
     val showRecalculate: Boolean = false,
+    val isLoading: Boolean = false,
     val error: String? = null
 ) 

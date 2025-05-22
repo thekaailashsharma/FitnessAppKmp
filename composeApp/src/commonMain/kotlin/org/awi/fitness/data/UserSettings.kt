@@ -25,6 +25,9 @@ class UserSettings internal constructor(private val settings: Settings) {
         private const val KEY_AUTH_PROVIDER = "auth_provider"
         private const val IS_DARK_THEME = "is_dark_theme"
         private const val KEY_LANGUAGE = "language"
+        private const val KEY_CALCULATED_CALORIES = "calculated_calories"
+        private const val KEY_BMR = "bmr"
+        private const val KEY_TDEE = "tdee"
 
         private var instance: UserSettings? = null
 
@@ -118,6 +121,24 @@ class UserSettings internal constructor(private val settings: Settings) {
         get() = settings[KEY_AUTH_PROVIDER]
         set(value) {
             settings[KEY_AUTH_PROVIDER] = value
+        }
+
+    var calculatedCalories: Int
+        get() = settings[KEY_CALCULATED_CALORIES, 0]
+        set(value) {
+            settings[KEY_CALCULATED_CALORIES] = value
+        }
+
+    var bmr: Float
+        get() = settings[KEY_BMR, 0f]
+        set(value) {
+            settings[KEY_BMR] = value
+        }
+
+    var tdee: Float
+        get() = settings[KEY_TDEE, 0f]
+        set(value) {
+            settings[KEY_TDEE] = value
         }
 
     fun clearUserData() {

@@ -117,6 +117,24 @@ fun CalorieCalculatorScreen(
                     onRecalculate = viewModel::resetCalculation
                 )
             }
+
+            // Show error message if any
+            uiState.error?.let { error ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.Red.copy(alpha = 0.1f)
+                    ),
+                    border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.3f))
+                ) {
+                    Text(
+                        text = error,
+                        color = Color.Red,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
         }
         
         if (!uiState.isCalculated) {
@@ -131,11 +149,35 @@ fun CalorieCalculatorScreen(
                 colors = ButtonDefaults.buttonColors(
                     containerColor = GreenAccent,
                     contentColor = Color.Black
-                )
+                ),
+                enabled = !uiState.isLoading
             ) {
-                Text(
-                    "Calculate",
-                    style = MaterialTheme.typography.labelLarge
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = Color.Black,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        "Calculate",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+            }
+        }
+
+        // Loading overlay
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(48.dp),
+                    color = GreenAccent
                 )
             }
         }
@@ -238,14 +280,6 @@ private fun CalorieInputForm(
                     )
                 }
             }
-        }
-
-        uiState.error?.let { error ->
-            Text(
-                text = error,
-                color = Color.Red,
-                style = MaterialTheme.typography.bodyMedium
-            )
         }
     }
 }
