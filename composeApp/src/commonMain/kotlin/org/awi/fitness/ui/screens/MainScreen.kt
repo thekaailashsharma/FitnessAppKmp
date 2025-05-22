@@ -15,17 +15,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import cafe.adriel.voyager.core.screen.Screen
+import compose.icons.SimpleIcons
 import compose.icons.TablerIcons
-import compose.icons.tablericons.Flame
-import compose.icons.tablericons.Home
-import compose.icons.tablericons.User
-import compose.icons.tablericons.Walk
+import compose.icons.simpleicons.Ifood
+import compose.icons.tablericons.*
 import org.awi.fitness.ui.CalorieCalculatorScreen
 
 sealed class BottomNavItem(val route: String) {
     object Home : BottomNavItem("home")
     object Workouts : BottomNavItem("workouts")
-    object Calories : BottomNavItem("calories")
+    object Meals : BottomNavItem("meals")
     object Profile : BottomNavItem("profile")
 }
 
@@ -41,7 +40,7 @@ class MainScreen : Screen {
                     listOf(
                         BottomNavItem.Home,
                         BottomNavItem.Workouts,
-                        BottomNavItem.Calories,
+                        BottomNavItem.Meals,
                         BottomNavItem.Profile
                     ).forEach { item ->
                         NavigationBarItem(
@@ -52,7 +51,7 @@ class MainScreen : Screen {
                                     imageVector = when (item) {
                                         BottomNavItem.Home -> TablerIcons.Home
                                         BottomNavItem.Workouts -> TablerIcons.Walk
-                                        BottomNavItem.Calories -> TablerIcons.Flame
+                                        BottomNavItem.Meals -> SimpleIcons.Ifood
                                         BottomNavItem.Profile -> TablerIcons.User
                                     },
                                     contentDescription = item.route
@@ -72,7 +71,7 @@ class MainScreen : Screen {
                 when (currentRoute) {
                     BottomNavItem.Home.route -> CalorieCalculatorScreen()
                     BottomNavItem.Workouts.route -> WorkoutScreen().Content()
-                    BottomNavItem.Calories.route -> CalorieCalculatorScreen()
+                    BottomNavItem.Meals.route -> MealScreen().Content()
                     BottomNavItem.Profile.route -> CalorieCalculatorScreen() // Temporary
                 }
             }

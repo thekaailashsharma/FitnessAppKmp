@@ -112,30 +112,6 @@ data class ClientFields(
     val password: StringValue? = null,
     val endDate: StringValue? = null
 )
-
-@Serializable
-data class ProgramFirestoreRequest(
-    val fields: ProgramFields
-)
-
-@Serializable
-data class ProgramFields(
-    val id: StringValue? = null,
-    val type: StringValue? = null,
-    val name: StringValue? = null,
-    val description: StringValue? = null,
-    val assignedClients: ArrayValueWrapper? = null,
-    val calories: IntegerValue? = null,
-    val protein: IntegerValue? = null,
-    val carbs: IntegerValue? = null,
-    val fat: IntegerValue? = null,
-    val ingredients: ArrayValueWrapper? = null,
-    val instructions: ArrayValueWrapper? = null,
-    val mealType: StringValue? = null,
-    val dietaryTags: ArrayValueWrapper? = null,
-    val videoUrls: ArrayValueWrapper? = null
-)
-
 @Serializable
 data class ArrayValueWrapper(
     val arrayValue: ArrayValue? = ArrayValue(emptyList())
@@ -167,16 +143,6 @@ fun FirestoreResponse<ClientFields>.toClient(): Client {
         status = fields?.status?.value ?: "Active",
         endDate = fields?.endDate?.value ?: ""
     )
-}
-
-fun FirestoreDocument<*>.toClientDocument(): FirestoreDocument<ClientFields> {
-    @Suppress("UNCHECKED_CAST")
-    return this as FirestoreDocument<ClientFields>
-}
-
-fun FirestoreDocument<*>.toProgramDocument(): FirestoreDocument<ProgramFields> {
-    @Suppress("UNCHECKED_CAST")
-    return this as FirestoreDocument<ProgramFields>
 }
 
 // Extension functions to convert Firestore fields to domain models
