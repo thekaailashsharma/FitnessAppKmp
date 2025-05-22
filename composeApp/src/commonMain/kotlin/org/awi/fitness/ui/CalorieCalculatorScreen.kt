@@ -37,16 +37,21 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -69,8 +74,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import cafe.adriel.voyager.core.screen.Screen
+import cafe.adriel.voyager.navigator.LocalNavigator
+import cafe.adriel.voyager.navigator.currentOrThrow
 import compose.icons.TablerIcons
 import compose.icons.tablericons.Activity
+import compose.icons.tablericons.ArrowLeft
 import compose.icons.tablericons.Battery
 import compose.icons.tablericons.Flame
 import compose.icons.tablericons.Refresh
@@ -114,46 +122,70 @@ private fun Float.formatToString(digits: Int = 1): String {
 
 
 class CalorieCalculatorScreen() : Screen {
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
+        val viewModel = CalorieViewModel()
         var selectedTab by remember { mutableStateOf(0) }
-        val viewModel: CalorieViewModel = CalorieViewModel()
         val tabs = listOf("Calories", "Weight", "Measure")
+        val navigator = LocalNavigator.currentOrThrow
 
-        Box(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(BackgroundDark)
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp)
-                    .padding(bottom = 80.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                TabRow(
-                    selectedTabIndex = selectedTab,
-                    containerColor = DarkCard,
-                    contentColor = GreenAccent
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("Calorie Calculator") },
+                    navigationIcon = {
+                        IconButton(onClick = { navigator.pop() }) {
+                            Icon(
+                                imageVector = TablerIcons.ArrowLeft,
+                                contentDescription = "Back"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = BackgroundDark,
+                        titleContentColor = TextWhite,
+                        navigationIconContentColor = TextWhite
+                    )
+                )
+            }
+        ) { paddingValues ->
+            Box(modifier = Modifier.fillMaxSize()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(BackgroundDark)
+                        .verticalScroll(rememberScrollState())
+                        .padding(paddingValues)
+                        .padding(16.dp)
+                        .padding(bottom = 80.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
-                    tabs.forEachIndexed { index, title ->
-                        Tab(
-                            selected = selectedTab == index,
-                            onClick = { selectedTab = index },
-                            text = {
-                                Text(
-                                    text = title,
-                                    maxLines = 1,
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                        )
+                    TabRow(
+                        selectedTabIndex = selectedTab,
+                        containerColor = DarkCard,
+                        contentColor = GreenAccent
+                    ) {
+                        tabs.forEachIndexed { index, title ->
+                            Tab(
+                                selected = selectedTab == index,
+                                onClick = { selectedTab = index },
+                                text = {
+                                    Text(
+                                        text = title,
+                                        maxLines = 1,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                            )
+                        }
                     }
-                }
 
-                when (selectedTab) {
-                    0 -> CalorieCalculatorContent(viewModel)
-                    1 -> WeightTrackingScreen()
-                    2 -> MeasurementTrackingScreen()
+                    when (selectedTab) {
+                        0 -> CalorieCalculatorContent(viewModel)
+                        1 -> WeightTrackingScreen()
+                        2 -> MeasurementTrackingScreen()
+                    }
                 }
             }
         }
