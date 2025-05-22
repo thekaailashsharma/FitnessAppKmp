@@ -11,33 +11,44 @@ class WorkoutRepository : ApiService() {
         private const val PROJECT_ID = "fitness-admin-73a72"
     }
 
-    fun getAllWorkoutPlans(): Flow<List<WorkoutPlanWithExercises>> = flow {
-        try {
-            println("Getting all workout plans...")
-            val token = userSettings.authToken ?: throw Exception("Not authenticated")
+    suspend fun getAllWorkoutPlans(): Result<List<WorkoutPlanWithExercises>> {
+        return try {
+            val token = userSettings.authToken ?: return Result.failure(Exception("Not authenticated"))
             val url = "https://firestore.googleapis.com/v1/projects/$PROJECT_ID/databases/(default)/documents/workout_plans"
             
-            val (response, status) = get<FirestoreListResponse<WorkoutPlanFields>>(url, token)
-            println("Workout plans response status: $status")
+            val (plansResponse, plansStatus) = get<FirestoreListResponse<WorkoutPlanFields>>(url, token)
+            println("Plans response: $plansResponse")
 
-            if (status.isSuccess()) {
-                val plans = response.documents?.map { it.toWorkoutPlan() } ?: emptyList()
-                println("Retrieved ${plans.size} workout plans")
-                val plansWithExercises = plans.map { plan ->
-                    println("Getting exercises for plan: ${plan.id}")
-                    val exercises = getExercisesForPlan(plan.id).getOrDefault(emptyList())
-                    println("Retrieved ${exercises.size} exercises for plan: ${plan.id}")
-                    WorkoutPlanWithExercises(plan, exercises)
-                }
-                emit(plansWithExercises)
-            } else {
-                println("Failed to get workout plans. Status: $status")
-                emit(emptyList())
+            if (!plansStatus.isSuccess()) {
+                return Result.failure(Exception("Failed to fetch workout plans"))
             }
+
+            val plans = plansResponse.documents?.map { it.toWorkoutPlan() } ?: emptyList()
+            val plansWithExercises = mutableListOf<WorkoutPlanWithExercises>()
+
+            // For each plan, fetch its exercises
+            for (plan in plans) {
+                val exercisesUrl = "https://firestore.googleapis.com/v1/projects/$PROJECT_ID/databases/(default)/documents/exercises"
+                val (exercisesResponse, exercisesStatus) = get<FirestoreListResponse<ExerciseFields>>(exercisesUrl, token)
+
+                if (!exercisesStatus.isSuccess()) {
+                    return Result.failure(Exception("Failed to fetch exercises for plan: ${plan.id}"))
+                }
+
+                val exercises = exercisesResponse.documents
+                    ?.map { it.toExercise() }
+                    ?.filter { it.planId == plan.id }
+                    ?.sortedBy { it.orderInDay }
+                    ?: emptyList()
+
+                plansWithExercises.add(WorkoutPlanWithExercises(plan, exercises))
+            }
+
+            Result.success(plansWithExercises)
         } catch (e: Exception) {
-            println("Error getting workout plans: ${e.message}")
+            println("Error fetching workout plans: ${e.message}")
             e.printStackTrace()
-            emit(emptyList())
+            Result.failure(e)
         }
     }
 
@@ -62,14 +73,32 @@ class WorkoutRepository : ApiService() {
         }
     }
 
-    suspend fun setExerciseCompleted(exerciseId: String, completed: Boolean): Result<Unit> {
+    suspend fun setExerciseCompleted(exercise: Exercise, completed: Boolean): Result<Unit> {
         return try {
             val token = userSettings.authToken ?: return Result.failure(Exception("Not authenticated"))
-            val url = "https://firestore.googleapis.com/v1/projects/$PROJECT_ID/databases/(default)/documents/exercises/$exerciseId"
+            val exerciseUrl = "https://firestore.googleapis.com/v1/projects/$PROJECT_ID/databases/(default)/documents/exercises/${exercise.id}"
             
-            val exercise = Exercise(id = exerciseId, isCompleted = completed)
-            val request = exercise.toFirestoreRequest()
-            val (_, status) = patch<Unit>(url, request, token)
+            // Update completion status using the provided exercise data
+            val updatedExercise = exercise.copy(isCompleted = completed)
+            
+            // Create request with all fields
+            val request = ExerciseFirestoreRequest(
+                fields = ExerciseFields(
+                    planId = StringValue(updatedExercise.planId),
+                    name = StringValue(updatedExercise.name),
+                    description = StringValue(updatedExercise.description),
+                    sets = IntegerValue(updatedExercise.sets.toString()),
+                    reps = IntegerValue(updatedExercise.reps.toString()),
+                    restTime = IntegerValue(updatedExercise.restTime.toString()),
+                    videoUrl = updatedExercise.videoUrl?.let { StringValue(it) },
+                    thumbnailUrl = updatedExercise.thumbnailUrl?.let { StringValue(it) },
+                    isCompleted = BooleanValue(updatedExercise.isCompleted),
+                    dayOfWeek = IntegerValue(updatedExercise.dayOfWeek.toString()),
+                    orderInDay = IntegerValue(updatedExercise.orderInDay.toString())
+                )
+            )
+            
+            val (_, status) = patch<Unit>(exerciseUrl, request, token)
 
             if (status.isSuccess()) {
                 Result.success(Unit)
@@ -95,7 +124,7 @@ class WorkoutRepository : ApiService() {
             println("Full response: $response")
 
             if (status.isSuccess()) {
-                val planId = response.name?.split("/")?.last() ?: ""
+                val planId = response.fields?.id?.value ?: ""
                 println("Successfully created workout plan with ID: $planId")
                 Result.success(planId)
             } else {
@@ -128,8 +157,8 @@ class WorkoutRepository : ApiService() {
                 Result.success(exerciseId)
             } else {
                 println("Failed to create exercise. Status: $status")
-                println("Response error: ${response.error?.error}")
-                Result.failure(Exception("Failed to create exercise: ${response.error?.error}"))
+                println("Response error: ${response.error?.message}")
+                Result.failure(Exception("Failed to create exercise: ${response.error?.message}"))
             }
         } catch (e: Exception) {
             println("Error creating exercise: ${e.message}")
@@ -182,35 +211,13 @@ class WorkoutRepository : ApiService() {
     }
 
     // Helper functions to convert Firestore documents to models
-    private fun FirestoreDocument<*>.toWorkoutPlan(): WorkoutPlan {
-        val fields = this.fields as? Map<*, *>
-        return WorkoutPlan(
-            id = this.name?.split("/")?.last() ?: "",
-            name = (fields?.get("name") as? Map<*, *>)?.get("stringValue") as? String ?: "",
-            description = (fields?.get("description") as? Map<*, *>)?.get("stringValue") as? String ?: "",
-            difficulty = WorkoutDifficulty.valueOf((fields?.get("difficulty") as? Map<*, *>)?.get("stringValue") as? String ?: "BEGINNER"),
-            duration = ((fields?.get("duration") as? Map<*, *>)?.get("integerValue") as? String)?.toIntOrNull() ?: 12,
-            category = WorkoutCategory.valueOf((fields?.get("category") as? Map<*, *>)?.get("stringValue") as? String ?: "STRENGTH"),
-            imageUrl = (fields?.get("imageUrl") as? Map<*, *>)?.get("stringValue") as? String
-        )
+    private fun FirestoreDocument<WorkoutPlanFields>.toWorkoutPlan(): WorkoutPlan {
+        return fields?.toDomainModel() ?: WorkoutPlan()
     }
 
-    private fun FirestoreDocument<*>.toExercise(): Exercise {
-        val fields = this.fields as? Map<*, *>
-        return Exercise(
-            id = this.name?.split("/")?.last() ?: "",
-            planId = (fields?.get("planId") as? Map<*, *>)?.get("stringValue") as? String ?: "",
-            name = (fields?.get("name") as? Map<*, *>)?.get("stringValue") as? String ?: "",
-            description = (fields?.get("description") as? Map<*, *>)?.get("stringValue") as? String ?: "",
-            sets = ((fields?.get("sets") as? Map<*, *>)?.get("integerValue") as? String)?.toIntOrNull() ?: 0,
-            reps = ((fields?.get("reps") as? Map<*, *>)?.get("integerValue") as? String)?.toIntOrNull() ?: 0,
-            restTime = ((fields?.get("restTime") as? Map<*, *>)?.get("integerValue") as? String)?.toIntOrNull() ?: 0,
-            videoUrl = (fields?.get("videoUrl") as? Map<*, *>)?.get("stringValue") as? String,
-            thumbnailUrl = (fields?.get("thumbnailUrl") as? Map<*, *>)?.get("stringValue") as? String,
-            isCompleted = (fields?.get("isCompleted") as? Map<*, *>)?.get("booleanValue") as? Boolean ?: false,
-            dayOfWeek = ((fields?.get("dayOfWeek") as? Map<*, *>)?.get("integerValue") as? String)?.toIntOrNull() ?: 1,
-            orderInDay = ((fields?.get("orderInDay") as? Map<*, *>)?.get("integerValue") as? String)?.toIntOrNull() ?: 0
-        )
+    private fun FirestoreDocument<ExerciseFields>.toExercise(): Exercise {
+        val documentId = name?.split("/")?.last() ?: ""
+        return fields?.toDomainModel(documentId) ?: Exercise()
     }
 
     private fun FirestoreDocument<*>.toWorkoutActivity(): WorkoutActivity {

@@ -6,11 +6,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
@@ -21,6 +24,8 @@ import org.awi.fitness.model.*
 import org.awi.fitness.ui.components.WeekDaysSelector
 import org.awi.fitness.viewmodel.WorkoutViewModel
 import kotlinx.coroutines.launch
+import org.awi.fitness.utils.fitnessTips
+import org.awi.fitness.utils.topFiveTips
 
 class WorkoutScreen : Screen {
     @Composable
@@ -32,21 +37,7 @@ class WorkoutScreen : Screen {
         var showGoalsSheet by remember { mutableStateOf(false) }
 
         LaunchedEffect(Unit) {
-            println("Loading workout plans...")
             viewModel.loadWorkoutPlans()
-            println("Workout plans loaded, state: ${uiState.workoutPlans.size} plans")
-        }
-
-        if (showGoalsSheet) {
-            UserFitnessGoalsBottomSheet(
-                viewModel = viewModel,
-                onGoalsSet = {
-                    coroutineScope.launch {
-                        viewModel.loadWorkoutPlans()
-                    }
-                },
-                onDismiss = { showGoalsSheet = false }
-            )
         }
 
         Column(
@@ -117,17 +108,30 @@ class WorkoutScreen : Screen {
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = uiState.error ?: "An error occurred",
-                            color = MaterialTheme.colorScheme.error
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = uiState.error ?: "An error occurred",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Button(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        viewModel.loadWorkoutPlans()
+                                    }
+                                }
+                            ) {
+                                Text("Retry")
+                            }
+                        }
                     }
                 }
                 uiState.workoutPlans.isEmpty() -> {
                     EmptyWorkoutState(
-                        onSetupClick = {
-                            // Navigate to goals screen
-                        }
+                        onSetupClick = { showGoalsSheet = true }
                     )
                 }
                 else -> {
@@ -135,34 +139,55 @@ class WorkoutScreen : Screen {
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         items(uiState.workoutPlans) { planWithExercises ->
-                            EnhancedWorkoutCard(
-                                workoutPlan = planWithExercises.plan,
-                                exercises = planWithExercises.exercises,
-                                onExerciseClick = { 
-                                    // Navigate to progress screen
-                                },
-                                onCompleteClick = { exerciseId, completed ->
-                                    coroutineScope.launch {
-                                        viewModel.setExerciseCompleted(exerciseId, completed)
+                            val exercisesForDay = planWithExercises.exercises.sortedBy { it.orderInDay }
+                            
+                            if (exercisesForDay.isNotEmpty()) {
+                                EnhancedWorkoutCard(
+                                    workoutPlan = planWithExercises.plan,
+                                    exercises = exercisesForDay.sortedWith(
+                                        compareBy({ it.isCompleted }, { it.orderInDay })
+                                    ),
+                                    onExerciseClick = { 
+                                        // Navigate to progress screen
+                                    },
+                                    onCompleteClick = { exercise, completed ->
+                                        coroutineScope.launch {
+                                            viewModel.setExerciseCompleted(exercise, completed)
+                                        }
                                     }
-                                }
-                            )
+                                )
 
-                            Spacer(modifier = Modifier.height(16.dp))
-                            
-                            ExerciseDetailsCard(
-                                exercises = planWithExercises.exercises
-                            )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                
+                                ExerciseDetailsCard(
+                                    exercises = exercisesForDay.sortedWith(
+                                        compareBy({ it.isCompleted }, { it.orderInDay })
+                                    )
+                                )
 
-                            Spacer(modifier = Modifier.height(16.dp))
-                            
-                            WorkoutTipsCard(
-                                difficulty = planWithExercises.plan.difficulty
-                            )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                
+                                WorkoutTipsCard(
+                                    tips = fitnessTips.topFiveTips(),
+                                    difficulty = planWithExercises.plan.difficulty
+                                )
+                            }
                         }
                     }
                 }
             }
+        }
+
+        if (showGoalsSheet) {
+            UserFitnessGoalsBottomSheet(
+                viewModel = viewModel,
+                onGoalsSet = {
+                    coroutineScope.launch {
+                        viewModel.loadWorkoutPlans()
+                    }
+                },
+                onDismiss = { showGoalsSheet = false }
+            )
         }
     }
 }
@@ -226,11 +251,23 @@ private fun ExerciseDetailsCard(
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            Text(
-                text = "Exercise Details",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Exercise Details",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Icon(
+                    imageVector = TablerIcons.Pacman,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
             
             Spacer(modifier = Modifier.height(8.dp))
             
@@ -244,13 +281,44 @@ private fun ExerciseDetailsCard(
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = exercise.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = CircleShape,
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = exercise.orderInDay.toString(),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                }
+                            }
+                            Column {
+                                Text(
+                                    text = exercise.name,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                if (exercise.isCompleted) {
+                                    Text(
+                                        text = "Completed",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                                    )
+                                }
+                            }
+                        }
                         IconButton(onClick = { expanded = !expanded }) {
                             Icon(
                                 imageVector = if (expanded) TablerIcons.ChevronUp else TablerIcons.ChevronDown,
@@ -268,9 +336,28 @@ private fun ExerciseDetailsCard(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
                             
-                            ExerciseMetrics(exercise)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                MetricItem(
+                                    icon = TablerIcons.Repeat,
+                                    label = "Sets",
+                                    value = exercise.sets.toString()
+                                )
+                                MetricItem(
+                                    icon = TablerIcons.RotateClockwise,
+                                    label = "Reps",
+                                    value = exercise.reps.toString()
+                                )
+                                MetricItem(
+                                    icon = TablerIcons.Clock,
+                                    label = "Rest",
+                                    value = "${exercise.restTime}s"
+                                )
+                            }
                         }
                     }
                 }
@@ -287,35 +374,39 @@ private fun ExerciseDetailsCard(
 }
 
 @Composable
-private fun ExerciseMetrics(exercise: Exercise) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly
+private fun MetricItem(
+    icon: ImageVector,
+    label: String,
+    value: String
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        MetricItem("Sets", exercise.sets.toString())
-        MetricItem("Reps", exercise.reps.toString())
-        MetricItem("Rest", "${exercise.restTime}s")
-    }
-}
-
-@Composable
-private fun MetricItem(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp)
         )
         Text(
             text = value,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.primary
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
         )
     }
 }
 
 @Composable
-private fun WorkoutTipsCard(difficulty: WorkoutDifficulty) {
+private fun WorkoutTipsCard(
+    tips: List<String>,
+    difficulty: WorkoutDifficulty
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
@@ -326,42 +417,44 @@ private fun WorkoutTipsCard(difficulty: WorkoutDifficulty) {
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            Text(
-                text = "Pro Tips",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "AI-Powered Tips",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Surface(
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(4.dp)
+                ) {
+                    Text(
+                        text = difficulty.name.lowercase().replaceFirstChar { it.uppercase() },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
             
             Spacer(modifier = Modifier.height(8.dp))
-            
-            val tips = when (difficulty) {
-                WorkoutDifficulty.BEGINNER -> listOf(
-                    "Start slowly and focus on form",
-                    "Take longer rest periods if needed",
-                    "Stay hydrated throughout your workout"
-                )
-                WorkoutDifficulty.INTERMEDIATE -> listOf(
-                    "Challenge yourself with proper progression",
-                    "Mix up your routine to avoid plateaus",
-                    "Focus on mind-muscle connection"
-                )
-                WorkoutDifficulty.ADVANCED -> listOf(
-                    "Incorporate advanced techniques",
-                    "Monitor your recovery closely",
-                    "Track your progress meticulously"
-                )
-            }
             
             tips.forEach { tip ->
                 Row(
                     modifier = Modifier.padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.Top
                 ) {
                     Icon(
                         imageVector = TablerIcons.Star,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier
+                            .size(20.dp)
+                            .padding(top = 2.dp)
                     )
                     Text(
                         text = tip,
@@ -379,7 +472,7 @@ private fun EnhancedWorkoutCard(
     workoutPlan: WorkoutPlan,
     exercises: List<Exercise>,
     onExerciseClick: () -> Unit,
-    onCompleteClick: (String, Boolean) -> Unit
+    onCompleteClick: (Exercise, Boolean) -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -393,18 +486,45 @@ private fun EnhancedWorkoutCard(
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            // Header Section
+            // Header Section with AI Badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text(
-                        text = workoutPlan.name,
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = workoutPlan.name,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Surface(
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = TablerIcons.Pacman,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = "AI Generated",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
                     Text(
                         text = workoutPlan.description,
                         style = MaterialTheme.typography.bodyMedium,
@@ -432,12 +552,12 @@ private fun EnhancedWorkoutCard(
                 WorkoutStat(
                     icon = TablerIcons.Clock,
                     label = "Duration",
-                    value = "${exercises.size * 5} min"
+                    value = "${workoutPlan.duration} min"
                 )
                 WorkoutStat(
-                    icon = TablerIcons.Flame,
-                    label = "Calories",
-                    value = "${exercises.size * 12} kcal"
+                    icon = TablerIcons.ShieldCheck,
+                    label = "Category",
+                    value = workoutPlan.category.name.lowercase().replaceFirstChar { it.uppercase() }
                 )
                 WorkoutStat(
                     icon = TablerIcons.Walk,
@@ -458,51 +578,13 @@ private fun EnhancedWorkoutCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             exercises.take(3).forEach { exercise ->
-                var isCompleted by remember { mutableStateOf(exercise.isCompleted) }
-                
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = when (workoutPlan.category) {
-                                WorkoutCategory.STRENGTH -> TablerIcons.Walk
-                                WorkoutCategory.CARDIO -> TablerIcons.Run
-                                WorkoutCategory.HIIT -> TablerIcons.Flame
-                                WorkoutCategory.FLEXIBILITY -> TablerIcons.BallVolleyball
-                                WorkoutCategory.YOGA -> TablerIcons.Dna
-                            },
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        
-                        Text(
-                            text = exercise.name,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (isCompleted) 0.5f else 1f)
-                        )
+                ExerciseRow(
+                    exercise = exercise,
+                    workoutCategory = workoutPlan.category,
+                    onCompleteClick = { completed ->
+                        onCompleteClick(exercise, completed)
                     }
-                    
-                    Checkbox(
-                        checked = isCompleted,
-                        onCheckedChange = { completed ->
-                            isCompleted = completed
-                            onCompleteClick(exercise.id, completed)
-                        },
-                        colors = CheckboxDefaults.colors(
-                            checkedColor = MaterialTheme.colorScheme.primary,
-                            uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        )
-                    )
-                }
+                )
             }
 
             if (exercises.size > 3) {
@@ -516,6 +598,65 @@ private fun EnhancedWorkoutCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ExerciseRow(
+    exercise: Exercise,
+    workoutCategory: WorkoutCategory,
+    onCompleteClick: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = when (workoutCategory) {
+                    WorkoutCategory.STRENGTH -> TablerIcons.Walk
+                    WorkoutCategory.CARDIO -> TablerIcons.Run
+                    WorkoutCategory.HIIT -> TablerIcons.Flame
+                    WorkoutCategory.FLEXIBILITY -> TablerIcons.BallVolleyball
+                    WorkoutCategory.YOGA -> TablerIcons.Pacman
+                },
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (exercise.isCompleted) 0.5f else 0.7f),
+                modifier = Modifier.size(20.dp)
+            )
+            
+            Column {
+                Text(
+                    text = exercise.name,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        textDecoration = if (exercise.isCompleted) TextDecoration.LineThrough else TextDecoration.None
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (exercise.isCompleted) 0.5f else 1f)
+                )
+                Text(
+                    text = "${exercise.sets} sets × ${exercise.reps} reps",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+            }
+        }
+        
+        Checkbox(
+            checked = exercise.isCompleted,
+            onCheckedChange = { completed ->
+                onCompleteClick(completed)
+            },
+            colors = CheckboxDefaults.colors(
+                checkedColor = MaterialTheme.colorScheme.primary,
+                uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            )
+        )
     }
 }
 

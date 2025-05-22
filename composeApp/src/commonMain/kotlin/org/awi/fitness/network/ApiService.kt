@@ -120,29 +120,30 @@ abstract class ApiService {
         token: String? = null
     ): Pair<T, HttpStatusCode> {
         // First validate client status
-        when (val validationResult = validateClientStatus()) {
-            is ValidationResult.Invalid -> {
-                userSettings.clearUserData()
-                throw ClientValidationException(validationResult.reason)
-            }
+//        when (val validationResult = validateClientStatus()) {
+//            is ValidationResult.Invalid -> {
+//                userSettings.clearUserData()
+//                throw ClientValidationException(validationResult.reason)
+//            }
+//
+//            ValidationResult.Valid -> {
+        // Proceed with the request
+        val initialResponse = requestCall(token)
 
-            ValidationResult.Valid -> {
-                // Proceed with the request
-                val initialResponse = requestCall(token)
+        if (initialResponse.second == HttpStatusCode.Unauthorized && token != null) {
+            // Try to refresh the token
+            val refreshResult = refreshToken()
 
-                if (initialResponse.second == HttpStatusCode.Unauthorized && token != null) {
-                    // Try to refresh the token
-                    val refreshResult = refreshToken()
-
-                    if (refreshResult.isSuccess) {
-                        // Retry the original request with the new token
-                        return requestCall(userSettings.authToken)
-                    }
-                }
-
-                return initialResponse
+            if (refreshResult.isSuccess) {
+                // Retry the original request with the new token
+                return requestCall(userSettings.authToken)
             }
         }
+
+        return initialResponse
+//            }
+//        }
+//        }
     }
 
     protected suspend inline fun <reified T> post(
@@ -219,6 +220,7 @@ abstract class ApiService {
                     }
                 }
             }.let { response ->
+                println("Original Response is ${response.bodyAsText()}")
                 response.body<T>() to response.status
             }
         }, token)
@@ -298,4 +300,4 @@ abstract class ApiService {
     }
 }
 
-class ClientValidationException(message: String) : Exception(message) 
+class ClientValidationException(message: String) : Exception(message)

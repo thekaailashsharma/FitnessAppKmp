@@ -28,7 +28,7 @@ class ClientRepository : ApiService() {
             if (status.isSuccess()) {
                 Result.success(response.toClient())
             } else {
-                Result.failure(Exception(response.error?.error?.message ?: "Unknown error"))
+                Result.failure(Exception(response.error?.message ?: "Unknown error"))
             }
         } catch (e: Exception) {
             Result.failure(e)

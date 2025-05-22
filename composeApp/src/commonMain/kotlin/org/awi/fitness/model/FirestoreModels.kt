@@ -4,12 +4,92 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class FirestoreResponse<T>(
+data class FirestoreListResponse<T>(
+    val documents: List<FirestoreDocument<T>>? = null
+)
+
+@Serializable
+data class FirestoreDocument<T>(
     val name: String? = null,
     val fields: T? = null,
     val createTime: String? = null,
-    val updateTime: String? = null,
-    val error: SignUpFirebaseError? = null
+    val updateTime: String? = null
+)
+
+@Serializable
+data class FirestoreResponse<T>(
+    val name: String? = null,
+    val fields: T? = null,
+    val error: FirestoreError? = null
+)
+
+@Serializable
+data class FirestoreError(
+    val code: Int? = null,
+    val message: String? = null,
+    val status: String? = null
+)
+
+@Serializable
+data class WorkoutPlanFields(
+    @SerialName("id")
+    val id: StringValue? = null,
+    @SerialName("name")
+    val name: StringValue? = null,
+    @SerialName("description")
+    val description: StringValue? = null,
+    @SerialName("difficulty")
+    val difficulty: StringValue? = null,
+    @SerialName("duration")
+    val duration: IntegerValue? = null,
+    @SerialName("category")
+    val category: StringValue? = null,
+    @SerialName("imageUrl")
+    val imageUrl: StringValue? = null
+)
+
+@Serializable
+data class ExerciseFields(
+    @SerialName("planId")
+    val planId: StringValue? = null,
+    @SerialName("name")
+    val name: StringValue? = null,
+    @SerialName("description")
+    val description: StringValue? = null,
+    @SerialName("sets")
+    val sets: IntegerValue? = null,
+    @SerialName("reps")
+    val reps: IntegerValue? = null,
+    @SerialName("restTime")
+    val restTime: IntegerValue? = null,
+    @SerialName("videoUrl")
+    val videoUrl: StringValue? = null,
+    @SerialName("thumbnailUrl")
+    val thumbnailUrl: StringValue? = null,
+    @SerialName("isCompleted")
+    val isCompleted: BooleanValue? = null,
+    @SerialName("dayOfWeek")
+    val dayOfWeek: IntegerValue? = null,
+    @SerialName("orderInDay")
+    val orderInDay: IntegerValue? = null
+)
+
+@Serializable
+data class StringValue(
+    @SerialName("stringValue")
+    val value: String = ""
+)
+
+@Serializable
+data class IntegerValue(
+    @SerialName("integerValue")
+    val value: String = "0"
+)
+
+@Serializable
+data class BooleanValue(
+    @SerialName("booleanValue")
+    val value: Boolean = false
 )
 
 @Serializable
@@ -31,32 +111,6 @@ data class ClientFields(
     val notes: StringValue? = null,
     val password: StringValue? = null,
     val endDate: StringValue? = null
-)
-
-@Serializable
-data class StringValue(
-    @SerialName("stringValue")
-    val value: String
-)
-
-@Serializable
-data class BooleanValue(
-    @SerialName("booleanValue")
-    val value: Boolean
-)
-
-@Serializable
-data class NumberValue(
-    @SerialName("doubleValue")
-    val value: Double
-)
-
-@Serializable
-data class FirestoreDocument<T>(
-    @SerialName("name")
-    val name: String? = null,
-    @SerialName("fields")
-    val fields: T? = null
 )
 
 @Serializable
@@ -93,21 +147,9 @@ data class ArrayValue(
 )
 
 @Serializable
-data class IntegerValue(
-    @SerialName("integerValue")
-    val value: Int
-)
-
-@Serializable
 data class LongValue(
     @SerialName("longValue")
     val value: Long
-)
-
-@Serializable
-data class FirestoreListResponse<T>(
-    @SerialName("documents")
-    val documents: List<FirestoreDocument<T>>? = null
 )
 
 fun FirestoreResponse<ClientFields>.toClient(): Client {
@@ -127,7 +169,6 @@ fun FirestoreResponse<ClientFields>.toClient(): Client {
     )
 }
 
-
 fun FirestoreDocument<*>.toClientDocument(): FirestoreDocument<ClientFields> {
     @Suppress("UNCHECKED_CAST")
     return this as FirestoreDocument<ClientFields>
@@ -136,4 +177,34 @@ fun FirestoreDocument<*>.toClientDocument(): FirestoreDocument<ClientFields> {
 fun FirestoreDocument<*>.toProgramDocument(): FirestoreDocument<ProgramFields> {
     @Suppress("UNCHECKED_CAST")
     return this as FirestoreDocument<ProgramFields>
+}
+
+// Extension functions to convert Firestore fields to domain models
+fun WorkoutPlanFields.toDomainModel(): WorkoutPlan {
+    return WorkoutPlan(
+        id = id?.value ?: "",
+        name = name?.value ?: "",
+        description = description?.value ?: "",
+        difficulty = WorkoutDifficulty.valueOf(difficulty?.value ?: "BEGINNER"),
+        duration = duration?.value?.toIntOrNull() ?: 45,
+        category = WorkoutCategory.valueOf(category?.value ?: "STRENGTH"),
+        imageUrl = imageUrl?.value
+    )
+}
+
+fun ExerciseFields.toDomainModel(documentId: String): Exercise {
+    return Exercise(
+        id = documentId,
+        planId = planId?.value ?: "",
+        name = name?.value ?: "",
+        description = description?.value ?: "",
+        sets = sets?.value?.toIntOrNull() ?: 0,
+        reps = reps?.value?.toIntOrNull() ?: 0,
+        restTime = restTime?.value?.toIntOrNull() ?: 0,
+        videoUrl = videoUrl?.value,
+        thumbnailUrl = thumbnailUrl?.value,
+        isCompleted = isCompleted?.value ?: false,
+        dayOfWeek = dayOfWeek?.value?.toIntOrNull() ?: 1,
+        orderInDay = orderInDay?.value?.toIntOrNull() ?: 0
+    )
 } 

@@ -1,42 +1,16 @@
 package org.awi.fitness.model
 
 import kotlinx.serialization.Serializable
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 @Serializable
 data class WorkoutPlanFirestoreRequest(
     val fields: WorkoutPlanFields
 )
-
-@Serializable
-data class WorkoutPlanFields(
-    val id: StringValue? = null,
-    val name: StringValue? = null,
-    val description: StringValue? = null,
-    val difficulty: StringValue? = null,
-    val duration: IntegerValue? = null,
-    val category: StringValue? = null,
-    val imageUrl: StringValue? = null
-)
-
 @Serializable
 data class ExerciseFirestoreRequest(
     val fields: ExerciseFields
-)
-
-@Serializable
-data class ExerciseFields(
-    val id: StringValue? = null,
-    val planId: StringValue? = null,
-    val name: StringValue? = null,
-    val description: StringValue? = null,
-    val sets: IntegerValue? = null,
-    val reps: IntegerValue? = null,
-    val restTime: IntegerValue? = null,
-    val videoUrl: StringValue? = null,
-    val thumbnailUrl: StringValue? = null,
-    val isCompleted: BooleanValue? = null,
-    val dayOfWeek: IntegerValue? = null,
-    val orderInDay: IntegerValue? = null
 )
 
 @Serializable
@@ -55,21 +29,23 @@ data class WorkoutActivityFields(
 )
 
 // Extension functions for converting models to Firestore requests
+@OptIn(ExperimentalUuidApi::class)
 fun WorkoutPlan.toFirestoreRequest(): WorkoutPlanFirestoreRequest {
 
     return WorkoutPlanFirestoreRequest(
         fields = WorkoutPlanFields(
-            id  = StringValue(id),
+            id  = StringValue(Uuid.random().toString()),
             name = StringValue(name),
             description = StringValue(description),
             difficulty = StringValue(difficulty.name),
-            duration = IntegerValue(duration),
+            duration = IntegerValue(duration.toString()),
             category = StringValue(category.name),
             imageUrl = StringValue(imageUrl ?: "")
         )
     )
 }
 
+@OptIn(ExperimentalUuidApi::class)
 fun Exercise.toFirestoreRequest(): ExerciseFirestoreRequest {
     val fieldsMap = mutableMapOf(
         "planId" to mapOf("stringValue" to planId),
@@ -96,14 +72,14 @@ fun Exercise.toFirestoreRequest(): ExerciseFirestoreRequest {
             planId = StringValue(planId),
             name = StringValue(name),
             description = StringValue(description),
-            sets = IntegerValue(sets),
-            reps = IntegerValue(reps),
-            restTime = IntegerValue(restTime),
+            sets = IntegerValue(sets.toString()),
+            reps = IntegerValue(reps.toString()),
+            restTime = IntegerValue(restTime.toString()),
             isCompleted = BooleanValue(isCompleted),
-            dayOfWeek = IntegerValue(dayOfWeek),
-            orderInDay = IntegerValue(orderInDay),
-            videoUrl = videoUrl?.let { StringValue(it) },
-            thumbnailUrl = thumbnailUrl?.let { StringValue(it) }
+            dayOfWeek = IntegerValue(dayOfWeek.toString()),
+            orderInDay = IntegerValue(orderInDay.toString()),
+            videoUrl = StringValue(videoUrl ?: "") ,
+            thumbnailUrl = StringValue(thumbnailUrl ?: "")
         )
     )
 }
@@ -136,7 +112,7 @@ fun FirestoreDocument<WorkoutPlanFields>.toWorkoutPlan(): WorkoutPlan {
         name = fields?.name?.value ?: "",
         description = fields?.description?.value ?: "",
         difficulty = fields?.difficulty?.value?.let { WorkoutDifficulty.valueOf(it) } ?: WorkoutDifficulty.BEGINNER,
-        duration = fields?.duration?.value ?: 12,
+        duration = fields?.duration?.value?.toIntOrNull() ?: 12,
         category = fields?.category?.value?.let { WorkoutCategory.valueOf(it) } ?: WorkoutCategory.STRENGTH,
         imageUrl = fields?.imageUrl?.value
     )
@@ -149,14 +125,14 @@ fun FirestoreDocument<ExerciseFields>.toExercise(): Exercise {
         planId = fields?.planId?.value ?: "",
         name = fields?.name?.value ?: "",
         description = fields?.description?.value ?: "",
-        sets = fields?.sets?.value ?: 0,
-        reps = fields?.reps?.value ?: 0,
-        restTime = fields?.restTime?.value ?: 0,
+        sets = fields?.sets?.value?.toIntOrNull() ?: 0,
+        reps = fields?.reps?.value?.toIntOrNull() ?: 0,
+        restTime = fields?.restTime?.value?.toIntOrNull() ?: 0,
         videoUrl = fields?.videoUrl?.value,
         thumbnailUrl = fields?.thumbnailUrl?.value,
         isCompleted = fields?.isCompleted?.value ?: false,
-        dayOfWeek = fields?.dayOfWeek?.value ?: 1,
-        orderInDay = fields?.orderInDay?.value ?: 0
+        dayOfWeek = fields?.dayOfWeek?.value?.toIntOrNull() ?: 1,
+        orderInDay = fields?.orderInDay?.value?.toIntOrNull() ?: 0
     )
 }
 

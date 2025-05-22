@@ -4,18 +4,20 @@ import cafe.adriel.voyager.core.model.StateScreenModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.datetime.Clock
 import org.awi.fitness.model.*
+import org.awi.fitness.repository.GeminiRepository
 import org.awi.fitness.repository.WorkoutRepository
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-data class WorkoutUiState(
+data class WorkoutUIState(
+    val isLoading: Boolean = false,
+    val error: String? = null,
     val workoutPlans: List<WorkoutPlanWithExercises> = emptyList(),
-    val selectedPlanId: String? = null,
     val selectedDayOfWeek: Int = 1,
-    val isLoading: Boolean = true,
-    val error: String? = null
+    val selectedPlanId: String? = null
 )
 
 data class ProgressUiState(
@@ -29,167 +31,156 @@ data class ProgressUiState(
     val isLoading: Boolean = true
 )
 
-class WorkoutViewModel(
-    private val repository: WorkoutRepository = WorkoutRepository()
-) : StateScreenModel<WorkoutUiState>(WorkoutUiState()) {
+class WorkoutViewModel {
+    private val workoutRepository = WorkoutRepository()
+    private val geminiRepository = GeminiRepository()
+    
+    private val _state = MutableStateFlow(WorkoutUIState())
+    val state: StateFlow<WorkoutUIState> = _state.asStateFlow()
 
     private val _progressUiState = MutableStateFlow(ProgressUiState())
     val progressUiState: StateFlow<ProgressUiState> = _progressUiState.asStateFlow()
 
-
-    suspend fun loadWorkoutPlans() {
-        try {
-            println("Loading workout plans in ViewModel...")
-            mutableState.value = mutableState.value.copy(isLoading = true, error = null)
-            repository.getAllWorkoutPlans()
-                .collect { plans ->
-                    println("Received ${plans.size} workout plans")
-                    mutableState.value = mutableState.value.copy(
-                        workoutPlans = plans,
-                        isLoading = false,
-                        error = null
-                    )
-                }
-        } catch (e: Exception) {
-            println("Error loading workout plans: ${e.message}")
-            mutableState.value = mutableState.value.copy(
-                isLoading = false,
-                error = "Failed to load workout plans: ${e.message}"
-            )
-        }
-    }
-
-    suspend fun setExerciseCompleted(exerciseId: String, completed: Boolean) {
-        repository.setExerciseCompleted(exerciseId, completed)
-    }
-
-    fun updateSelectedDay(dayOfWeek: Int) {
-        mutableState.value = mutableState.value.copy(selectedDayOfWeek = dayOfWeek)
-    }
-
-    @OptIn(ExperimentalUuidApi::class)
     suspend fun saveUserGoals(
         goal: FitnessGoal,
         level: FitnessLevel,
-        workoutDays: Int
+        workoutDays: Int,
+        specificRequirements: String
     ) {
-        mutableState.value = mutableState.value.copy(isLoading = true)
-        
         try {
-            // Create workout plan based on goals
+            _state.update { it.copy(isLoading = true, error = null) }
+
+            // Generate workout plan using Gemini
+            val generatedPlan = geminiRepository.generateWorkoutPlan(
+                goal = goal.name,
+                fitnessLevel = level.name,
+                workoutDays = workoutDays,
+                specificRequirements = specificRequirements
+            ).getOrThrow()
+
+            // Create workout plan
             val workoutPlan = WorkoutPlan(
-                id = Uuid.random().toString(),
-                name = "${goal.name.lowercase().replaceFirstChar { it.uppercase() }} Program",
-                description = "Personalized ${level.name.lowercase()} level program for ${goal.name.lowercase()}",
-                difficulty = when(level) {
-                    FitnessLevel.BEGINNER -> WorkoutDifficulty.BEGINNER
-                    FitnessLevel.INTERMEDIATE -> WorkoutDifficulty.INTERMEDIATE
-                    FitnessLevel.ADVANCED -> WorkoutDifficulty.ADVANCED
-                },
-                duration = 12, // 12-week program
-                category = when(goal) {
-                    FitnessGoal.WEIGHT_LOSS -> WorkoutCategory.HIIT
-                    FitnessGoal.MUSCLE_GAIN -> WorkoutCategory.STRENGTH
-                    FitnessGoal.ENDURANCE -> WorkoutCategory.CARDIO
-                    FitnessGoal.FLEXIBILITY -> WorkoutCategory.FLEXIBILITY
-                }
+                name = generatedPlan.workoutName,
+                description = generatedPlan.description,
+                difficulty = normalizeWorkoutDifficulty(generatedPlan.difficulty),
+                duration = generatedPlan.estimatedDuration,
+                category = normalizeWorkoutCategory(generatedPlan.category)
             )
 
-            val planIdResult = repository.insertWorkoutPlan(workoutPlan)
-            
-            planIdResult.fold(
-                onSuccess = { planId ->
-                    // Generate exercises for each day
-                    generateExercisesForPlan(planId, goal, level, workoutDays)
-                    
-                    mutableState.value = mutableState.value.copy(
-                        selectedPlanId = planId,
-                        isLoading = false
-                    )
-                },
-                onFailure = { error ->
-                    mutableState.value = mutableState.value.copy(
-                        error = "Failed to create workout plan: ${error.message}",
-                        isLoading = false
-                    )
-                }
-            )
+            val planId = workoutRepository.insertWorkoutPlan(workoutPlan).getOrThrow()
+
+            // Create exercises
+            generatedPlan.exercises.forEachIndexed { index, exercise ->
+                val newExercise = Exercise(
+                    planId = planId,
+                    name = exercise.name,
+                    description = exercise.description,
+                    sets = exercise.sets,
+                    reps = exercise.reps,
+                    restTime = exercise.restTime,
+                    isCompleted = false,
+                    dayOfWeek = (index % workoutDays) + 1,
+                    orderInDay = (index / workoutDays) + 1
+                )
+                workoutRepository.insertExercise(newExercise).getOrThrow()
+            }
+
+            _state.update { it.copy(isLoading = false, selectedPlanId = planId) }
         } catch (e: Exception) {
-            mutableState.value = mutableState.value.copy(
-                error = "Failed to create workout plan: ${e.message}",
-                isLoading = false
-            )
-        }
-    }
-
-    private suspend fun generateExercisesForPlan(
-        planId: String,
-        goal: FitnessGoal,
-        level: FitnessLevel,
-        workoutDays: Int
-    ) {
-        val exercises = getExercisesForGoal(goal, level)
-        val daysPerWeek = workoutDays
-        
-        // Distribute exercises across workout days
-        exercises.chunked(exercises.size / daysPerWeek).forEachIndexed { dayIndex, dayExercises ->
-            dayExercises.forEachIndexed { orderIndex, exercise ->
-                repository.insertExercise(
-                    Exercise(
-                        planId = planId,
-                        name = exercise.first,
-                        description = exercise.second,
-                        sets = when(level) {
-                            FitnessLevel.BEGINNER -> 3
-                            FitnessLevel.INTERMEDIATE -> 4
-                            FitnessLevel.ADVANCED -> 5
-                        },
-                        reps = 12,
-                        restTime = when(level) {
-                            FitnessLevel.BEGINNER -> 90
-                            FitnessLevel.INTERMEDIATE -> 60
-                            FitnessLevel.ADVANCED -> 45
-                        },
-                        dayOfWeek = dayIndex + 1,
-                        orderInDay = orderIndex
-                    )
+            _state.update { 
+                it.copy(
+                    isLoading = false,
+                    error = "Failed to create workout plan: ${e.message}"
                 )
             }
         }
     }
 
-    private fun getExercisesForGoal(goal: FitnessGoal, level: FitnessLevel): List<Pair<String, String>> {
-        return when (goal) {
-            FitnessGoal.WEIGHT_LOSS -> listOf(
-                "Burpees" to "Full body exercise that combines a squat, push-up, and jump",
-                "Mountain Climbers" to "Dynamic plank exercise that targets core and cardio",
-                "Jump Rope" to "High-intensity cardio exercise for fat burning",
-                "Squat Jumps" to "Explosive lower body exercise that elevates heart rate"
+    private fun normalizeWorkoutDifficulty(difficulty: String): WorkoutDifficulty {
+        return when (difficulty.trim().uppercase()) {
+            "BEGINNER", "EASY", "BASIC", "NOVICE" -> WorkoutDifficulty.BEGINNER
+            "INTERMEDIATE", "MEDIUM", "MODERATE" -> WorkoutDifficulty.INTERMEDIATE
+            "ADVANCED", "HARD", "EXPERT", "DIFFICULT" -> WorkoutDifficulty.ADVANCED
+            else -> WorkoutDifficulty.BEGINNER // Default to beginner if unknown
+        }
+    }
+
+    private fun normalizeWorkoutCategory(category: String): WorkoutCategory {
+        return when (category.trim().uppercase()) {
+            "STRENGTH", "WEIGHT", "RESISTANCE", "WEIGHTS", "MUSCLE" -> WorkoutCategory.STRENGTH
+            "CARDIO", "AEROBIC", "ENDURANCE", "RUNNING" -> WorkoutCategory.CARDIO
+            "HIIT", "HIGH INTENSITY", "INTERVAL", "INTENSE" -> WorkoutCategory.HIIT
+            "FLEXIBILITY", "STRETCHING", "MOBILITY" -> WorkoutCategory.FLEXIBILITY
+            "YOGA", "MIND-BODY", "BALANCE" -> WorkoutCategory.YOGA
+            else -> when {
+                category.contains("STRENGTH") || category.contains("WEIGHT") -> WorkoutCategory.STRENGTH
+                category.contains("CARDIO") || category.contains("ENDURANCE") -> WorkoutCategory.CARDIO
+                category.contains("HIIT") || category.contains("INTENSE") -> WorkoutCategory.HIIT
+                category.contains("FLEX") || category.contains("STRETCH") -> WorkoutCategory.FLEXIBILITY
+                category.contains("YOGA") || category.contains("BALANCE") -> WorkoutCategory.YOGA
+                else -> WorkoutCategory.STRENGTH // Default to strength if unknown
+            }
+        }
+    }
+
+    suspend fun loadWorkoutPlans() {
+        try {
+            _state.update { it.copy(isLoading = true, error = null) }
+            
+            val plansResult = workoutRepository.getAllWorkoutPlans()
+            plansResult.fold(
+                onSuccess = { plans ->
+                    println("x ${plans.size} workout plans")
+                    plans.forEach { plan ->
+                        println("Plan: ${plan.plan.name} with ${plan.exercises.size} exercises")
+                    }
+                    _state.update { 
+                        it.copy(
+                            isLoading = false,
+                            workoutPlans = plans.filter { plan -> plan.exercises.isNotEmpty() }
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    println("Failed to load workout plans: ${error.message}")
+                    _state.update { 
+                        it.copy(
+                            isLoading = false,
+                            error = "Failed to load workout plans: ${error.message}"
+                        )
+                    }
+                }
             )
-            FitnessGoal.MUSCLE_GAIN -> listOf(
-                "Bench Press" to "Compound exercise for chest, shoulders, and triceps",
-                "Deadlift" to "Full body compound exercise focusing on posterior chain",
-                "Squats" to "Lower body compound exercise for strength and muscle",
-                "Pull-ups" to "Upper body compound exercise for back and biceps"
-            )
-            FitnessGoal.ENDURANCE -> listOf(
-                "Running" to "Outdoor or treadmill running for cardiovascular endurance",
-                "Cycling" to "Stationary or outdoor cycling for leg strength and endurance",
-                "Swimming" to "Full body exercise that improves cardiovascular fitness",
-                "Rowing" to "Indoor rowing machine for upper and lower body endurance"
-            )
-            FitnessGoal.FLEXIBILITY -> listOf(
-                "Yoga" to "Mind-body practice that improves flexibility and relaxation",
-                "Pilates" to "Core-focused exercise for strength, flexibility, and posture",
-                "Stretching" to "Static and dynamic stretches for muscle flexibility",
-                "Foam Rolling" to "Self-myofascial release technique for muscle recovery"
-            )
+        } catch (e: Exception) {
+            println("Error loading workout plans: ${e.message}")
+            e.printStackTrace()
+            _state.update { 
+                it.copy(
+                    isLoading = false,
+                    error = "Failed to load workout plans: ${e.message}"
+                )
+            }
+        }
+    }
+
+    fun updateSelectedDay(day: Int) {
+        _state.update { it.copy(selectedDayOfWeek = day) }
+    }
+
+    suspend fun setExerciseCompleted(exercise: Exercise, completed: Boolean) {
+        try {
+            workoutRepository.setExerciseCompleted(exercise, completed).getOrThrow()
+            loadWorkoutPlans() // Reload to update UI
+        } catch (e: Exception) {
+            _state.update { 
+                it.copy(error = "Failed to update exercise: ${e.message}")
+            }
         }
     }
 
     suspend fun loadProgress(planId: String) {
         // Load recent activities
-        repository.getRecentActivities(planId).collect { activities ->
+        workoutRepository.getRecentActivities(planId).collect { activities ->
             _progressUiState.value = _progressUiState.value.copy(
                 recentActivities = activities
             )
@@ -197,7 +188,7 @@ class WorkoutViewModel(
 
         // Load completion rate
         val currentTime = Clock.System.now().toEpochMilliseconds()
-        repository.getCompletionCountForDay(planId, currentTime).collect { completedToday ->
+        workoutRepository.getCompletionCountForDay(planId, currentTime).collect { completedToday ->
             val warnings = mutableListOf<String>()
             if (completedToday == 0) {
                 warnings.add("You haven't completed any exercises today")

@@ -31,81 +31,163 @@ fun UserFitnessGoalsBottomSheet(
     var selectedGoal by remember { mutableStateOf<FitnessGoal?>(null) }
     var fitnessLevel by remember { mutableStateOf<FitnessLevel?>(null) }
     var preferredWorkoutDays by remember { mutableStateOf(3) }
+    var specificRequirements by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    
     val coroutineScope = rememberCoroutineScope()
     val bottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val state by viewModel.state.collectAsState()
+
+    // Handle state changes
+    LaunchedEffect(state) {
+        if (!state.isLoading && state.selectedPlanId != null) {
+            // Success case
+            onGoalsSet()
+            onDismiss()
+        }
+        isLoading = state.isLoading
+        error = state.error
+    }
 
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!isLoading) onDismiss() },
         modifier = Modifier.fillMaxSize(),
         sheetState = bottomSheetState,
         dragHandle = null,
         containerColor = MaterialTheme.colorScheme.background,
         shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn() + slideInVertically()
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                Column {
-                    Text(
-                        "Set Your Fitness Goals",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onBackground
+                AnimatedVisibility(
+                    visible = true,
+                    enter = fadeIn() + slideInVertically()
+                ) {
+                    Column {
+                        Text(
+                            "Set Your Fitness Goals",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            "Let's create a personalized plan for you",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+
+                GoalSelectionSection(selectedGoal, onGoalSelected = { selectedGoal = it })
+                
+                AnimatedVisibility(
+                    visible = selectedGoal != null,
+                    enter = fadeIn() + slideInHorizontally()
+                ) {
+                    FitnessLevelSection(fitnessLevel, onLevelSelected = { fitnessLevel = it })
+                }
+
+                AnimatedVisibility(
+                    visible = fitnessLevel != null,
+                    enter = fadeIn() + slideInHorizontally()
+                ) {
+                    WorkoutDaysSection(preferredWorkoutDays, onDaysChanged = { preferredWorkoutDays = it })
+                }
+
+                AnimatedVisibility(
+                    visible = fitnessLevel != null,
+                    enter = fadeIn() + slideInHorizontally()
+                ) {
+                    SpecificRequirementsSection(
+                        requirements = specificRequirements,
+                        onRequirementsChanged = { specificRequirements = it }
                     )
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                AnimatedVisibility(
+                    visible = error != null,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
                     Text(
-                        "Let's create a personalized plan for you",
+                        text = error ?: "",
+                        color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                        modifier = Modifier.padding(bottom = 8.dp)
                     )
+                }
+
+                Button(
+                    onClick = {
+                        if (selectedGoal != null && fitnessLevel != null) {
+                            error = null
+                            coroutineScope.launch {
+                                viewModel.saveUserGoals(
+                                    selectedGoal!!,
+                                    fitnessLevel!!,
+                                    preferredWorkoutDays,
+                                    specificRequirements
+                                )
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 32.dp)
+                        .animateContentSize(),
+                    enabled = selectedGoal != null && fitnessLevel != null && !isLoading,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Start My Fitness Journey")
+                    }
                 }
             }
 
-            GoalSelectionSection(selectedGoal, onGoalSelected = { selectedGoal = it })
-            
-            AnimatedVisibility(
-                visible = selectedGoal != null,
-                enter = fadeIn() + slideInHorizontally()
+            // Loading overlay
+            this@ModalBottomSheet.AnimatedVisibility(
+                visible = isLoading,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier.fillMaxSize()
             ) {
-                FitnessLevelSection(fitnessLevel, onLevelSelected = { fitnessLevel = it })
-            }
-
-            AnimatedVisibility(
-                visible = fitnessLevel != null,
-                enter = fadeIn() + slideInHorizontally()
-            ) {
-                WorkoutDaysSection(preferredWorkoutDays, onDaysChanged = { preferredWorkoutDays = it })
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Button(
-                onClick = {
-                    if (selectedGoal != null && fitnessLevel != null) {
-                        coroutineScope.launch {
-                            viewModel.saveUserGoals(selectedGoal!!, fitnessLevel!!, preferredWorkoutDays)
-                            onGoalsSet()
-                            onDismiss()
-                        }
+                Surface(
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Generating your personalized workout plan...",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 32.dp)
-                    .animateContentSize(),
-                enabled = selectedGoal != null && fitnessLevel != null,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            ) {
-                Text("Start My Fitness Journey")
+                }
             }
         }
     }
@@ -306,6 +388,38 @@ private fun DayButton(
                 MaterialTheme.colorScheme.onPrimary
             else 
                 MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+@Composable
+private fun SpecificRequirementsSection(
+    requirements: String,
+    onRequirementsChanged: (String) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Text(
+            "Any specific requirements for your workout?",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        
+        OutlinedTextField(
+            value = requirements,
+            onValueChange = onRequirementsChanged,
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = {
+                Text(
+                    "E.g., focus areas, time constraints, equipment availability...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+            ),
+            maxLines = 3
         )
     }
 }
