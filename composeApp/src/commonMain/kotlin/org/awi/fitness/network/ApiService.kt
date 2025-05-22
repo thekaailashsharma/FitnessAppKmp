@@ -8,6 +8,7 @@ import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HeadersBuilder
 import io.ktor.http.HttpHeaders
@@ -161,6 +162,7 @@ abstract class ApiService {
                     }
                 }
             }.let { response ->
+                println("Original Response is ${response.bodyAsText()}")
                 response.body<T>() to response.status
             }
         }, token)

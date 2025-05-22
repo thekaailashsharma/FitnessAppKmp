@@ -224,10 +224,10 @@ private fun CalorieInputForm(
                         onClick = { onGoalSelect(goal) },
                         modifier = Modifier.weight(1f),
                         label = { 
-                            Text(
-                                goal.name.replace("_", " "),
+                        Text(
+                            goal.name.replace("_", " "),
                                 style = MaterialTheme.typography.bodyMedium
-                            )
+                        )
                         },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = GreenAccent,
@@ -324,12 +324,12 @@ private fun ActivityLevelChip(
             )
         },
         label = {
-            Text(
-                text = level.name.replace("_", " "),
+        Text(
+            text = level.name.replace("_", " "),
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(horizontal = 4.dp)
-            )
-        }
+            modifier = Modifier.padding(horizontal = 4.dp)
+        )
+    }
     )
 }
 
@@ -358,11 +358,11 @@ private fun GenderChip(
             selected = true
         ),
         label = {
-            Text(
-                text = gender.name,
+        Text(
+            text = gender.name,
                 style = MaterialTheme.typography.bodyMedium
-            )
-        }
+        )
+    }
     )
 }
 

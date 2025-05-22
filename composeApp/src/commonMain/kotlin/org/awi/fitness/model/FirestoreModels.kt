@@ -99,6 +99,12 @@ data class IntegerValue(
 )
 
 @Serializable
+data class LongValue(
+    @SerialName("longValue")
+    val value: Long
+)
+
+@Serializable
 data class FirestoreListResponse<T>(
     @SerialName("documents")
     val documents: List<FirestoreDocument<T>>? = null

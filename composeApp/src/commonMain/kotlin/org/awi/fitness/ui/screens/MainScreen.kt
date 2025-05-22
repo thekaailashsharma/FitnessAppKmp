@@ -70,9 +70,10 @@ class MainScreen : Screen {
                     .padding(paddingValues)
             ) {
                 when (currentRoute) {
+                    BottomNavItem.Home.route -> CalorieCalculatorScreen()
+                    BottomNavItem.Workouts.route -> WorkoutScreen().Content()
                     BottomNavItem.Calories.route -> CalorieCalculatorScreen()
-                    // Add other screens here
-                    else -> CalorieCalculatorScreen() // Temporary default
+                    BottomNavItem.Profile.route -> CalorieCalculatorScreen() // Temporary
                 }
             }
         }
