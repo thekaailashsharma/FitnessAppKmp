@@ -19,14 +19,12 @@ import compose.icons.SimpleIcons
 import compose.icons.TablerIcons
 import compose.icons.simpleicons.Ifood
 import compose.icons.tablericons.*
-import org.awi.fitness.ui.CalorieCalculatorScreen
+import org.awi.fitness.ui.screens.home.HomeScreen
 
 sealed class BottomNavItem(val route: String) {
     object Home : BottomNavItem("home")
     object Workouts : BottomNavItem("workouts")
-    object Schedule : BottomNavItem("schedule")
     object Meals : BottomNavItem("meals")
-    object Profile : BottomNavItem("profile")
 }
 
 class MainScreen : Screen {
@@ -41,9 +39,7 @@ class MainScreen : Screen {
                     listOf(
                         BottomNavItem.Home,
                         BottomNavItem.Workouts,
-                        BottomNavItem.Schedule,
-                        BottomNavItem.Meals,
-                        BottomNavItem.Profile
+                        BottomNavItem.Meals
                     ).forEach { item ->
                         NavigationBarItem(
                             selected = currentRoute == item.route,
@@ -53,9 +49,7 @@ class MainScreen : Screen {
                                     imageVector = when (item) {
                                         BottomNavItem.Home -> TablerIcons.Home
                                         BottomNavItem.Workouts -> TablerIcons.Walk
-                                        BottomNavItem.Schedule -> TablerIcons.CalendarEvent
                                         BottomNavItem.Meals -> SimpleIcons.Ifood
-                                        BottomNavItem.Profile -> TablerIcons.User
                                     },
                                     contentDescription = item.route
                                 )
@@ -72,11 +66,9 @@ class MainScreen : Screen {
                     .padding(paddingValues)
             ) {
                 when (currentRoute) {
-                    BottomNavItem.Home.route -> CalorieCalculatorScreen()
+                    BottomNavItem.Home.route -> HomeScreen().Content()
                     BottomNavItem.Workouts.route -> WorkoutScreen().Content()
-                    BottomNavItem.Schedule.route -> WorkoutSchedulerScreen().Content()
                     BottomNavItem.Meals.route -> MealScreen().Content()
-                    BottomNavItem.Profile.route -> CalorieCalculatorScreen() // Temporary
                 }
             }
         }

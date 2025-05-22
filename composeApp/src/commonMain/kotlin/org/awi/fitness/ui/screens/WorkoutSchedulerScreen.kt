@@ -25,9 +25,12 @@ import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cafe.adriel.voyager.core.screen.Screen
+import cafe.adriel.voyager.navigator.LocalNavigator
+import cafe.adriel.voyager.navigator.currentOrThrow
 import compose.icons.SimpleIcons
 import compose.icons.TablerIcons
 import compose.icons.simpleicons.Googlecalendar
+import compose.icons.tablericons.ArrowLeft
 import compose.icons.tablericons.Calendar
 import compose.icons.tablericons.CalendarEvent
 import compose.icons.tablericons.CalendarOff
@@ -44,6 +47,7 @@ class WorkoutSchedulerScreen : Screen {
     @Composable
     override fun Content() {
         val userSettings = UserSettings.getInstance()
+        val navigator = LocalNavigator.currentOrThrow
         val workoutSchedules by userSettings.workoutSchedules.collectAsState()
         
         var selectedDate by remember { mutableStateOf(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date) }
@@ -55,6 +59,14 @@ class WorkoutSchedulerScreen : Screen {
             topBar = {
                 TopAppBar(
                     title = { Text("Workout Schedule") },
+                    navigationIcon = {
+                        IconButton(onClick = { navigator.pop() }) {
+                            Icon(
+                                imageVector = TablerIcons.ArrowLeft,
+                                contentDescription = "Back"
+                            )
+                        }
+                    },
                     actions = {
                         // Go to Today Button
                         TextButton(
