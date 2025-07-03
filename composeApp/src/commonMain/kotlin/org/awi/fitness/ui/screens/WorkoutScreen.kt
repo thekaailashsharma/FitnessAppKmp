@@ -27,18 +27,23 @@ import compose.icons.tablericons.*
 import org.awi.fitness.model.*
 import org.awi.fitness.viewmodel.WorkoutViewModel
 import kotlinx.coroutines.launch
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.data.UserSettings
 import org.awi.fitness.utils.fitnessTips
 import org.awi.fitness.utils.topFiveTips
+import org.awi.fitness.viewmodel.LanguageViewModel
 
 class WorkoutScreen : Screen {
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
+        val userSettings = UserSettings.getInstance()
         val viewModel = remember { WorkoutViewModel() }
         val uiState by viewModel.state.collectAsState()
         val coroutineScope = rememberCoroutineScope()
         var showGoalsSheet by remember { mutableStateOf(false) }
         var selectedPlanIndex by remember { mutableStateOf(0) }
+        val languageViewModel = remember { LanguageViewModel(userSettings.settings) }
 
         LaunchedEffect(Unit) {
             viewModel.loadWorkoutPlans()
@@ -85,30 +90,15 @@ class WorkoutScreen : Screen {
                     }
                 }
                 uiState.error != null -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(
-                                text = uiState.error ?: "An error occurred",
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                            Button(
-                                onClick = {
-                                    coroutineScope.launch {
-                                        viewModel.loadWorkoutPlans()
-                                    }
-                                }
-                            ) {
-                                Text("Retry")
+                    ErrorState(
+                        error = uiState.error,
+                        onRetry = {
+                            coroutineScope.launch {
+                                viewModel.loadWorkoutPlans()
                             }
-                        }
-                    }
+                        },
+                        languageViewModel = languageViewModel
+                    )
                 }
                 uiState.workoutPlans.isEmpty() -> {
                     EmptyWorkoutState(
@@ -189,7 +179,8 @@ class WorkoutScreen : Screen {
                         viewModel.loadWorkoutPlans()
                     }
                 },
-                onDismiss = { showGoalsSheet = false }
+                onDismiss = { showGoalsSheet = false },
+                languageViewModel = languageViewModel
             )
         }
     }
@@ -794,5 +785,31 @@ private fun WorkoutStat(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
         )
+    }
+}
+
+@Composable
+private fun ErrorState(
+    error: String?,
+    onRetry: () -> Unit,
+    languageViewModel: LanguageViewModel
+) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = error ?: languageViewModel.getString(StringKey.AN_ERROR_OCCURRED),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Button(onClick = onRetry) {
+                Text(languageViewModel.getString(StringKey.RETRY))
+            }
+        }
     }
 } 

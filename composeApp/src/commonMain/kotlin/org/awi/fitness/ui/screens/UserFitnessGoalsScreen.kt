@@ -20,10 +20,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import kotlinx.coroutines.launch
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.viewmodel.LanguageViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserFitnessGoalsBottomSheet(
+    languageViewModel: LanguageViewModel,
     viewModel: WorkoutViewModel,
     onGoalsSet: () -> Unit,
     onDismiss: () -> Unit
@@ -97,7 +100,7 @@ fun UserFitnessGoalsBottomSheet(
                     visible = fitnessLevel != null,
                     enter = fadeIn() + slideInHorizontally()
                 ) {
-                    WorkoutDaysSection(preferredWorkoutDays, onDaysChanged = { preferredWorkoutDays = it })
+                    WorkoutDaysSection(preferredWorkoutDays, onDaysChanged = { preferredWorkoutDays = it }, languageViewModel = languageViewModel)
                 }
 
                 AnimatedVisibility(
@@ -106,7 +109,8 @@ fun UserFitnessGoalsBottomSheet(
                 ) {
                     SpecificRequirementsSection(
                         requirements = specificRequirements,
-                        onRequirementsChanged = { specificRequirements = it }
+                        onRequirementsChanged = { specificRequirements = it },
+                        languageViewModel = languageViewModel
                     )
                 }
 
@@ -342,11 +346,12 @@ private fun LevelCard(
 @Composable
 private fun WorkoutDaysSection(
     days: Int,
-    onDaysChanged: (Int) -> Unit
+    onDaysChanged: (Int) -> Unit,
+    languageViewModel: LanguageViewModel
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(
-            "How many days per week can you workout?",
+            languageViewModel.getString(StringKey.WORKOUT_DAYS_QUESTION),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground
         )
@@ -395,11 +400,12 @@ private fun DayButton(
 @Composable
 private fun SpecificRequirementsSection(
     requirements: String,
-    onRequirementsChanged: (String) -> Unit
+    onRequirementsChanged: (String) -> Unit,
+    languageViewModel: LanguageViewModel
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(
-            "Any specific requirements for your workout?",
+            languageViewModel.getString(StringKey.SPECIFIC_REQUIREMENTS_QUESTION),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground
         )
@@ -410,7 +416,7 @@ private fun SpecificRequirementsSection(
             modifier = Modifier.fillMaxWidth(),
             placeholder = {
                 Text(
-                    "E.g., focus areas, time constraints, equipment availability...",
+                    languageViewModel.getString(StringKey.SPECIFIC_REQUIREMENTS_HINT),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )

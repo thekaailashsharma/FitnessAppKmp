@@ -15,25 +15,29 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
+import org.awi.fitness.data.Language
+import org.awi.fitness.data.StringKey
 import org.awi.fitness.data.UserSettings
+import org.awi.fitness.viewmodel.LanguageViewModel
 import kotlin.math.roundToInt
 
-class ProfileScreen : Screen {
+class ProfileScreen(private val languageViewModel: LanguageViewModel) : Screen {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val userSettings = UserSettings.getInstance()
+        val currentLanguage by languageViewModel.currentLanguage.collectAsState()
 
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Profile") },
+                    title = { Text(languageViewModel.getString(StringKey.PROFILE)) },
                     navigationIcon = {
                         IconButton(onClick = { navigator.pop() }) {
                             Icon(
                                 imageVector = TablerIcons.ArrowLeft,
-                                contentDescription = "Back"
+                                contentDescription = languageViewModel.getString(StringKey.BACK)
                             )
                         }
                     },
@@ -53,7 +57,7 @@ class ProfileScreen : Screen {
                 // Profile Header
                 item {
                     ProfileHeader(
-                        name = userSettings.userName ?: "Fitness Enthusiast",
+                        name = userSettings.userName ?: languageViewModel.getString(StringKey.FITNESS_ENTHUSIAST),
                         email = userSettings.userEmail ?: ""
                     )
                 }
@@ -63,13 +67,17 @@ class ProfileScreen : Screen {
                     StatsSection(
                         bmr = userSettings.bmr,
                         tdee = userSettings.tdee,
-                        caloriesGoal = userSettings.calculatedCalories
+                        caloriesGoal = userSettings.calculatedCalories,
+                        languageViewModel = languageViewModel
                     )
                 }
 
                 // Settings Section
                 item {
-                    SettingsSection()
+                    SettingsSection(
+                        languageViewModel = languageViewModel,
+                        currentLanguage = currentLanguage
+                    )
                 }
 
                 // Logout Button
@@ -90,7 +98,7 @@ class ProfileScreen : Screen {
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Logout")
+                        Text(languageViewModel.getString(StringKey.LOGOUT))
                     }
                 }
 
@@ -141,7 +149,12 @@ private fun ProfileHeader(name: String, email: String) {
 }
 
 @Composable
-private fun StatsSection(bmr: Float, tdee: Float, caloriesGoal: Int) {
+private fun StatsSection(
+    bmr: Float,
+    tdee: Float,
+    caloriesGoal: Int,
+    languageViewModel: LanguageViewModel
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -152,7 +165,7 @@ private fun StatsSection(bmr: Float, tdee: Float, caloriesGoal: Int) {
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = "Fitness Stats",
+                text = languageViewModel.getString(StringKey.FITNESS_STATS),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -162,17 +175,17 @@ private fun StatsSection(bmr: Float, tdee: Float, caloriesGoal: Int) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 StatItem(
-                    label = "BMR",
+                    label = languageViewModel.getString(StringKey.BMR),
                     value = bmr.roundToInt().toString(),
                     icon = TablerIcons.Activity
                 )
                 StatItem(
-                    label = "TDEE",
+                    label = languageViewModel.getString(StringKey.TDEE),
                     value = tdee.roundToInt().toString(),
                     icon = TablerIcons.Flame
                 )
                 StatItem(
-                    label = "Goal",
+                    label = languageViewModel.getString(StringKey.GOAL),
                     value = caloriesGoal.toString(),
                     icon = TablerIcons.Target
                 )
@@ -209,8 +222,12 @@ private fun StatItem(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SettingsSection() {
+private fun SettingsSection(
+    languageViewModel: LanguageViewModel,
+    currentLanguage: String
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -221,7 +238,7 @@ private fun SettingsSection() {
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = "Settings",
+                text = languageViewModel.getString(StringKey.SETTINGS),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -243,7 +260,7 @@ private fun SettingsSection() {
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
                     )
-                    Text("Dark Theme")
+                    Text(languageViewModel.getString(StringKey.DARK_THEME))
                 }
                 Switch(
                     checked = isDarkTheme,
@@ -252,6 +269,59 @@ private fun SettingsSection() {
                         UserSettings.getInstance().isDarkTheme = it
                     }
                 )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Language Selector
+            var expanded by remember { mutableStateOf(false) }
+            val selectedLanguage = Language.entries.find { it.code == currentLanguage } ?: Language.ENGLISH
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = TablerIcons.Language,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(languageViewModel.getString(StringKey.LANGUAGE))
+                }
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = selectedLanguage.displayName,
+                        onValueChange = {},
+                        readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier.menuAnchor(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                        )
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        Language.entries.forEach { language ->
+                            DropdownMenuItem(
+                                text = { Text(language.displayName) },
+                                onClick = {
+                                    languageViewModel.setLanguage(language)
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
             }
         }
     }

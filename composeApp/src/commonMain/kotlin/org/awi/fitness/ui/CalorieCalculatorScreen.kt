@@ -94,6 +94,7 @@ import org.awi.fitness.data.CalorieUiState
 import org.awi.fitness.data.Gender
 import org.awi.fitness.data.Goal
 import org.awi.fitness.data.MeasurementEntry
+import org.awi.fitness.data.StringKey
 import org.awi.fitness.data.UserSettings
 import org.awi.fitness.data.WeighInEntry
 import org.awi.fitness.repository.GeminiRepository
@@ -109,6 +110,7 @@ import org.awi.fitness.theme.InputFieldBorder
 import org.awi.fitness.theme.TextGray
 import org.awi.fitness.theme.TextWhite
 import org.awi.fitness.viewmodel.CalorieViewModel
+import org.awi.fitness.viewmodel.LanguageViewModel
 import kotlin.math.pow
 
 private val IconSelected = GreenAccent
@@ -126,6 +128,8 @@ class CalorieCalculatorScreen() : Screen {
     @Composable
     override fun Content() {
         val viewModel = CalorieViewModel()
+        val userSettings = UserSettings.getInstance()
+        val languageViewModel = remember { LanguageViewModel(userSettings.settings) }
         var selectedTab by remember { mutableStateOf(0) }
         val tabs = listOf("Calories", "Weight", "Measure")
         val navigator = LocalNavigator.currentOrThrow
@@ -133,12 +137,12 @@ class CalorieCalculatorScreen() : Screen {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Calorie Calculator") },
+                    title = { Text(languageViewModel.getString(StringKey.CALORIE_CALCULATOR_TITLE)) },
                     navigationIcon = {
                         IconButton(onClick = { navigator.pop() }) {
                             Icon(
                                 imageVector = TablerIcons.ArrowLeft,
-                                contentDescription = "Back"
+                                contentDescription = languageViewModel.getString(StringKey.BACK)
                             )
                         }
                     },
@@ -182,9 +186,9 @@ class CalorieCalculatorScreen() : Screen {
                     }
 
                     when (selectedTab) {
-                        0 -> CalorieCalculatorContent(viewModel)
-                        1 -> WeightTrackingScreen()
-                        2 -> MeasurementTrackingScreen()
+                        0 -> CalorieCalculatorContent(viewModel, languageViewModel)
+                        1 -> WeightTrackingScreen(languageViewModel)
+                        2 -> MeasurementTrackingScreen(languageViewModel)
                     }
                 }
             }
@@ -192,7 +196,7 @@ class CalorieCalculatorScreen() : Screen {
     }
 
     @Composable
-    private fun WeightTrackingScreen() {
+    private fun WeightTrackingScreen(languageViewModel: LanguageViewModel) {
         val settings = remember { UserSettings.getInstance() }
         val weighIns by settings.weighIns.collectAsState()
         var showAddDialog by remember { mutableStateOf(false) }
@@ -209,7 +213,7 @@ class CalorieCalculatorScreen() : Screen {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Weight Tracking",
+                    languageViewModel.getString(StringKey.WEIGHT_TRACKING),
                     style = MaterialTheme.typography.titleLarge,
                     color = TextWhite
                 )
@@ -229,7 +233,7 @@ class CalorieCalculatorScreen() : Screen {
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        "Add Weight",
+                        languageViewModel.getString(StringKey.ADD_WEIGHT),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -251,7 +255,7 @@ class CalorieCalculatorScreen() : Screen {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                "Progress Graph",
+                                languageViewModel.getString(StringKey.PROGRESS_GRAPH),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = TextWhite
                             )
@@ -289,7 +293,7 @@ class CalorieCalculatorScreen() : Screen {
                     colors = CardDefaults.cardColors(containerColor = DarkCard)
                 ) {
                     Text(
-                        "Add one more weight entry to see your progress graph",
+                        languageViewModel.getString(StringKey.ADD_ONE_MORE_WEIGHT_ENTRY),
                         modifier = Modifier.padding(16.dp),
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextGray
@@ -347,7 +351,7 @@ class CalorieCalculatorScreen() : Screen {
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Text(
-                            "Add Weight Entry",
+                            languageViewModel.getString(StringKey.ADD_WEIGHT_ENTRY),
                             style = MaterialTheme.typography.titleLarge,
                             color = TextWhite
                         )
@@ -355,7 +359,7 @@ class CalorieCalculatorScreen() : Screen {
                         OutlinedTextField(
                             value = weight,
                             onValueChange = { weight = it },
-                            label = { Text("Weight (kg)") },
+                            label = { Text(languageViewModel.getString(StringKey.WEIGHT_KG)) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
@@ -371,7 +375,7 @@ class CalorieCalculatorScreen() : Screen {
                         OutlinedTextField(
                             value = note,
                             onValueChange = { note = it },
-                            label = { Text("Note (optional)") },
+                            label = { Text(languageViewModel.getString(StringKey.WEIGHT_NOTE)) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
                                 unfocusedTextColor = TextWhite,
@@ -389,7 +393,7 @@ class CalorieCalculatorScreen() : Screen {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             TextButton(onClick = { showAddDialog = false }) {
-                                Text("Cancel", color = TextGray)
+                                Text(languageViewModel.getString(StringKey.CANCEL), color = TextGray)
                             }
                             Button(
                                 onClick = {
@@ -412,7 +416,7 @@ class CalorieCalculatorScreen() : Screen {
                                     contentColor = Color.Black
                                 )
                             ) {
-                                Text("Save")
+                                Text(languageViewModel.getString(StringKey.SAVE))
                             }
                         }
                     }
@@ -422,7 +426,7 @@ class CalorieCalculatorScreen() : Screen {
     }
 
     @Composable
-    private fun MeasurementTrackingScreen() {
+    private fun MeasurementTrackingScreen(languageViewModel: LanguageViewModel) {
         val settings = remember { UserSettings.getInstance() }
         val measurements by settings.measurements.collectAsState()
         var showAddDialog by remember { mutableStateOf(false) }
@@ -461,7 +465,7 @@ class CalorieCalculatorScreen() : Screen {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Measurements",
+                    languageViewModel.getString(StringKey.MEASUREMENTS),
                     style = MaterialTheme.typography.titleLarge,
                     color = TextWhite
                 )
@@ -481,7 +485,7 @@ class CalorieCalculatorScreen() : Screen {
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        "Add",
+                        languageViewModel.getString(StringKey.ADD),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -505,7 +509,7 @@ class CalorieCalculatorScreen() : Screen {
                             strokeWidth = 2.dp
                         )
                         Text(
-                            "Analyzing your measurements...",
+                            languageViewModel.getString(StringKey.ANALYZING_YOUR_MEASUREMENTS),
                             color = TextWhite,
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -524,7 +528,7 @@ class CalorieCalculatorScreen() : Screen {
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Text(
-                            "Analysis",
+                            languageViewModel.getString(StringKey.ANALYSIS),
                             style = MaterialTheme.typography.titleMedium,
                             color = TextWhite
                         )
@@ -539,7 +543,7 @@ class CalorieCalculatorScreen() : Screen {
 
                         if (measurementAnalysis.recommendations.isNotEmpty()) {
                             Text(
-                                "Recommendations",
+                                languageViewModel.getString(StringKey.RECOMMENDATIONS),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = GreenAccent
                             )
@@ -584,7 +588,7 @@ class CalorieCalculatorScreen() : Screen {
                         ) {
                             Column {
                                 Text(
-                                    "Waist",
+                                    languageViewModel.getString(StringKey.WAIST),
                                     color = TextGray,
                                     style = MaterialTheme.typography.bodySmall
                                 )
@@ -596,7 +600,7 @@ class CalorieCalculatorScreen() : Screen {
                             }
                             Column {
                                 Text(
-                                    "Hips",
+                                    languageViewModel.getString(StringKey.HIPS),
                                     color = TextGray,
                                     style = MaterialTheme.typography.bodySmall
                                 )
@@ -608,7 +612,7 @@ class CalorieCalculatorScreen() : Screen {
                             }
                             Column {
                                 Text(
-                                    "Arms",
+                                    languageViewModel.getString(StringKey.ARMS),
                                     color = TextGray,
                                     style = MaterialTheme.typography.bodySmall
                                 )
@@ -637,7 +641,7 @@ class CalorieCalculatorScreen() : Screen {
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Text(
-                            "Add Measurements",
+                            languageViewModel.getString(StringKey.ADD_MEASUREMENTS),
                             style = MaterialTheme.typography.titleLarge,
                             color = TextWhite
                         )
@@ -645,7 +649,7 @@ class CalorieCalculatorScreen() : Screen {
                         OutlinedTextField(
                             value = waist,
                             onValueChange = { waist = it },
-                            label = { Text("Waist (cm)") },
+                            label = { Text(languageViewModel.getString(StringKey.WAIST_CM)) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
@@ -661,7 +665,7 @@ class CalorieCalculatorScreen() : Screen {
                         OutlinedTextField(
                             value = hips,
                             onValueChange = { hips = it },
-                            label = { Text("Hips (cm)") },
+                            label = { Text(languageViewModel.getString(StringKey.HIPS_CM)) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
@@ -677,7 +681,7 @@ class CalorieCalculatorScreen() : Screen {
                         OutlinedTextField(
                             value = arms,
                             onValueChange = { arms = it },
-                            label = { Text("Arms (cm)") },
+                            label = { Text(languageViewModel.getString(StringKey.ARMS_CM)) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
@@ -693,7 +697,7 @@ class CalorieCalculatorScreen() : Screen {
                         OutlinedTextField(
                             value = note,
                             onValueChange = { note = it },
-                            label = { Text("Note (optional)") },
+                            label = { Text(languageViewModel.getString(StringKey.WEIGHT_NOTE)) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
                                 unfocusedTextColor = TextWhite,
@@ -711,7 +715,7 @@ class CalorieCalculatorScreen() : Screen {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             TextButton(onClick = { showAddDialog = false }) {
-                                Text("Cancel", color = TextGray)
+                                Text(languageViewModel.getString(StringKey.CANCEL), color = TextGray)
                             }
                             Button(
                                 onClick = {
@@ -744,7 +748,7 @@ class CalorieCalculatorScreen() : Screen {
                                     contentColor = Color.Black
                                 )
                             ) {
-                                Text("Save")
+                                Text(languageViewModel.getString(StringKey.SAVE))
                             }
                         }
                     }
@@ -868,7 +872,7 @@ class CalorieCalculatorScreen() : Screen {
     }
 
     @Composable
-    private fun CalorieCalculatorContent(viewModel: CalorieViewModel) {
+    private fun CalorieCalculatorContent(viewModel: CalorieViewModel, languageViewModel: LanguageViewModel) {
         val uiState by viewModel.uiState.collectAsState()
 
         if (!uiState.isCalculated) {
@@ -879,12 +883,14 @@ class CalorieCalculatorScreen() : Screen {
                 onAgeChange = viewModel::updateAge,
                 onGenderSelect = viewModel::updateGender,
                 onActivityLevelSelect = viewModel::updateActivityLevel,
-                onGoalSelect = viewModel::updateGoal
+                onGoalSelect = viewModel::updateGoal,
+                languageViewModel = languageViewModel
             )
         } else {
             CalorieResultScreen(
                 uiState = uiState,
-                onRecalculate = viewModel::resetCalculation
+                onRecalculate = viewModel::resetCalculation,
+                languageViewModel = languageViewModel
             )
         }
 
@@ -928,7 +934,7 @@ class CalorieCalculatorScreen() : Screen {
                     )
                 } else {
                     Text(
-                        "Calculate",
+                        languageViewModel.getString(StringKey.CALCULATE),
                         style = MaterialTheme.typography.labelLarge
                     )
                 }
@@ -944,14 +950,15 @@ class CalorieCalculatorScreen() : Screen {
         onAgeChange: (String) -> Unit,
         onGenderSelect: (Gender) -> Unit,
         onActivityLevelSelect: (ActivityLevel) -> Unit,
-        onGoalSelect: (Goal) -> Unit
+        onGoalSelect: (Goal) -> Unit,
+        languageViewModel: LanguageViewModel
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             Text(
-                text = "Calorie Calculator",
+                text = languageViewModel.getString(StringKey.CALORIE_CALCULATOR_TITLE),
                 style = MaterialTheme.typography.headlineMedium,
                 color = TextWhite
             )
@@ -959,27 +966,27 @@ class CalorieCalculatorScreen() : Screen {
             CalorieInputField(
                 value = uiState.weight,
                 onValueChange = onWeightChange,
-                label = "Weight (kg)",
+                label = languageViewModel.getString(StringKey.WEIGHT_KG),
                 keyboardType = KeyboardType.Decimal
             )
 
             CalorieInputField(
                 value = uiState.height,
                 onValueChange = onHeightChange,
-                label = "Height (cm)",
+                label = languageViewModel.getString(StringKey.HEIGHT_CM),
                 keyboardType = KeyboardType.Decimal
             )
 
             CalorieInputField(
                 value = uiState.age,
                 onValueChange = onAgeChange,
-                label = "Age",
+                label = languageViewModel.getString(StringKey.AGE),
                 keyboardType = KeyboardType.Number
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "Gender",
+                    languageViewModel.getString(StringKey.GENDER),
                     color = TextWhite,
                     style = MaterialTheme.typography.titleLarge
                 )
@@ -999,12 +1006,13 @@ class CalorieCalculatorScreen() : Screen {
 
             ActivityLevelSelector(
                 selectedLevel = uiState.activityLevel,
-                onLevelSelected = onActivityLevelSelect
+                onLevelSelected = onActivityLevelSelect,
+                languageViewModel = languageViewModel
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "Goal",
+                    languageViewModel.getString(StringKey.GOAL),
                     color = TextWhite,
                     style = MaterialTheme.typography.titleLarge
                 )
@@ -1155,7 +1163,8 @@ class CalorieCalculatorScreen() : Screen {
     @Composable
     private fun CalorieResultScreen(
         uiState: CalorieUiState,
-        onRecalculate: () -> Unit
+        onRecalculate: () -> Unit,
+        languageViewModel: LanguageViewModel
     ) {
         var showDetails by remember { mutableStateOf(false) }
 
@@ -1170,7 +1179,8 @@ class CalorieCalculatorScreen() : Screen {
         ) {
             CalorieCircle(
                 calories = uiState.calculatedCalories,
-                showDetails = showDetails
+                showDetails = showDetails,
+                languageViewModel = languageViewModel
             )
 
             AnimatedVisibility(
@@ -1185,27 +1195,27 @@ class CalorieCalculatorScreen() : Screen {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     InfoCard(
                         icon = TablerIcons.Flame,
-                        title = "Basal Metabolic Rate (BMR)",
+                        title = languageViewModel.getString(StringKey.BASAL_METABOLIC_RATE),
                         value = "${uiState.bmr.toInt()} kcal",
-                        description = "The calories your body burns at complete rest"
+                        description = languageViewModel.getString(StringKey.BMR_DESC)
                     )
 
                     InfoCard(
                         icon = TablerIcons.Battery,
-                        title = "Total Daily Energy Expenditure",
+                        title = languageViewModel.getString(StringKey.TOTAL_DAILY_ENERGY),
                         value = "${uiState.tdee.toInt()} kcal",
-                        description = "Your BMR adjusted for activity level"
+                        description = languageViewModel.getString(StringKey.TDEE_DESC)
                     )
 
                     InfoCard(
                         icon = TablerIcons.Scale,
-                        title = "Goal Adjustment",
+                        title = languageViewModel.getString(StringKey.GOAL_ADJUSTMENT),
                         value = when (uiState.goal) {
                             Goal.LOSE_WEIGHT -> "-500 kcal"
                             Goal.MAINTAIN -> "±0 kcal"
                             Goal.GAIN_MUSCLE -> "+500 kcal"
                         },
-                        description = "Calorie adjustment based on your selected goal"
+                        description = languageViewModel.getString(StringKey.GOAL_ADJUSTMENT_DESC)
                     )
                 }
             }
@@ -1227,7 +1237,7 @@ class CalorieCalculatorScreen() : Screen {
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(Modifier.width(8.dp))
-                Text("Recalculate")
+                Text(languageViewModel.getString(StringKey.RECALCULATE))
             }
         }
     }
@@ -1290,7 +1300,8 @@ class CalorieCalculatorScreen() : Screen {
     @Composable
     private fun CalorieCircle(
         calories: Int,
-        showDetails: Boolean
+        showDetails: Boolean,
+        languageViewModel: LanguageViewModel
     ) {
         Box(
             modifier = Modifier
@@ -1346,7 +1357,7 @@ class CalorieCalculatorScreen() : Screen {
                     color = GreenAccent
                 )
                 Text(
-                    text = "kcal/day",
+                    text = languageViewModel.getString(StringKey.CALORIES_PER_DAY),
                     style = MaterialTheme.typography.titleMedium,
                     color = GreenAccent,
                     modifier = Modifier.padding(top = 4.dp)
@@ -1359,11 +1370,12 @@ class CalorieCalculatorScreen() : Screen {
     @Composable
     private fun ActivityLevelSelector(
         selectedLevel: ActivityLevel,
-        onLevelSelected: (ActivityLevel) -> Unit
+        onLevelSelected: (ActivityLevel) -> Unit,
+        languageViewModel: LanguageViewModel
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                "Activity Level",
+                languageViewModel.getString(StringKey.ACTIVITY_LEVEL),
                 color = TextWhite,
                 style = MaterialTheme.typography.titleLarge
             )

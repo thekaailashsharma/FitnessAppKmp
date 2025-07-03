@@ -24,6 +24,8 @@ import org.awi.fitness.data.UserSettings
 import org.awi.fitness.model.Program
 import org.awi.fitness.viewmodel.MealViewModel
 import org.awi.fitness.ui.components.MarkdownText
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.viewmodel.LanguageViewModel
 
 class MealScreen : Screen {
     @Composable
@@ -31,6 +33,7 @@ class MealScreen : Screen {
         val userSettings = UserSettings.getInstance()
         val viewModel = remember { MealViewModel() }
         val state by viewModel.state.collectAsState()
+        val languageViewModel = remember { LanguageViewModel(userSettings.settings) }
 
         LaunchedEffect(Unit) {
             userSettings.userEmail?.let { email ->
@@ -55,12 +58,12 @@ class MealScreen : Screen {
                         .padding(vertical = 16.dp)
                 ) {
                     Text(
-                        text = "Meal Plans",
+                        text = languageViewModel.getString(StringKey.MEAL_PLANS),
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text = "Personalized meals assigned by your trainer",
+                        text = languageViewModel.getString(StringKey.PERSONALIZED_MEALS),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                     )
@@ -81,14 +84,14 @@ class MealScreen : Screen {
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = state.error ?: "Unknown error occurred",
+                                text = state.error ?: languageViewModel.getString(StringKey.UNKNOWN_ERROR),
                                 color = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.align(Alignment.Center)
                             )
                         }
                     }
                     state.meals.isEmpty() -> {
-                        EmptyMealState()
+                        EmptyMealState(languageViewModel)
                     }
                     else -> {
                         LazyColumn(
@@ -101,7 +104,8 @@ class MealScreen : Screen {
                                 MealCard(
                                     meal = meal,
                                     expanded = expanded,
-                                    onExpandClick = { expanded = !expanded }
+                                    onExpandClick = { expanded = !expanded },
+                                    languageViewModel = languageViewModel
                                 )
                             }
                         }
@@ -113,7 +117,7 @@ class MealScreen : Screen {
 }
 
 @Composable
-private fun EmptyMealState() {
+private fun EmptyMealState(languageViewModel: LanguageViewModel) {
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -129,14 +133,14 @@ private fun EmptyMealState() {
         Spacer(modifier = Modifier.height(16.dp))
         
         Text(
-            text = "No Meal Plans Yet",
+            text = languageViewModel.getString(StringKey.NO_MEAL_PLANS),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center
         )
         
         Text(
-            text = "Your trainer hasn't assigned any meal plans yet",
+            text = languageViewModel.getString(StringKey.NO_MEAL_PLANS_DESC),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
             textAlign = TextAlign.Center,
@@ -149,7 +153,8 @@ private fun EmptyMealState() {
 private fun MealCard(
     meal: Program,
     expanded: Boolean,
-    onExpandClick: () -> Unit
+    onExpandClick: () -> Unit,
+    languageViewModel: LanguageViewModel
 ) {
     Card(
         modifier = Modifier
@@ -165,7 +170,6 @@ private fun MealCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Always visible content
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -175,7 +179,6 @@ private fun MealCard(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Meal Type Tag
                     meal.mealType?.let {
                         AssistChip(
                             onClick = { },
@@ -204,20 +207,18 @@ private fun MealCard(
                 IconButton(onClick = onExpandClick) {
                     Icon(
                         imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                        contentDescription = if (expanded) "Show less" else "Show more",
+                        contentDescription = if (expanded) languageViewModel.getString(StringKey.SHOW_LESS) else languageViewModel.getString(StringKey.SHOW_MORE),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            // Expandable content
             AnimatedVisibility(
                 visible = expanded,
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut()
             ) {
                 Column(modifier = Modifier.padding(top = 16.dp)) {
-                    // Description using MarkdownText
                     MarkdownText(
                         markdown = meal.description,
                         style = MaterialTheme.typography.bodyMedium,
@@ -225,7 +226,6 @@ private fun MealCard(
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
 
-                    // Dietary Tags
                     if (meal.dietaryTags.isNotEmpty()) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -252,10 +252,9 @@ private fun MealCard(
                         Spacer(modifier = Modifier.height(16.dp))
                     }
 
-                    // Ingredients
                     if (meal.ingredients.isNotEmpty()) {
                         Text(
-                            text = "Ingredients",
+                            text = languageViewModel.getString(StringKey.INGREDIENTS),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -284,10 +283,9 @@ private fun MealCard(
                         Spacer(modifier = Modifier.height(16.dp))
                     }
 
-                    // Instructions
                     if (meal.instructions.isNotEmpty()) {
                         Text(
-                            text = "Instructions",
+                            text = languageViewModel.getString(StringKey.INSTRUCTIONS),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant

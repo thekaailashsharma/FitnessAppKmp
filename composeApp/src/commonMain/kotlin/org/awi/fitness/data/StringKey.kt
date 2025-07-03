@@ -1,6 +1,7 @@
 package org.awi.fitness.data
 
 enum class StringKey {
+    // Auth
     APP_NAME,
     SIGN_IN,
     SIGN_UP,
@@ -9,5 +10,127 @@ enum class StringKey {
     CREATE_ACCOUNT,
     SIGN_IN_CONTINUE,
     ALREADY_HAVE_ACCOUNT,
-    DONT_HAVE_ACCOUNT
+    DONT_HAVE_ACCOUNT,
+    
+    // Navigation
+    HOME,
+    WORKOUTS,
+    CALORIES,
+    PROFILE,
+    
+    // Profile
+    BACK,
+    SETTINGS,
+    DARK_THEME,
+    LANGUAGE,
+    LOGOUT,
+    FITNESS_ENTHUSIAST,
+    FITNESS_STATS,
+    BMR,
+    TDEE,
+    GOAL,
+    
+    // Home Screen
+    WELCOME_BACK,
+    WORKOUTS_COMPLETED,
+    TODAY,
+    CALORIE_GOAL,
+    CALORIE_CALCULATOR,
+    CALCULATE_DAILY_CALORIES,
+    WORKOUT_SCHEDULE,
+    PLAN_MANAGE_WORKOUT,
+    RECENT_WORKOUTS,
+    EXERCISES_COMPLETED,
+    DAILY_WELLNESS_TIPS,
+    
+    // Workout
+    WORKOUT_TYPE,
+    RECURRING,
+    TITLE,
+    DESCRIPTION,
+    ADD,
+    RETRY,
+    AN_ERROR_OCCURRED,
+    
+    // Days
+    MONDAY,
+    TUESDAY,
+    WEDNESDAY,
+    THURSDAY,
+    FRIDAY,
+    SATURDAY,
+    SUNDAY,
+    
+    // Fitness Goals
+    WORKOUT_DAYS_QUESTION,
+    SPECIFIC_REQUIREMENTS_QUESTION,
+    SPECIFIC_REQUIREMENTS_HINT,
+    
+    // Workout Types
+    CARDIO,
+    STRENGTH,
+    FLEXIBILITY,
+    HIIT,
+    YOGA,
+    OTHER,
+    
+    // Recurring Types
+    NONE,
+    DAILY,
+    WEEKLY,
+    MONTHLY,
+    
+    // Meal Screen
+    MEAL_PLANS,
+    PERSONALIZED_MEALS,
+    NO_MEAL_PLANS,
+    NO_MEAL_PLANS_DESC,
+    SHOW_LESS,
+    SHOW_MORE,
+    INGREDIENTS,
+    INSTRUCTIONS,
+    
+    // Calorie Calculator Screen
+    CALORIE_CALCULATOR_TITLE,
+    WEIGHT_KG,
+    HEIGHT_CM,
+    AGE,
+    GENDER,
+    ACTIVITY_LEVEL,
+    CALCULATE,
+    RECALCULATE,
+    UNKNOWN_ERROR,
+    
+    // Weight Tracking
+    WEIGHT_TRACKING,
+    ADD_WEIGHT,
+    PROGRESS_GRAPH,
+    WEIGHT_NOTE,
+    ADD_WEIGHT_ENTRY,
+    CANCEL,
+    SAVE,
+    
+    // Measurement Tracking
+    MEASUREMENTS,
+    ADD_MEASUREMENTS,
+    ANALYZING_MEASUREMENTS,
+    ANALYSIS,
+    RECOMMENDATIONS,
+    WAIST_CM,
+    HIPS_CM,
+    ARMS_CM,
+    WAIST,
+    HIPS,
+    ARMS,
+    
+    // Calorie Results
+    BASAL_METABOLIC_RATE,
+    BMR_DESC,
+    TOTAL_DAILY_ENERGY,
+    TDEE_DESC,
+    GOAL_ADJUSTMENT,
+    GOAL_ADJUSTMENT_DESC,
+    CALORIES_PER_DAY,
+    ADD_ONE_MORE_WEIGHT_ENTRY,
+    ANALYZING_YOUR_MEASUREMENTS
 } 

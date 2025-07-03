@@ -37,6 +37,7 @@ import compose.icons.tablericons.CalendarOff
 import compose.icons.tablericons.CalendarStats
 import kotlinx.datetime.*
 import org.awi.fitness.data.*
+import org.awi.fitness.viewmodel.LanguageViewModel
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.hours
 import kotlin.uuid.ExperimentalUuidApi
@@ -152,7 +153,8 @@ class WorkoutSchedulerScreen : Screen {
                     }
                     showAddDialog = false
                     selectedSchedule = null
-                }
+                },
+                languageViewModel = LanguageViewModel(userSettings.settings)
             )
         }
     }
@@ -326,7 +328,8 @@ private fun WorkoutCard(
 private fun WorkoutScheduleDialog(
     schedule: WorkoutSchedule?,
     onDismiss: () -> Unit,
-    onSave: (WorkoutSchedule) -> Unit
+    onSave: (WorkoutSchedule) -> Unit,
+    languageViewModel: LanguageViewModel
 ) {
     var title by remember { mutableStateOf(schedule?.title ?: "") }
     var description by remember { mutableStateOf(schedule?.description ?: "") }
@@ -335,20 +338,20 @@ private fun WorkoutScheduleDialog(
     
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (schedule == null) "Add Workout" else "Edit Workout") },
+        title = { Text(if (schedule == null) languageViewModel.getString(StringKey.ADD) else languageViewModel.getString(StringKey.SAVE)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Title") },
+                    label = { Text(languageViewModel.getString(StringKey.TITLE)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Description") },
+                    label = { Text(languageViewModel.getString(StringKey.DESCRIPTION)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 
@@ -357,10 +360,17 @@ private fun WorkoutScheduleDialog(
                     onExpandedChange = {},
                 ) {
                     OutlinedTextField(
-                        value = workoutType.name,
+                        value = languageViewModel.getString(when (workoutType) {
+                            WorkoutType.CARDIO -> StringKey.CARDIO
+                            WorkoutType.STRENGTH -> StringKey.STRENGTH
+                            WorkoutType.FLEXIBILITY -> StringKey.FLEXIBILITY
+                            WorkoutType.HIIT -> StringKey.HIIT
+                            WorkoutType.YOGA -> StringKey.YOGA
+                            WorkoutType.OTHER -> StringKey.OTHER
+                        }),
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Workout Type") },
+                        label = { Text(languageViewModel.getString(StringKey.WORKOUT_TYPE)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = false) },
                         modifier = Modifier.menuAnchor()
                     )
@@ -371,10 +381,15 @@ private fun WorkoutScheduleDialog(
                     onExpandedChange = {},
                 ) {
                     OutlinedTextField(
-                        value = recurringType.name,
+                        value = languageViewModel.getString(when (recurringType) {
+                            RecurringType.NONE -> StringKey.NONE
+                            RecurringType.DAILY -> StringKey.DAILY
+                            RecurringType.WEEKLY -> StringKey.WEEKLY
+                            RecurringType.MONTHLY -> StringKey.MONTHLY
+                        }),
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Recurring") },
+                        label = { Text(languageViewModel.getString(StringKey.RECURRING)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = false) },
                         modifier = Modifier.menuAnchor()
                     )
@@ -398,12 +413,12 @@ private fun WorkoutScheduleDialog(
                     onSave(newSchedule)
                 }
             ) {
-                Text(if (schedule == null) "Add" else "Save")
+                Text(if (schedule == null) languageViewModel.getString(StringKey.ADD) else languageViewModel.getString(StringKey.SAVE))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(languageViewModel.getString(StringKey.CANCEL))
             }
         }
     )

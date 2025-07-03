@@ -30,8 +30,11 @@ import kotlin.math.roundToInt
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.data.UserSettings
 import org.awi.fitness.ui.screens.WorkoutSchedulerScreen
 import org.awi.fitness.viewmodel.DailyTip
+import org.awi.fitness.viewmodel.LanguageViewModel
 import org.awi.fitness.viewmodel.TipIcon
 import org.awi.fitness.viewmodel.WorkoutSchedulePreview
 
@@ -39,6 +42,8 @@ class HomeScreen : Screen {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
+        val userSettings = UserSettings.getInstance()
+        val languageViewModel = LanguageViewModel(userSettings.settings)
         val viewModel = remember { HomeViewModel() }
         val state by viewModel.state.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
@@ -48,15 +53,15 @@ class HomeScreen : Screen {
                 TopAppBar(
                     title = {
                         Text(
-                            text = "Fitness App",
+                            text = languageViewModel.getString(StringKey.APP_NAME),
                             style = MaterialTheme.typography.titleLarge
                         )
                     },
                     actions = {
-                        IconButton(onClick = { navigator.push(ProfileScreen()) }) {
+                        IconButton(onClick = { navigator.push(ProfileScreen(languageViewModel = languageViewModel)) }) {
                             Icon(
                                 imageVector = TablerIcons.User,
-                                contentDescription = "Profile"
+                                contentDescription = languageViewModel.getString(StringKey.PROFILE)
                             )
                         }
                     },
@@ -81,7 +86,7 @@ class HomeScreen : Screen {
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = state.error ?: "An error occurred",
+                            text = state.error ?: languageViewModel.getString(StringKey.AN_ERROR_OCCURRED),
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodyLarge
                         )
@@ -98,7 +103,8 @@ class HomeScreen : Screen {
                         // Welcome Section
                         item {
                             WelcomeSection(
-                                userName = state.userProfile?.email ?: "Fitness Enthusiast"
+                                userName = state.userProfile?.email ?: languageViewModel.getString(StringKey.FITNESS_ENTHUSIAST),
+                                languageViewModel = languageViewModel
                             )
                         }
 
@@ -108,7 +114,8 @@ class HomeScreen : Screen {
                                 completedWorkouts = state.completedWorkouts,
                                 totalWorkouts = state.totalWorkouts,
                                 caloriesGoal = state.caloriesGoal,
-                                scheduledToday = state.scheduledWorkoutsToday
+                                scheduledToday = state.scheduledWorkoutsToday,
+                                languageViewModel = languageViewModel
                             )
                         }
 
@@ -118,14 +125,14 @@ class HomeScreen : Screen {
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 NavigationCard(
-                                    title = "Calorie Calculator",
-                                    description = "Calculate your daily calorie needs",
+                                    title = languageViewModel.getString(StringKey.CALORIE_CALCULATOR),
+                                    description = languageViewModel.getString(StringKey.CALCULATE_DAILY_CALORIES),
                                     icon = TablerIcons.Calculator,
                                     onClick = { navigator.push(CalorieCalculatorScreen()) }
                                 )
                                 NavigationCard(
-                                    title = "Workout Schedule",
-                                    description = "Plan and manage your workout routine",
+                                    title = languageViewModel.getString(StringKey.WORKOUT_SCHEDULE),
+                                    description = languageViewModel.getString(StringKey.PLAN_MANAGE_WORKOUT),
                                     icon = TablerIcons.CalendarEvent,
                                     onClick = { navigator.push(WorkoutSchedulerScreen()) }
                                 )
@@ -136,7 +143,8 @@ class HomeScreen : Screen {
                         item {
                             FitnessStatsSection(
                                 bmr = state.bmr,
-                                tdee = state.tdee
+                                tdee = state.tdee,
+                                languageViewModel = languageViewModel
                             )
                         }
 
@@ -144,7 +152,7 @@ class HomeScreen : Screen {
                         if (state.workoutPlans.isNotEmpty()) {
                             item {
                                 Text(
-                                    text = "Recent Workouts",
+                                    text = languageViewModel.getString(StringKey.RECENT_WORKOUTS),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(top = 8.dp)
@@ -156,7 +164,8 @@ class HomeScreen : Screen {
                                     name = plan.plan.name,
                                     description = plan.plan.description,
                                     completedExercises = plan.exercises.count { it.isCompleted },
-                                    totalExercises = plan.exercises.size
+                                    totalExercises = plan.exercises.size,
+                                    languageViewModel = languageViewModel
                                 )
                             }
                         }
@@ -165,7 +174,7 @@ class HomeScreen : Screen {
                         if (state.dailyTips.isNotEmpty()) {
                             item {
                                 Text(
-                                    text = "Daily Wellness Tips",
+                                    text = languageViewModel.getString(StringKey.DAILY_WELLNESS_TIPS),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
@@ -196,10 +205,13 @@ class HomeScreen : Screen {
 }
 
 @Composable
-private fun WelcomeSection(userName: String) {
+private fun WelcomeSection(
+    userName: String,
+    languageViewModel: LanguageViewModel
+) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = "Welcome back,",
+            text = "${languageViewModel.getString(StringKey.WELCOME_BACK)},",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
         )
@@ -216,7 +228,8 @@ private fun QuickStatsSection(
     completedWorkouts: Int,
     totalWorkouts: Int,
     caloriesGoal: Int,
-    scheduledToday: Int
+    scheduledToday: Int,
+    languageViewModel: LanguageViewModel
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -224,19 +237,19 @@ private fun QuickStatsSection(
     ) {
         StatCard(
             value = "$completedWorkouts/$totalWorkouts",
-            label = "Workouts",
+            label = languageViewModel.getString(StringKey.WORKOUTS_COMPLETED),
             icon = TablerIcons.Walk,
             modifier = Modifier.weight(1f)
         )
         StatCard(
             value = "$scheduledToday",
-            label = "Today",
+            label = languageViewModel.getString(StringKey.TODAY),
             icon = TablerIcons.CalendarEvent,
             modifier = Modifier.weight(1f)
         )
         StatCard(
             value = "$caloriesGoal",
-            label = "Cal Goal",
+            label = languageViewModel.getString(StringKey.CALORIE_GOAL),
             icon = TablerIcons.Flame,
             modifier = Modifier.weight(1f)
         )
@@ -338,7 +351,11 @@ private fun NavigationCard(
 }
 
 @Composable
-private fun FitnessStatsSection(bmr: Float, tdee: Float) {
+private fun FitnessStatsSection(
+    bmr: Float,
+    tdee: Float,
+    languageViewModel: LanguageViewModel
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -349,7 +366,7 @@ private fun FitnessStatsSection(bmr: Float, tdee: Float) {
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = "Fitness Stats",
+                text = languageViewModel.getString(StringKey.FITNESS_STATS),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -360,7 +377,7 @@ private fun FitnessStatsSection(bmr: Float, tdee: Float) {
             ) {
                 Column {
                     Text(
-                        text = "BMR",
+                        text = languageViewModel.getString(StringKey.BMR),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
@@ -372,7 +389,7 @@ private fun FitnessStatsSection(bmr: Float, tdee: Float) {
                 }
                 Column {
                     Text(
-                        text = "TDEE",
+                        text = languageViewModel.getString(StringKey.TDEE),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
@@ -392,7 +409,8 @@ private fun WorkoutPreviewCard(
     name: String,
     description: String,
     completedExercises: Int,
-    totalExercises: Int
+    totalExercises: Int,
+    languageViewModel: LanguageViewModel
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -421,7 +439,7 @@ private fun WorkoutPreviewCard(
                 trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
             )
             Text(
-                text = "$completedExercises of $totalExercises exercises completed",
+                text = "$completedExercises of $totalExercises ${languageViewModel.getString(StringKey.EXERCISES_COMPLETED)}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 modifier = Modifier.padding(top = 4.dp)

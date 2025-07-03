@@ -11,14 +11,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.viewmodel.LanguageViewModel
 
 @Composable
 fun WeekDaysSelector(
     selectedDay: Int,
     onDaySelected: (Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    languageViewModel: LanguageViewModel
 ) {
-    val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+    val days = listOf(
+        StringKey.MONDAY,
+        StringKey.TUESDAY,
+        StringKey.WEDNESDAY,
+        StringKey.THURSDAY,
+        StringKey.FRIDAY,
+        StringKey.SATURDAY,
+        StringKey.SUNDAY
+    )
     
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -40,7 +51,7 @@ fun WeekDaysSelector(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = day,
+                    text = languageViewModel.getString(day),
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (isSelected) 
                         MaterialTheme.colorScheme.onPrimary

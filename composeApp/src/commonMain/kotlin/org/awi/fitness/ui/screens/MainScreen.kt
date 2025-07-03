@@ -19,6 +19,7 @@ import compose.icons.SimpleIcons
 import compose.icons.TablerIcons
 import compose.icons.simpleicons.Ifood
 import compose.icons.tablericons.*
+import org.awi.fitness.navigation.BottomBarTab
 import org.awi.fitness.ui.screens.home.HomeScreen
 
 sealed class BottomNavItem(val route: String) {

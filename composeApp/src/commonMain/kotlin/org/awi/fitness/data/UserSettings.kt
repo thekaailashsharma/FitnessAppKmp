@@ -52,7 +52,7 @@ enum class RecurringType {
     NONE, DAILY, WEEKLY, MONTHLY
 }
 
-class UserSettings internal constructor(private val settings: Settings) {
+class UserSettings internal constructor(internal val settings: Settings) {
     companion object {
         private const val KEY_AUTH_TOKEN = "auth_token"
         private const val KEY_USER_EMAIL = "user_email"
