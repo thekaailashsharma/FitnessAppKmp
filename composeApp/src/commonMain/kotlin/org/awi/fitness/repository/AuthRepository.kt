@@ -53,6 +53,42 @@ class AuthRepository : ApiService() {
         }
     }
 
+    suspend fun deleteAccount(): Result<Unit> {
+        return try {
+            val token = userSettings.authToken ?: return Result.failure(Exception("Not authenticated"))
+            val userId = userSettings.userId ?: return Result.failure(Exception("User ID not found"))
+            val email = userSettings.userEmail ?: return Result.failure(Exception("Email not found"))
+
+            // First delete the user's data from Firestore
+            val clientRepository = ClientRepository()
+            val clientResult = clientRepository.getClientByEmail(email)
+            
+            clientResult.fold(
+                onSuccess = { client ->
+                    if (client != null) {
+                        clientRepository.deleteClient(client.id)
+                    }
+                },
+                onFailure = { /* Ignore failure to delete client data */ }
+            )
+
+            // Then delete the Firebase Auth account
+            val deleteUrl = "https://identitytoolkit.googleapis.com/v1/accounts:delete?key=$API_KEY"
+            val request = mapOf("idToken" to token)
+            val (_, status) = unAuthenticatedPost<Unit>(deleteUrl, request)
+
+            if (status.isSuccess()) {
+                // Clear all local data
+                userSettings.clearUserData()
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Failed to delete account"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     private fun saveUserSession(response: SignUpFirebaseResponse) {
         userSettings.apply {
             authToken = response.idToken

@@ -128,11 +128,26 @@ object Strings {
             // Calorie Results
             StringKey.BASAL_METABOLIC_RATE to "Basal Metabolic Rate (BMR)",
             StringKey.BMR_DESC to "The calories your body burns at complete rest",
-            StringKey.TOTAL_DAILY_ENERGY to "Total Daily Energy Expenditure",
+            StringKey.TOTAL_DAILY_ENERGY to "Total Daily Energy Expenditure (TDEE)",
             StringKey.TDEE_DESC to "Your BMR adjusted for activity level",
             StringKey.GOAL_ADJUSTMENT to "Goal Adjustment",
-            StringKey.GOAL_ADJUSTMENT_DESC to "Calorie adjustment based on your selected goal",
-            StringKey.CALORIES_PER_DAY to "kcal/day"
+            StringKey.GOAL_ADJUSTMENT_DESC to "Calorie adjustment based on your chosen goal",
+            StringKey.CALORIES_PER_DAY to "kcal/day",
+            
+            // Citations
+            StringKey.MEDICAL_CITATIONS to "Medical Citations",
+            StringKey.BMR_CITATION to "BMR calculation uses the Mifflin-St Jeor Equation (1990), validated by the Academy of Nutrition and Dietetics as the most accurate for healthy adults.",
+            StringKey.ACTIVITY_LEVEL_CITATION to "Activity level multipliers based on WHO/FAO/UNU Expert Consultation (2004) guidelines for human energy requirements.",
+            StringKey.CALORIE_ADJUSTMENT_CITATION to "Calorie adjustments of ±500 kcal/day based on evidence from the National Institutes of Health for safe and sustainable weight management.",
+            StringKey.VIEW_CITATIONS to "View Medical Citations",
+            StringKey.HIDE_CITATIONS to "Hide Citations",
+            
+            // Account Management
+            StringKey.DELETE_ACCOUNT to "Delete Account",
+            StringKey.DELETE_ACCOUNT_CONFIRMATION to "Delete Account?",
+            StringKey.DELETE_ACCOUNT_DESCRIPTION to "This action cannot be undone. All your data will be permanently deleted.",
+            StringKey.CONFIRM to "Confirm",
+            StringKey.CANCEL_DELETE to "Cancel"
         ),
         Language.DUTCH to mapOf(
             // Auth
@@ -264,7 +279,22 @@ object Strings {
             StringKey.TDEE_DESC to "Je BMR aangepast aan je activiteitsniveau",
             StringKey.GOAL_ADJUSTMENT to "Doel Aanpassing",
             StringKey.GOAL_ADJUSTMENT_DESC to "Calorie-aanpassing gebaseerd op je gekozen doel",
-            StringKey.CALORIES_PER_DAY to "kcal/dag"
+            StringKey.CALORIES_PER_DAY to "kcal/dag",
+            
+            // Citations
+            StringKey.MEDICAL_CITATIONS to "Medische Citaties",
+            StringKey.BMR_CITATION to "BMR berekening gebruikt de Mifflin-St Jeor Vergelijking (1990), gevalideerd door de Academie van Voeding en Voeding (2004) als de meest nauwkeurige voor gezonde volwassenen.",
+            StringKey.ACTIVITY_LEVEL_CITATION to "Activiteitsniveau vermenigvuldigers gebaseerd op richtlijnen van de Wereldgezondheidsorganisatie (WHO), Voedsel- en Landbouworganisatie (FAO) en Verenigde Naties (UNU) voor menselijke energiebehoeften.",
+            StringKey.CALORIE_ADJUSTMENT_CITATION to "Calorie-aanpassingen van ±500 kcal/dag gebaseerd op bewijs uit de National Institutes of Health voor veilige en duurzame gewichtsbeheersing.",
+            StringKey.VIEW_CITATIONS to "Bekijk Medische Citaties",
+            StringKey.HIDE_CITATIONS to "Verberg Citaties",
+            
+            // Account Management
+            StringKey.DELETE_ACCOUNT to "Account Verwijderen",
+            StringKey.DELETE_ACCOUNT_CONFIRMATION to "Account Verwijderen?",
+            StringKey.DELETE_ACCOUNT_DESCRIPTION to "Deze actie kan niet ongedaan worden gemaakt. Al uw gegevens worden permanent verwijderd.",
+            StringKey.CONFIRM to "Bevestigen",
+            StringKey.CANCEL_DELETE to "Annuleren"
         )
     )
 

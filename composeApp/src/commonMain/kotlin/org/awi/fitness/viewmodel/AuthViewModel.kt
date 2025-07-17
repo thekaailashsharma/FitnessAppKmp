@@ -140,4 +140,29 @@ class AuthViewModel(
     fun checkAuthState(): Boolean {
         return authRepository.isLoggedIn()
     }
+
+    suspend fun deleteAccount(): Result<Unit> {
+        mutableState.value = AuthState.Loading
+        
+        return try {
+            val result = authRepository.deleteAccount()
+            result.fold(
+                onSuccess = {
+                    mutableState.value = AuthState.Initial
+                    Result.success(Unit)
+                },
+                onFailure = { error ->
+                    mutableState.value = AuthState.Error(
+                        error.message ?: "Failed to delete account"
+                    )
+                    Result.failure(error)
+                }
+            )
+        } catch (e: Exception) {
+            mutableState.value = AuthState.Error(
+                e.message ?: "Failed to delete account"
+            )
+            Result.failure(e)
+        }
+    }
 } 

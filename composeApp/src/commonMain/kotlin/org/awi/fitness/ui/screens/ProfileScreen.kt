@@ -1,10 +1,46 @@
 package org.awi.fitness.ui.screens
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -14,10 +50,22 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import compose.icons.TablerIcons
-import compose.icons.tablericons.*
+import compose.icons.tablericons.Activity
+import compose.icons.tablericons.ArrowLeft
+import compose.icons.tablericons.Flame
+import compose.icons.tablericons.Language
+import compose.icons.tablericons.Logout
+import compose.icons.tablericons.Moon
+import compose.icons.tablericons.Sun
+import compose.icons.tablericons.Target
+import compose.icons.tablericons.Trash
+import compose.icons.tablericons.User
+import kotlinx.coroutines.launch
 import org.awi.fitness.data.Language
 import org.awi.fitness.data.StringKey
 import org.awi.fitness.data.UserSettings
+import org.awi.fitness.repository.AuthRepository
+import org.awi.fitness.viewmodel.AuthViewModel
 import org.awi.fitness.viewmodel.LanguageViewModel
 import kotlin.math.roundToInt
 
@@ -25,14 +73,61 @@ class ProfileScreen(private val languageViewModel: LanguageViewModel) : Screen {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
-        val navigator = LocalNavigator.currentOrThrow
         val userSettings = UserSettings.getInstance()
-        val currentLanguage by languageViewModel.currentLanguage.collectAsState()
+        val currentLanguage by userSettings.language.collectAsState()
+        val scope = rememberCoroutineScope()
+        val navigator = LocalNavigator.currentOrThrow
+        var showDeleteConfirmation by remember { mutableStateOf(false) }
+        val authViewModel = remember { AuthViewModel(AuthRepository()) }
+
+        if (showDeleteConfirmation) {
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirmation = false },
+                title = {
+                    Text(
+                        text = languageViewModel.getString(StringKey.DELETE_ACCOUNT_CONFIRMATION),
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                },
+                text = {
+                    Text(
+                        text = languageViewModel.getString(StringKey.DELETE_ACCOUNT_DESCRIPTION),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                authViewModel.deleteAccount().onSuccess {
+                                    navigator.replace(AuthScreen(authViewModel, languageViewModel))
+                                }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Text(languageViewModel.getString(StringKey.CONFIRM))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteConfirmation = false }) {
+                        Text(languageViewModel.getString(StringKey.CANCEL_DELETE))
+                    }
+                }
+            )
+        }
 
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text(languageViewModel.getString(StringKey.PROFILE)) },
+                    title = {
+                        Text(
+                            text = languageViewModel.getString(StringKey.PROFILE),
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    },
                     navigationIcon = {
                         IconButton(onClick = { navigator.pop() }) {
                             Icon(
@@ -80,12 +175,43 @@ class ProfileScreen(private val languageViewModel: LanguageViewModel) : Screen {
                     )
                 }
 
+                // Account Management Section
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Button(
+                                onClick = { showDeleteConfirmation = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.error
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = TablerIcons.Trash,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(languageViewModel.getString(StringKey.DELETE_ACCOUNT))
+                            }
+                        }
+                    }
+                }
+
                 // Logout Button
                 item {
                     Button(
                         onClick = {
                             userSettings.clearUserData()
-                            // Navigate to login screen or handle logout
+                            navigator.replace(AuthScreen(authViewModel, languageViewModel))
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(

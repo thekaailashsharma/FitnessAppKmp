@@ -32,6 +32,8 @@ import org.awi.fitness.data.UserSettings
 import org.awi.fitness.utils.fitnessTips
 import org.awi.fitness.utils.topFiveTips
 import org.awi.fitness.viewmodel.LanguageViewModel
+import org.awi.fitness.ui.components.CitationSection
+import org.awi.fitness.utils.Citations
 
 class WorkoutScreen : Screen {
     @Composable

@@ -109,6 +109,8 @@ import org.awi.fitness.theme.InputFieldBackground
 import org.awi.fitness.theme.InputFieldBorder
 import org.awi.fitness.theme.TextGray
 import org.awi.fitness.theme.TextWhite
+import org.awi.fitness.ui.components.CitationSection
+import org.awi.fitness.utils.Citations
 import org.awi.fitness.viewmodel.CalorieViewModel
 import org.awi.fitness.viewmodel.LanguageViewModel
 import kotlin.math.pow
@@ -336,6 +338,16 @@ class CalorieCalculatorScreen() : Screen {
                     }
                 }
             }
+
+            // Citations for weight tracking
+            CitationSection(
+                citations = listOf(
+                    Citations.WEIGHT_LOSS_RATE,
+                    Citations.MEASUREMENT_FREQUENCY
+                ),
+                languageViewModel = languageViewModel,
+                showDisclaimer = true
+            )
         }
 
         if (showAddDialog) {
@@ -1166,33 +1178,21 @@ class CalorieCalculatorScreen() : Screen {
         onRecalculate: () -> Unit,
         languageViewModel: LanguageViewModel
     ) {
-        var showDetails by remember { mutableStateOf(false) }
-
-        LaunchedEffect(Unit) { showDetails = true }
-
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            CalorieCircle(
-                calories = uiState.calculatedCalories,
-                showDetails = showDetails,
-                languageViewModel = languageViewModel
-            )
-
-            AnimatedVisibility(
-                visible = showDetails,
-                enter = fadeIn() + expandVertically(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow
-                    )
+            // Results section
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = DarkCard
                 )
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
                     InfoCard(
                         icon = TablerIcons.Flame,
                         title = languageViewModel.getString(StringKey.BASAL_METABOLIC_RATE),
@@ -1220,6 +1220,18 @@ class CalorieCalculatorScreen() : Screen {
                 }
             }
 
+            // Citations section
+            CitationSection(
+                citations = listOf(
+                    Citations.BMR_CALCULATION,
+                    Citations.ACTIVITY_LEVEL_MULTIPLIERS,
+                    Citations.CALORIE_ADJUSTMENT,
+                    Citations.MACRO_DISTRIBUTION,
+                    Citations.PROTEIN_REQUIREMENTS
+                ),
+                languageViewModel = languageViewModel
+            )
+
             Button(
                 onClick = onRecalculate,
                 modifier = Modifier
@@ -1231,13 +1243,49 @@ class CalorieCalculatorScreen() : Screen {
                     contentColor = Color.Black
                 )
             ) {
-                Icon(
-                    imageVector = TablerIcons.Refresh,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(Modifier.width(8.dp))
                 Text(languageViewModel.getString(StringKey.RECALCULATE))
+            }
+        }
+    }
+
+    @Composable
+    private fun MedicalCitations(languageViewModel: LanguageViewModel) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = DarkCard
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = languageViewModel.getString(StringKey.MEDICAL_CITATIONS),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = TextWhite
+                )
+
+                // BMR Citation
+                Text(
+                    text = languageViewModel.getString(StringKey.BMR_CITATION),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextGray
+                )
+
+                // Activity Level Citation
+                Text(
+                    text = languageViewModel.getString(StringKey.ACTIVITY_LEVEL_CITATION),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextGray
+                )
+
+                // Calorie Adjustment Citation
+                Text(
+                    text = languageViewModel.getString(StringKey.CALORIE_ADJUSTMENT_CITATION),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextGray
+                )
             }
         }
     }
