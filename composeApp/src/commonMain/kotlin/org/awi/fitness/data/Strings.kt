@@ -4,7 +4,7 @@ object Strings {
     private val strings = mapOf(
         Language.ENGLISH to mapOf(
             // Auth
-            StringKey.APP_NAME to "Fitness App",
+            StringKey.APP_NAME to "Fitness & Health by Sivv",
             StringKey.SIGN_IN to "Sign In",
             StringKey.SIGN_UP to "Sign Up",
             StringKey.EMAIL to "Email",
@@ -151,7 +151,7 @@ object Strings {
         ),
         Language.DUTCH to mapOf(
             // Auth
-            StringKey.APP_NAME to "Fitness App",
+            StringKey.APP_NAME to "Fitness & Health by Sivv",
             StringKey.SIGN_IN to "Inloggen",
             StringKey.SIGN_UP to "Registreren",
             StringKey.EMAIL to "E-mail",

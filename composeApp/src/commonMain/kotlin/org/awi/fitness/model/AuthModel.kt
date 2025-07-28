@@ -55,14 +55,22 @@ data class RefreshTokenResponse(
 
 @Serializable
 data class SignUpFirebaseError(
-    @SerialName("error")
-    val error: Error? = null
+    @SerialName("code")
+    val code: Int? = null,
+    @SerialName("message")
+    val message: String? = null,
+    @SerialName("errors")
+    val errors: List<FirebaseErrorDetail>? = null
 )
 
 @Serializable
-data class Error(
+data class FirebaseErrorDetail(
     @SerialName("message")
-    val message: String? = null
+    val message: String? = null,
+    @SerialName("domain")
+    val domain: String? = null,
+    @SerialName("reason")
+    val reason: String? = null
 )
 
 @Serializable

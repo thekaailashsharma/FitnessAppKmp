@@ -15,13 +15,6 @@ data class FirebaseError(
     val errors: List<FirebaseErrorDetail>? = null
 )
 
-@Serializable
-data class FirebaseErrorDetail(
-    val message: String,
-    val domain: String,
-    val reason: String
-)
-
 sealed class FirebaseErrorType(val message: String) {
     data object InvalidCredentials : FirebaseErrorType("The email or password you entered is incorrect. Please try again.")
     data object EmailExists : FirebaseErrorType("An account with this email already exists. Please sign in or use a different email.")
@@ -35,7 +28,7 @@ sealed class FirebaseErrorType(val message: String) {
     data object ExpiredActionCode : FirebaseErrorType("This action code has expired. Please request a new one.")
     data object InvalidActionCode : FirebaseErrorType("Invalid action code. Please request a new one.")
     data object UserNotFound : FirebaseErrorType("User account not found. Please check your credentials or create a new account.")
-    data class Unknown(val errorMessage: String) : FirebaseErrorType("An unexpected error occurred: $errorMessage. Please try again or contact support.")
+    data class Unknown(val errorMessage: String) : FirebaseErrorType("$errorMessage. Please try again or contact support.")
 
     companion object {
         fun fromErrorMessage(message: String): FirebaseErrorType {

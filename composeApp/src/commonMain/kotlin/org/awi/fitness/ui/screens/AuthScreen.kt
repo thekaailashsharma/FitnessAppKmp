@@ -8,22 +8,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import compose.icons.TablerIcons
-import compose.icons.tablericons.Activity
-import compose.icons.tablericons.Lock
-import compose.icons.tablericons.Mail
-import compose.icons.tablericons.UserOff
-import compose.icons.tablericons.UserPlus
+import compose.icons.tablericons.*
 import kotlinx.coroutines.launch
 import org.awi.fitness.data.StringKey
-import org.awi.fitness.repository.ClientRepository
 import org.awi.fitness.ui.components.FitnessButton
 import org.awi.fitness.ui.components.FitnessCard
+import org.awi.fitness.ui.components.FitnessTextField
 import org.awi.fitness.viewmodel.AuthState
 import org.awi.fitness.viewmodel.AuthViewModel
 import org.awi.fitness.viewmodel.LanguageViewModel
@@ -65,100 +60,94 @@ class AuthScreen(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .imePadding() // Makes content keyboard aware
+                    .systemBarsPadding() // Handles system bars on iOS
             ) {
-                Spacer(modifier = Modifier.weight(1f))
-
-                Icon(
-                    imageVector = TablerIcons.Activity,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                
-                Text(
-                    text = languageViewModel.getString(StringKey.APP_NAME),
-                    style = MaterialTheme.typography.displayMedium,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-
-                Text(
-                    text = if (isSignUp) 
-                        languageViewModel.getString(StringKey.CREATE_ACCOUNT)
-                    else 
-                        languageViewModel.getString(StringKey.SIGN_IN_CONTINUE),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                AnimatedVisibility(
-                    visible = errorMessage != null,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically()
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp)
+                        .padding(top = 48.dp, bottom = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    errorMessage?.let { error ->
+                    // App Logo and Title Section - Fixed at the top
+                    Column(
+                        modifier = Modifier.padding(bottom = 32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = TablerIcons.Activity,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        
                         Text(
-                            text = error,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyLarge
+                            text = languageViewModel.getString(StringKey.APP_NAME),
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+
+                        Text(
+                            text = if (isSignUp) 
+                                languageViewModel.getString(StringKey.CREATE_ACCOUNT)
+                            else 
+                                languageViewModel.getString(StringKey.SIGN_IN_CONTINUE),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                }
 
-                FitnessCard(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    // Error Message
+                    AnimatedVisibility(
+                        visible = errorMessage != null,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
+                    ) {
+                        errorMessage?.let { error ->
+                            Text(
+                                text = error,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(bottom = 16.dp)
+                            )
+                        }
+                    }
+
+                    // Login Form
                     Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                            .fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        OutlinedTextField(
+                        FitnessTextField(
                             value = email,
                             onValueChange = { 
                                 viewModel.updateEmail(it)
                                 errorMessage = null
                             },
-                            label = { Text(languageViewModel.getString(StringKey.EMAIL)) },
-                            leadingIcon = { 
-                                Icon(
-                                    TablerIcons.Mail,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
+                            label = languageViewModel.getString(StringKey.EMAIL),
+                            leadingIcon = TablerIcons.Mail,
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                            singleLine = true,
-                            shape = MaterialTheme.shapes.medium
+                            isError = errorMessage?.contains("email", ignoreCase = true) == true,
+                            errorMessage = if (errorMessage?.contains("email", ignoreCase = true) == true) errorMessage else null
                         )
 
-                        OutlinedTextField(
+                        FitnessTextField(
                             value = password,
                             onValueChange = viewModel::updatePassword,
-                            label = { Text(languageViewModel.getString(StringKey.PASSWORD)) },
-                            leadingIcon = { 
-                                Icon(
-                                    TablerIcons.Lock,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            },
-                            visualTransformation = PasswordVisualTransformation(),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
+                            label = languageViewModel.getString(StringKey.PASSWORD),
+                            leadingIcon = TablerIcons.Lock,
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                            singleLine = true,
-                            shape = MaterialTheme.shapes.medium
+                            isError = errorMessage?.contains("password", ignoreCase = true) == true,
+                            errorMessage = if (errorMessage?.contains("password", ignoreCase = true) == true) errorMessage else null,
+                            isPassword = true
                         )
 
                         FitnessButton(
@@ -173,55 +162,55 @@ class AuthScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(48.dp),
+                                .height(52.dp),
                             loading = isLoading
                         ) {
-                            Icon(
-                                if (isSignUp) TablerIcons.UserPlus else TablerIcons.UserOff,
-                                contentDescription = null
-                            )
-                            Spacer(Modifier.width(8.dp))
                             Text(
-                                if (isSignUp) 
+                                text = if (isSignUp)
                                     languageViewModel.getString(StringKey.SIGN_UP)
-                                else 
+                                else
                                     languageViewModel.getString(StringKey.SIGN_IN)
                             )
                         }
                     }
-                }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = if (isSignUp) 
-                            languageViewModel.getString(StringKey.ALREADY_HAVE_ACCOUNT)
-                        else 
-                            languageViewModel.getString(StringKey.DONT_HAVE_ACCOUNT),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    TextButton(
-                        onClick = { 
-                            isSignUp = !isSignUp
-                            errorMessage = null
-                        }
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Sign In/Sign Up Toggle Section
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = if (isSignUp) 
-                                languageViewModel.getString(StringKey.SIGN_IN)
-                            else 
-                                languageViewModel.getString(StringKey.SIGN_UP),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary
+                            text = if (isSignUp)
+                                languageViewModel.getString(StringKey.ALREADY_HAVE_ACCOUNT)
+                            else
+                                languageViewModel.getString(StringKey.DONT_HAVE_ACCOUNT),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        
+                        TextButton(
+                            onClick = { 
+                                isSignUp = !isSignUp
+                                errorMessage = null
+                            },
+                            modifier = Modifier.padding(start = 4.dp)
+                        ) {
+                            Text(
+                                text = if (isSignUp)
+                                    languageViewModel.getString(StringKey.SIGN_IN)
+                                else
+                                    languageViewModel.getString(StringKey.SIGN_UP),
+                                color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
                     }
                 }
-
-                Spacer(modifier = Modifier.weight(1f))
             }
         }
     }

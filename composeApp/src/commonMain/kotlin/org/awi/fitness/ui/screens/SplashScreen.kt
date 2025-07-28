@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
@@ -123,7 +124,8 @@ class SplashScreen(
                     text = languageViewModel.getString(StringKey.APP_NAME),
                     style = MaterialTheme.typography.displayMedium,
                     color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.graphicsLayer { this.alpha = alpha }
+                    modifier = Modifier.graphicsLayer { this.alpha = alpha },
+                    textAlign = TextAlign.Center
                 )
                 
                 Spacer(modifier = Modifier.height(32.dp))

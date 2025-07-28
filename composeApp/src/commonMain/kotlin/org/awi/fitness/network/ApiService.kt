@@ -95,7 +95,7 @@ abstract class ApiService {
             } else {
                 Result.failure(
                     Exception(
-                        response.error?.error?.message ?: "Failed to refresh token"
+                        response.error?.message ?: "Failed to refresh token"
                     )
                 )
             }

@@ -28,7 +28,7 @@ class AuthRepository : ApiService() {
                 saveUserSession(response)
                 Result.success(response)
             } else {
-                val errorMessage = response.error?.error?.message ?: "Unknown error"
+                val errorMessage = response.error?.message ?: "Unknown error"
                 Result.failure(FirebaseException(FirebaseErrorType.fromErrorMessage(errorMessage)))
             }
         } catch (e: Exception) {
@@ -45,7 +45,7 @@ class AuthRepository : ApiService() {
                 saveUserSession(response)
                 Result.success(response)
             } else {
-                val errorMessage = response.error?.error?.message ?: "Unknown error"
+                val errorMessage = response.error?.message ?: "Unknown error"
                 Result.failure(FirebaseException(FirebaseErrorType.fromErrorMessage(errorMessage)))
             }
         } catch (e: Exception) {
