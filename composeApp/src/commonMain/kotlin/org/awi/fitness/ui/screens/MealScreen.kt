@@ -26,6 +26,8 @@ import org.awi.fitness.viewmodel.MealViewModel
 import org.awi.fitness.ui.components.MarkdownText
 import org.awi.fitness.data.StringKey
 import org.awi.fitness.viewmodel.LanguageViewModel
+import androidx.compose.ui.graphics.Color
+import org.awi.fitness.ui.components.VideoPlayer
 
 class MealScreen : Screen {
     @Composable
@@ -307,6 +309,18 @@ private fun MealCard(
                                 )
                             }
                         }
+                    }
+
+                    if (meal.videos != null) {
+                        val url = meal.videos.firstOrNull() ?: ""
+                        VideoPlayer(
+                            url = url,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(250.dp),
+                            autoPlay = true,
+                            showControls = true
+                        )
                     }
                 }
             }
