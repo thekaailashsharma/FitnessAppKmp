@@ -20,7 +20,8 @@ actual fun VideoPlayer(
     url: String,
     modifier: Modifier,
     autoPlay: Boolean,
-    showControls: Boolean
+    showControls: Boolean,
+    onReady: () -> Unit
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -31,6 +32,13 @@ actual fun VideoPlayer(
             if (url.isNotEmpty()) {
                 setMediaItem(MediaItem.fromUri(url.toUri()))
                 prepare()
+                addListener(object : Player.Listener {
+                    override fun onPlaybackStateChanged(playbackState: Int) {
+                        if (playbackState == Player.STATE_READY) {
+                            onReady()
+                        }
+                    }
+                })
             }
             playWhenReady = autoPlay
         }

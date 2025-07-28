@@ -26,7 +26,8 @@ actual fun VideoPlayer(
     url: String,
     modifier: Modifier,
     autoPlay: Boolean,
-    showControls: Boolean
+    showControls: Boolean,
+    onReady: () -> Unit
 ) {
     val player = remember { AVPlayer(uRL = NSURL.URLWithString(url)!!) }
     val playerLayer = remember { AVPlayerLayer() }
@@ -35,6 +36,12 @@ actual fun VideoPlayer(
     avPlayerViewController.showsPlaybackControls = true
 
     playerLayer.player = player
+    
+    DisposableEffect(player) {
+        onReady()
+        onDispose { }
+    }
+    
     // Use a UIKitView to integrate with your existing UIKit views
     UIKitView(
         factory = {

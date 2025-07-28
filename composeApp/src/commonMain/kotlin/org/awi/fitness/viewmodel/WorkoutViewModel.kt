@@ -166,7 +166,6 @@ class WorkoutViewModel {
         try {
             val updatedExercise = exercise.copy(
                 isCompleted = completed,
-                completedTimestamp = if (completed) Clock.System.now().toEpochMilliseconds() else 0L
             )
             workoutRepository.setExerciseCompleted(updatedExercise, completed).getOrThrow()
             loadWorkoutPlans() // Reload to update UI

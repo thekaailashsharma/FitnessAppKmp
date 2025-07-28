@@ -28,7 +28,6 @@ data class Exercise(
     val isCompleted: Boolean = false,
     val dayOfWeek: Int = 1, // 1-7
     val orderInDay: Int = 0,
-    val completedTimestamp: Long = 0L
 )
 
 @Serializable

@@ -64,7 +64,7 @@ class HomeViewModel {
 
     private fun loadDashboardData() {
         _state.value = _state.value.copy(isLoading = true)
-        
+
         kotlinx.coroutines.MainScope().launch {
             try {
                 // Load user profile
@@ -79,28 +79,13 @@ class HomeViewModel {
                 // Load workout plans
                 val workoutPlansResult = workoutRepository.getAllWorkoutPlans()
                 workoutPlansResult.onSuccess { plans ->
-                    // Filter plans for the current user
-                    val userPlans = plans.filter { plan ->
-                        plan.exercises.any { exercise -> 
-                            exercise.isCompleted && exercise.completedTimestamp > 0L
-                        }
-                    }
-
-                    // Sort by most recent completed exercise
-                    val sortedPlans = userPlans.sortedByDescending { plan ->
-                        plan.exercises
-                            .filter { it.isCompleted }
-                            .maxOfOrNull { it.completedTimestamp } ?: 0L
-                    }
-
-                    // Calculate completion stats
-                    val completedWorkouts = sortedPlans.sumOf { plan ->
+                    val completedWorkouts = plans.sumOf { plan ->
                         plan.exercises.count { it.isCompleted }
                     }
-                    val totalWorkouts = sortedPlans.sumOf { it.exercises.size }
+                    val totalWorkouts = plans.sumOf { it.exercises.size }
 
                     _state.value = _state.value.copy(
-                        workoutPlans = sortedPlans,
+                        workoutPlans = plans,
                         completedWorkouts = completedWorkouts,
                         totalWorkouts = totalWorkouts
                     )
@@ -131,7 +116,7 @@ class HomeViewModel {
                     0xFFC2185B, // Pink
                     0xFF00796B  // Teal
                 )
-                
+
                 val randomTips = homeFitnessTips.shuffled().take(6).map { tip ->
                     DailyTip(
                         tip = tip,

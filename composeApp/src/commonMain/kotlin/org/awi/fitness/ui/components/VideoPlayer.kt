@@ -8,5 +8,6 @@ expect fun VideoPlayer(
     url: String,
     modifier: Modifier = Modifier,
     autoPlay: Boolean = true,
-    showControls: Boolean = true
+    showControls: Boolean = true,
+    onReady: () -> Unit = {}
 ) 

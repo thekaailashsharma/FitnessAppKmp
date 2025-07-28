@@ -28,6 +28,7 @@ import org.awi.fitness.data.StringKey
 import org.awi.fitness.viewmodel.LanguageViewModel
 import androidx.compose.ui.graphics.Color
 import org.awi.fitness.ui.components.VideoPlayer
+import org.awi.fitness.ui.components.VideoList
 
 class MealScreen : Screen {
     @Composable
@@ -311,15 +312,12 @@ private fun MealCard(
                         }
                     }
 
-                    if (meal.videos != null) {
-                        val url = meal.videos.firstOrNull() ?: ""
-                        VideoPlayer(
-                            url = url,
+                    if (meal.videos.isNotEmpty()) {
+                        VideoList(
+                            videos = meal.videos,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(250.dp),
-                            autoPlay = true,
-                            showControls = true
+                                .height(250.dp)
                         )
                     }
                 }

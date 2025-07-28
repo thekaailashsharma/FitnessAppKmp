@@ -173,36 +173,14 @@ class HomeScreen : Screen {
                                 }
                             }
 
-                            items(state.workoutPlans.take(3)) { plan ->
-                                val completedExercises = plan.exercises.count { it.isCompleted }
-                                val totalExercises = plan.exercises.size
-                                val lastCompletedTime = plan.exercises
-                                    .filter { it.isCompleted }
-                                    .maxOfOrNull { it.completedTimestamp }
-                                    ?.let { timestamp ->
-                                        val instant = Instant.fromEpochMilliseconds(timestamp)
-                                        val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-                                        val now = Clock.System.now()
-                                        val diffInHours = (now.toEpochMilliseconds() - timestamp) / (1000 * 60 * 60)
-                                        
-                                        when {
-                                            diffInHours < 1 -> "Just now"
-                                            diffInHours < 24 -> "$diffInHours hours ago"
-                                            diffInHours < 48 -> "Yesterday"
-                                            else -> "${(diffInHours / 24).toInt()} days ago"
-                                        }
-                                    } ?: ""
-
+                            items(minOf(3, state.workoutPlans.size)) { index ->
+                                val plan = state.workoutPlans[index]
                                 WorkoutPreviewCard(
                                     name = plan.plan.name,
                                     description = plan.plan.description,
-                                    completedExercises = completedExercises,
-                                    totalExercises = totalExercises,
-                                    lastCompleted = lastCompletedTime,
-                                    languageViewModel = languageViewModel,
-                                    onClick = {
-                                        navigator.push(WorkoutScreen())
-                                    }
+                                    completedExercises = plan.exercises.count { it.isCompleted },
+                                    totalExercises = plan.exercises.size,
+                                    languageViewModel = languageViewModel
                                 )
                             }
                         }
@@ -472,14 +450,11 @@ private fun WorkoutPreviewCard(
     description: String,
     completedExercises: Int,
     totalExercises: Int,
-    lastCompleted: String,
     languageViewModel: LanguageViewModel,
-    onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -507,15 +482,6 @@ private fun WorkoutPreviewCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
-                    )
-                }
-                
-                if (lastCompleted.isNotEmpty()) {
-                    Text(
-                        text = lastCompleted,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(start = 8.dp)
                     )
                 }
             }
