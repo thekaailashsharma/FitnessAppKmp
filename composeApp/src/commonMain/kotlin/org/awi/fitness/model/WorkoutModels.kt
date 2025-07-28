@@ -27,7 +27,8 @@ data class Exercise(
     val thumbnailUrl: String? = null,
     val isCompleted: Boolean = false,
     val dayOfWeek: Int = 1, // 1-7
-    val orderInDay: Int = 0
+    val orderInDay: Int = 0,
+    val completedTimestamp: Long = 0L
 )
 
 @Serializable

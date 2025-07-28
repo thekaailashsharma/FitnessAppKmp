@@ -147,7 +147,12 @@ object Strings {
             StringKey.DELETE_ACCOUNT_CONFIRMATION to "Delete Account?",
             StringKey.DELETE_ACCOUNT_DESCRIPTION to "This action cannot be undone. All your data will be permanently deleted.",
             StringKey.CONFIRM to "Confirm",
-            StringKey.CANCEL_DELETE to "Cancel"
+            StringKey.CANCEL_DELETE to "Cancel",
+            
+            // New translations
+            StringKey.VIEW_ALL to "View All",
+            StringKey.EXERCISES to "Exercises",
+            StringKey.COMPLETED to "Completed"
         ),
         Language.DUTCH to mapOf(
             // Auth
@@ -294,7 +299,12 @@ object Strings {
             StringKey.DELETE_ACCOUNT_CONFIRMATION to "Account Verwijderen?",
             StringKey.DELETE_ACCOUNT_DESCRIPTION to "Deze actie kan niet ongedaan worden gemaakt. Al uw gegevens worden permanent verwijderd.",
             StringKey.CONFIRM to "Bevestigen",
-            StringKey.CANCEL_DELETE to "Annuleren"
+            StringKey.CANCEL_DELETE to "Annuleren",
+            
+            // New translations
+            StringKey.VIEW_ALL to "Bekijk Alles",
+            StringKey.EXERCISES to "Oefeningen",
+            StringKey.COMPLETED to "Voltooid"
         )
     )
 

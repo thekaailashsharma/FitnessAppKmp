@@ -167,6 +167,38 @@ class WorkoutRepository : ApiService() {
         }
     }
 
+    suspend fun deleteWorkoutPlan(planId: String): Result<Unit> {
+        return try {
+            val token = userSettings.authToken ?: return Result.failure(Exception("Not authenticated"))
+            
+            // Delete the workout plan
+            val planUrl = "https://firestore.googleapis.com/v1/projects/$PROJECT_ID/databases/(default)/documents/workout_plans/$planId"
+            val (_, planStatus) = delete<Unit>(planUrl, token)
+            
+            if (!planStatus.isSuccess()) {
+                return Result.failure(Exception("Failed to delete workout plan"))
+            }
+
+            // Delete associated exercises
+            val exercisesUrl = "https://firestore.googleapis.com/v1/projects/$PROJECT_ID/databases/(default)/documents/exercises"
+            val (exercisesResponse, exercisesStatus) = get<FirestoreListResponse<ExerciseFields>>(exercisesUrl, token)
+            
+            if (exercisesStatus.isSuccess()) {
+                exercisesResponse.documents
+                    ?.map { it.toExercise() }
+                    ?.filter { it.planId == planId }
+                    ?.forEach { exercise ->
+                        val exerciseUrl = "https://firestore.googleapis.com/v1/projects/$PROJECT_ID/databases/(default)/documents/exercises/${exercise.id}"
+                        delete<Unit>(exerciseUrl, token)
+                    }
+            }
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     fun getCompletionCountForDay(planId: String, date: Long): Flow<Int> = flow {
         try {
             val token = userSettings.authToken ?: throw Exception("Not authenticated")

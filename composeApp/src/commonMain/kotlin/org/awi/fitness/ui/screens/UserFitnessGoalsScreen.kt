@@ -103,32 +103,6 @@ fun UserFitnessGoalsBottomSheet(
                     WorkoutDaysSection(preferredWorkoutDays, onDaysChanged = { preferredWorkoutDays = it }, languageViewModel = languageViewModel)
                 }
 
-                AnimatedVisibility(
-                    visible = fitnessLevel != null,
-                    enter = fadeIn() + slideInHorizontally()
-                ) {
-                    SpecificRequirementsSection(
-                        requirements = specificRequirements,
-                        onRequirementsChanged = { specificRequirements = it },
-                        languageViewModel = languageViewModel
-                    )
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                AnimatedVisibility(
-                    visible = error != null,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically()
-                ) {
-                    Text(
-                        text = error ?: "",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                }
-
                 Button(
                     onClick = {
                         if (selectedGoal != null && fitnessLevel != null) {
@@ -172,23 +146,35 @@ fun UserFitnessGoalsBottomSheet(
                 exit = fadeOut(),
                 modifier = Modifier.fillMaxSize()
             ) {
-                Surface(
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                    modifier = Modifier.fillMaxSize()
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.3f)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                }
+            }
+
+            // Error message
+            this@ModalBottomSheet.AnimatedVisibility(
+                visible = error != null,
+                enter = fadeIn() + slideInVertically(),
+                exit = fadeOut() + slideOutVertically(),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp)
+            ) {
+                error?.let {
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = MaterialTheme.shapes.medium
                     ) {
-                        CircularProgressIndicator(
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "Generating your personalized workout plan...",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface
+                            text = it,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.padding(16.dp)
                         )
                     }
                 }

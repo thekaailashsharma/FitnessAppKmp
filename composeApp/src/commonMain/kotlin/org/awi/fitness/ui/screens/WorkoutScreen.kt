@@ -45,10 +45,58 @@ class WorkoutScreen : Screen {
         val coroutineScope = rememberCoroutineScope()
         var showGoalsSheet by remember { mutableStateOf(false) }
         var selectedPlanIndex by remember { mutableStateOf(0) }
+        var showDeleteConfirmation by remember { mutableStateOf<String?>(null) }
+        var showListView by remember { mutableStateOf(false) }
+        var isDeleting by remember { mutableStateOf(false) }
         val languageViewModel = remember { LanguageViewModel(userSettings.settings) }
 
         LaunchedEffect(Unit) {
             viewModel.loadWorkoutPlans()
+        }
+
+        if (showDeleteConfirmation != null) {
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirmation = null },
+                title = { Text("Delete Workout Plan") },
+                text = { 
+                    Column {
+                        Text("Are you sure you want to delete this workout plan? This action cannot be undone.")
+                        if (isDeleting) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            LinearProgressIndicator(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            isDeleting = true
+                            coroutineScope.launch {
+                                viewModel.deleteWorkoutPlan(showDeleteConfirmation!!)
+                                isDeleting = false
+                                showDeleteConfirmation = null
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        ),
+                        enabled = !isDeleting
+                    ) {
+                        Text("Delete")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { showDeleteConfirmation = null },
+                        enabled = !isDeleting
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
 
         Column(
@@ -69,14 +117,32 @@ class WorkoutScreen : Screen {
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 
-                IconButton(
-                    onClick = { showGoalsSheet = true }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = TablerIcons.Plus,
-                        contentDescription = "Add New Plan",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                    TextButton(
+                        onClick = { showListView = !showListView },
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(
+                            imageVector = if (showListView) TablerIcons.LayoutGrid else TablerIcons.LayoutList,
+                            contentDescription = if (showListView) "Show Grid" else "Show List"
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(if (showListView) "Show Grid" else "Show List")
+                    }
+                    
+                    IconButton(
+                        onClick = { showGoalsSheet = !showGoalsSheet }
+                    ) {
+                        Icon(
+                            imageVector = TablerIcons.Plus,
+                            contentDescription = "Add New Plan",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
 
@@ -108,63 +174,89 @@ class WorkoutScreen : Screen {
                     )
                 }
                 else -> {
-                    // Workout Plans Carousel
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        items(uiState.workoutPlans) { planWithExercises ->
-                            WorkoutPlanCard(
-                                plan = planWithExercises.plan,
-                                isSelected = uiState.workoutPlans.indexOf(planWithExercises) == selectedPlanIndex,
-                                onClick = {
-                                    selectedPlanIndex = uiState.workoutPlans.indexOf(planWithExercises)
-                                }
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Selected Plan Content
-                    if (selectedPlanIndex < uiState.workoutPlans.size) {
-                        val selectedPlan = uiState.workoutPlans[selectedPlanIndex]
-                        val exercisesForDay = selectedPlan.exercises.sortedBy { it.orderInDay }
-                        
+                    val sortedPlans = uiState.workoutPlans.sortedByDescending { it.plan.id }
+                    
+                    if (showListView) {
                         LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            if (exercisesForDay.isNotEmpty()) {
-                                item {
-                                    EnhancedWorkoutCard(
-                                        workoutPlan = selectedPlan.plan,
-                                        exercises = exercisesForDay.sortedWith(
-                                            compareBy({ it.isCompleted }, { it.orderInDay })
-                                        ),
-                                        onExerciseClick = { 
-                                            // Navigate to progress screen
-                                        },
-                                        onCompleteClick = { exercise, completed ->
-                                            coroutineScope.launch {
-                                                viewModel.setExerciseCompleted(exercise, completed)
+                            items(sortedPlans) { planWithExercises ->
+                                WorkoutPlanListCard(
+                                    plan = planWithExercises.plan,
+                                    isSelected = sortedPlans.indexOf(planWithExercises) == selectedPlanIndex,
+                                    onClick = {
+                                        selectedPlanIndex = sortedPlans.indexOf(planWithExercises)
+                                        showListView = false // Switch to grid view
+                                    },
+                                    onDeleteClick = {
+                                        showDeleteConfirmation = planWithExercises.plan.id
+                                    }
+                                )
+                            }
+                        }
+                    } else {
+                        // Workout Plans Carousel
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(sortedPlans) { planWithExercises ->
+                                WorkoutPlanCard(
+                                    plan = planWithExercises.plan,
+                                    isSelected = sortedPlans.indexOf(planWithExercises) == selectedPlanIndex,
+                                    onClick = {
+                                        selectedPlanIndex = sortedPlans.indexOf(planWithExercises)
+                                    },
+                                    onDeleteClick = {
+                                        showDeleteConfirmation = planWithExercises.plan.id
+                                    }
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Selected Plan Content
+                        if (selectedPlanIndex < sortedPlans.size) {
+                            val selectedPlan = sortedPlans[selectedPlanIndex]
+                            val exercisesForDay = selectedPlan.exercises.sortedBy { it.orderInDay }
+                            
+                            LazyColumn(
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                if (exercisesForDay.isNotEmpty()) {
+                                    item {
+                                        EnhancedWorkoutCard(
+                                            workoutPlan = selectedPlan.plan,
+                                            exercises = exercisesForDay.sortedWith(
+                                                compareBy({ it.isCompleted }, { it.orderInDay })
+                                            ),
+                                            onExerciseClick = { 
+                                                // Navigate to progress screen
+                                            },
+                                            onCompleteClick = { exercise, completed ->
+                                                coroutineScope.launch {
+                                                    viewModel.setExerciseCompleted(exercise, completed)
+                                                }
                                             }
-                                        }
-                                    )
-                                }
-
-                                item {
-                                    ExerciseDetailsCard(
-                                        exercises = exercisesForDay.sortedWith(
-                                            compareBy({ it.isCompleted }, { it.orderInDay })
                                         )
-                                    )
-                                }
+                                    }
 
-                                item {
-                                    WorkoutTipsCard(
-                                        tips = fitnessTips.topFiveTips(),
-                                        difficulty = selectedPlan.plan.difficulty
-                                    )
+                                    item {
+                                        ExerciseDetailsCard(
+                                            exercises = exercisesForDay.sortedWith(
+                                                compareBy({ it.isCompleted }, { it.orderInDay })
+                                            )
+                                        )
+                                    }
+
+                                    item {
+                                        WorkoutTipsCard(
+                                            tips = fitnessTips.topFiveTips(),
+                                            difficulty = selectedPlan.plan.difficulty
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -192,7 +284,8 @@ class WorkoutScreen : Screen {
 private fun WorkoutPlanCard(
     plan: WorkoutPlan,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDeleteClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -233,21 +326,18 @@ private fun WorkoutPlanCard(
                     modifier = Modifier.size(24.dp)
                 )
                 
-                Surface(
-                    color = if (isSelected)
-                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f)
-                    else
-                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(4.dp)
+                IconButton(
+                    onClick = onDeleteClick,
+                    modifier = Modifier.size(24.dp)
                 ) {
-                    Text(
-                        text = plan.difficulty.name.lowercase().replaceFirstChar { it.uppercase() },
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (isSelected)
-                            MaterialTheme.colorScheme.onPrimaryContainer
+                    Icon(
+                        imageVector = TablerIcons.Trash,
+                        contentDescription = "Delete Plan",
+                        tint = if (isSelected)
+                            MaterialTheme.colorScheme.error
                         else
-                            MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
@@ -678,7 +768,7 @@ private fun EnhancedWorkoutCard(
             
             Spacer(modifier = Modifier.height(8.dp))
 
-            exercises.take(3).forEach { exercise ->
+            exercises.forEach { exercise ->
                 ExerciseRow(
                     exercise = exercise,
                     workoutCategory = workoutPlan.category,
@@ -686,17 +776,6 @@ private fun EnhancedWorkoutCard(
                         onCompleteClick(exercise, completed)
                     }
                 )
-            }
-
-            if (exercises.size > 3) {
-                TextButton(
-                    onClick = onExerciseClick,
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Text("View All ${exercises.size} Exercises")
-                }
             }
         }
     }
@@ -811,6 +890,159 @@ private fun ErrorState(
             )
             Button(onClick = onRetry) {
                 Text(languageViewModel.getString(StringKey.RETRY))
+            }
+        }
+    }
+} 
+
+@Composable
+private fun WorkoutPlanListCard(
+    plan: WorkoutPlan,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium)
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) 
+                MaterialTheme.colorScheme.primaryContainer 
+            else 
+                MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                // Category Icon
+                Surface(
+                    color = if (isSelected)
+                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f)
+                    else
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f),
+                    shape = CircleShape,
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        imageVector = when (plan.category) {
+                            WorkoutCategory.STRENGTH -> TablerIcons.Walk
+                            WorkoutCategory.CARDIO -> TablerIcons.Run
+                            WorkoutCategory.HIIT -> TablerIcons.Flame
+                            WorkoutCategory.FLEXIBILITY -> TablerIcons.BallVolleyball
+                            WorkoutCategory.YOGA -> TablerIcons.Package
+                        },
+                        contentDescription = null,
+                        tint = if (isSelected) 
+                            MaterialTheme.colorScheme.onPrimaryContainer 
+                        else 
+                            MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .size(24.dp)
+                            .padding(12.dp)
+                    )
+                }
+
+                // Text Content
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = plan.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (isSelected)
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    Text(
+                        text = plan.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isSelected)
+                            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(top = 8.dp)
+                    ) {
+                        // Duration
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = TablerIcons.Clock,
+                                contentDescription = null,
+                                tint = if (isSelected)
+                                    MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                else
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "${plan.duration} weeks",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (isSelected)
+                                    MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                else
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+
+                        // Difficulty
+                        Surface(
+                            color = if (isSelected)
+                                MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f)
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f),
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                text = plan.difficulty.name.lowercase().replaceFirstChar { it.uppercase() },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (isSelected)
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                else
+                                    MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Delete Button
+            IconButton(
+                onClick = onDeleteClick,
+                modifier = Modifier.padding(start = 8.dp)
+            ) {
+                Icon(
+                    imageVector = TablerIcons.Trash,
+                    contentDescription = "Delete Plan",
+                    tint = if (isSelected)
+                        MaterialTheme.colorScheme.error
+                    else
+                        MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }

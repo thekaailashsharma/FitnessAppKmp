@@ -79,13 +79,28 @@ class HomeViewModel {
                 // Load workout plans
                 val workoutPlansResult = workoutRepository.getAllWorkoutPlans()
                 workoutPlansResult.onSuccess { plans ->
-                    val completedWorkouts = plans.sumOf { plan ->
+                    // Filter plans for the current user
+                    val userPlans = plans.filter { plan ->
+                        plan.exercises.any { exercise -> 
+                            exercise.isCompleted && exercise.completedTimestamp > 0L
+                        }
+                    }
+
+                    // Sort by most recent completed exercise
+                    val sortedPlans = userPlans.sortedByDescending { plan ->
+                        plan.exercises
+                            .filter { it.isCompleted }
+                            .maxOfOrNull { it.completedTimestamp } ?: 0L
+                    }
+
+                    // Calculate completion stats
+                    val completedWorkouts = sortedPlans.sumOf { plan ->
                         plan.exercises.count { it.isCompleted }
                     }
-                    val totalWorkouts = plans.sumOf { it.exercises.size }
+                    val totalWorkouts = sortedPlans.sumOf { it.exercises.size }
 
                     _state.value = _state.value.copy(
-                        workoutPlans = plans,
+                        workoutPlans = sortedPlans,
                         completedWorkouts = completedWorkouts,
                         totalWorkouts = totalWorkouts
                     )

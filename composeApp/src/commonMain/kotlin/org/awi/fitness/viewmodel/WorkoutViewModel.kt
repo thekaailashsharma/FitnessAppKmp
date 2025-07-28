@@ -164,12 +164,46 @@ class WorkoutViewModel {
 
     suspend fun setExerciseCompleted(exercise: Exercise, completed: Boolean) {
         try {
-            workoutRepository.setExerciseCompleted(exercise, completed).getOrThrow()
+            val updatedExercise = exercise.copy(
+                isCompleted = completed,
+                completedTimestamp = if (completed) Clock.System.now().toEpochMilliseconds() else 0L
+            )
+            workoutRepository.setExerciseCompleted(updatedExercise, completed).getOrThrow()
             loadWorkoutPlans() // Reload to update UI
         } catch (e: Exception) {
             _state.update { 
                 it.copy(error = "Failed to update exercise: ${e.message}")
             }
+        }
+    }
+
+    suspend fun deleteWorkoutPlan(planId: String): Result<Unit> {
+        return try {
+            _state.update { it.copy(isLoading = true, error = null) }
+            val result = workoutRepository.deleteWorkoutPlan(planId)
+            result.fold(
+                onSuccess = {
+                    loadWorkoutPlans() // Reload to update UI
+                    Result.success(Unit)
+                },
+                onFailure = { error ->
+                    _state.update { 
+                        it.copy(
+                            isLoading = false,
+                            error = "Failed to delete workout plan: ${error.message}"
+                        )
+                    }
+                    Result.failure(error)
+                }
+            )
+        } catch (e: Exception) {
+            _state.update { 
+                it.copy(
+                    isLoading = false,
+                    error = "Failed to delete workout plan: ${e.message}"
+                )
+            }
+            Result.failure(e)
         }
     }
 

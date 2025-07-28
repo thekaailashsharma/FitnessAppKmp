@@ -1,6 +1,6 @@
 package org.awi.fitness.ui.screens.home
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
@@ -32,21 +33,23 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.awi.fitness.data.StringKey
 import org.awi.fitness.data.UserSettings
+import org.awi.fitness.ui.screens.WorkoutScreen
 import org.awi.fitness.ui.screens.WorkoutSchedulerScreen
 import org.awi.fitness.viewmodel.DailyTip
 import org.awi.fitness.viewmodel.LanguageViewModel
 import org.awi.fitness.viewmodel.TipIcon
 import org.awi.fitness.viewmodel.WorkoutSchedulePreview
+import kotlinx.datetime.Clock
 
 class HomeScreen : Screen {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
+        val navigator = LocalNavigator.currentOrThrow
         val userSettings = UserSettings.getInstance()
-        val languageViewModel = LanguageViewModel(userSettings.settings)
         val viewModel = remember { HomeViewModel() }
         val state by viewModel.state.collectAsState()
-        val navigator = LocalNavigator.currentOrThrow
+        val languageViewModel = remember { LanguageViewModel(userSettings.settings) }
 
         Scaffold(
             topBar = {
@@ -151,21 +154,55 @@ class HomeScreen : Screen {
                         // Recent Workouts Preview
                         if (state.workoutPlans.isNotEmpty()) {
                             item {
-                                Text(
-                                    text = languageViewModel.getString(StringKey.RECENT_WORKOUTS),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(top = 8.dp)
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = languageViewModel.getString(StringKey.RECENT_WORKOUTS),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(top = 8.dp)
+                                    )
+                                    TextButton(
+                                        onClick = { navigator.push(WorkoutScreen()) }
+                                    ) {
+                                        Text(languageViewModel.getString(StringKey.VIEW_ALL))
+                                    }
+                                }
                             }
-                            items(minOf(3, state.workoutPlans.size)) { index ->
-                                val plan = state.workoutPlans[index]
+
+                            items(state.workoutPlans.take(3)) { plan ->
+                                val completedExercises = plan.exercises.count { it.isCompleted }
+                                val totalExercises = plan.exercises.size
+                                val lastCompletedTime = plan.exercises
+                                    .filter { it.isCompleted }
+                                    .maxOfOrNull { it.completedTimestamp }
+                                    ?.let { timestamp ->
+                                        val instant = Instant.fromEpochMilliseconds(timestamp)
+                                        val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+                                        val now = Clock.System.now()
+                                        val diffInHours = (now.toEpochMilliseconds() - timestamp) / (1000 * 60 * 60)
+                                        
+                                        when {
+                                            diffInHours < 1 -> "Just now"
+                                            diffInHours < 24 -> "$diffInHours hours ago"
+                                            diffInHours < 48 -> "Yesterday"
+                                            else -> "${(diffInHours / 24).toInt()} days ago"
+                                        }
+                                    } ?: ""
+
                                 WorkoutPreviewCard(
                                     name = plan.plan.name,
                                     description = plan.plan.description,
-                                    completedExercises = plan.exercises.count { it.isCompleted },
-                                    totalExercises = plan.exercises.size,
-                                    languageViewModel = languageViewModel
+                                    completedExercises = completedExercises,
+                                    totalExercises = totalExercises,
+                                    lastCompleted = lastCompletedTime,
+                                    languageViewModel = languageViewModel,
+                                    onClick = {
+                                        navigator.push(WorkoutScreen())
+                                    }
                                 )
                             }
                         }
@@ -173,12 +210,27 @@ class HomeScreen : Screen {
                         // Daily Tips Section
                         if (state.dailyTips.isNotEmpty()) {
                             item {
-                                Text(
-                                    text = languageViewModel.getString(StringKey.DAILY_WELLNESS_TIPS),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = languageViewModel.getString(StringKey.DAILY_WELLNESS_TIPS),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                                    )
+                                    IconButton(
+                                        onClick = { viewModel.refresh() }
+                                    ) {
+                                        Icon(
+                                            imageVector = TablerIcons.Refresh,
+                                            contentDescription = "Refresh Tips",
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
                             }
                             
                             item {
@@ -187,7 +239,17 @@ class HomeScreen : Screen {
                                     contentPadding = PaddingValues(horizontal = 4.dp)
                                 ) {
                                     items(state.dailyTips) { tip ->
-                                        TipCard(tip = tip)
+                                        TipCard(
+                                            tip = tip,
+                                            onClick = {
+                                                // Navigate to relevant section based on tip type
+                                                when (tip.icon) {
+                                                    TipIcon.FOOD -> navigator.push(CalorieCalculatorScreen())
+                                                    TipIcon.EXERCISE -> navigator.push(WorkoutScreen())
+                                                    else -> {} // Other tips don't have specific screens yet
+                                                }
+                                            }
+                                        )
                                     }
                                 }
                             }
@@ -410,40 +472,81 @@ private fun WorkoutPreviewCard(
     description: String,
     completedExercises: Int,
     totalExercises: Int,
-    languageViewModel: LanguageViewModel
+    lastCompleted: String,
+    languageViewModel: LanguageViewModel,
+    onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
         ) {
-            Text(
-                text = name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = name,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                
+                if (lastCompleted.isNotEmpty()) {
+                    Text(
+                        text = lastCompleted,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(8.dp))
+
             LinearProgressIndicator(
                 progress = if (totalExercises > 0) completedExercises.toFloat() / totalExercises else 0f,
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)
             )
-            Text(
-                text = "$completedExercises of $totalExercises ${languageViewModel.getString(StringKey.EXERCISES_COMPLETED)}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                modifier = Modifier.padding(top = 4.dp)
-            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "${completedExercises}/${totalExercises} ${languageViewModel.getString(StringKey.EXERCISES)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+                Text(
+                    text = "${(completedExercises.toFloat() / totalExercises * 100).toInt()}% ${languageViewModel.getString(StringKey.COMPLETED)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
         }
     }
 }
@@ -523,52 +626,41 @@ private fun UpcomingWorkoutCard(
 }
 
 @Composable
-private fun TipCard(tip: DailyTip) {
+private fun TipCard(
+    tip: DailyTip,
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
-            .width(280.dp)
-            .heightIn(min = 120.dp),
+            .width(200.dp)
+            .clickable(onClick = onClick),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = Color(tip.color).copy(alpha = 0.1f)
-        ),
-        shape = RoundedCornerShape(16.dp)
+        )
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Surface(
-                shape = CircleShape,
-                color = Color(tip.color).copy(alpha = 0.2f),
-                modifier = Modifier.size(48.dp)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = when (tip.icon) {
-                            TipIcon.WATER -> TablerIcons.Glass
-                            TipIcon.FOOD -> TablerIcons.BrandApple
-                            TipIcon.SLEEP -> TablerIcons.Moon
-                            TipIcon.EXERCISE -> TablerIcons.Walk
-                            TipIcon.MINDFULNESS -> TablerIcons.BrandAndroid
-                            TipIcon.HEALTH -> TablerIcons.Heart
-                        },
-                        contentDescription = null,
-                        tint = Color(tip.color),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
+            Icon(
+                imageVector = when (tip.icon) {
+                    TipIcon.WATER -> TablerIcons.Glass
+                    TipIcon.FOOD -> TablerIcons.Fold
+                    TipIcon.SLEEP -> TablerIcons.Moon
+                    TipIcon.EXERCISE -> TablerIcons.Run
+                    TipIcon.MINDFULNESS -> TablerIcons.Heart
+                    TipIcon.HEALTH -> TablerIcons.Heart
+                },
+                contentDescription = null,
+                tint = Color(tip.color),
+                modifier = Modifier.size(24.dp)
+            )
             
             Text(
                 text = tip.tip,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f)
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }
