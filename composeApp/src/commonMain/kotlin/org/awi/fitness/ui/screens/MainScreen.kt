@@ -25,6 +25,7 @@ import org.awi.fitness.ui.screens.home.HomeScreen
 sealed class BottomNavItem(val route: String) {
     object Home : BottomNavItem("home")
     object Workouts : BottomNavItem("workouts")
+    object Challenges : BottomNavItem("challenges")
     object Meals : BottomNavItem("meals")
 }
 
@@ -40,6 +41,7 @@ class MainScreen : Screen {
                     listOf(
                         BottomNavItem.Home,
                         BottomNavItem.Workouts,
+                        BottomNavItem.Challenges,
                         BottomNavItem.Meals
                     ).forEach { item ->
                         NavigationBarItem(
@@ -50,6 +52,7 @@ class MainScreen : Screen {
                                     imageVector = when (item) {
                                         BottomNavItem.Home -> TablerIcons.Home
                                         BottomNavItem.Workouts -> TablerIcons.Walk
+                                        BottomNavItem.Challenges -> TablerIcons.Trophy
                                         BottomNavItem.Meals -> SimpleIcons.Ifood
                                     },
                                     contentDescription = item.route
@@ -69,6 +72,7 @@ class MainScreen : Screen {
                 when (currentRoute) {
                     BottomNavItem.Home.route -> HomeScreen().Content()
                     BottomNavItem.Workouts.route -> WorkoutScreen().Content()
+                    BottomNavItem.Challenges.route -> ChallengesScreen()
                     BottomNavItem.Meals.route -> MealScreen().Content()
                 }
             }
