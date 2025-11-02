@@ -11,6 +11,7 @@ sealed class BottomNavItem(
 ) {
     data object Home : BottomNavItem("home", TablerIcons.Home, "Home")
     data object Workouts : BottomNavItem("workouts", TablerIcons.Activity, "Workouts")
+    data object Community : BottomNavItem("community", TablerIcons.Users, "Community")
     data object Calories : BottomNavItem("calories", TablerIcons.Calculator, "Calories")
     data object Profile : BottomNavItem("profile", TablerIcons.User, "Profile")
 } 
