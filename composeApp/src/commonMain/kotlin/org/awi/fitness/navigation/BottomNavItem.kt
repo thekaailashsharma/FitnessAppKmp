@@ -14,4 +14,7 @@ sealed class BottomNavItem(
     data object Community : BottomNavItem("community", TablerIcons.Users, "Community")
     data object Calories : BottomNavItem("calories", TablerIcons.Calculator, "Calories")
     data object Profile : BottomNavItem("profile", TablerIcons.User, "Profile")
+    
+    // Buddy is not in the bottom nav anymore, but we keep the route for navigation
+    data object Buddy : BottomNavItem("buddy", TablerIcons.MessageCircle, "Buddy")
 } 

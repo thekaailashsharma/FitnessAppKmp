@@ -1,0 +1,12 @@
+// Background Image Prompts
+- "A serene, hyper-realistic sunrise over a misty mountain lake, soft golden hour lighting, cinematic composition, 8k resolution, photorealistic"
+- "A modern, clean fitness studio interior with natural light streaming through large windows, blurred background bokeh, minimal aesthetic, high quality photography"
+- "A peaceful forest path in early morning, dappled sunlight through trees, vibrant greens, calming atmosphere, nature photography style, 8k"
+
+// Avatar Prompts (Realistic & Human-Like)
+- "A friendly personal trainer, male, 30s, athletic build, wearing modern sportswear, warm and encouraging smile, standing in a bright gym environment, photorealistic portrait, high detail, 8k"
+- "A supportive fitness companion, female, 20s, yoga instructor vibe, wearing athleisure, calm and welcoming expression, soft natural lighting, realistic photography style, portrait"
+- "An energetic running coach, male, 20s, wearing a track jacket, enthusiastic expression, outdoor park background blurred, dynamic lighting, high quality photo"
+- "A wise and calm wellness guide, older female, 50s, fit and healthy, wearing comfortable activewear, serene smile, soft focus background, realistic portrait"
+- "A motivated gym buddy, male, 25s, wearing a tank top, wiping sweat with a towel, friendly grin, gym background, realistic texture and lighting"
+- "A cheerful pilates instructor, female, 30s, holding a yoga mat, standing in a studio, bright and airy lighting, approachable and kind, photorealistic"

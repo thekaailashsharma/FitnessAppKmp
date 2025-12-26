@@ -296,4 +296,47 @@ class GeminiRepository : ApiService() {
             Result.failure(e)
         }
     }
+
+    suspend fun generateAvatarResponse(prompt: String): Result<org.awi.fitness.model.AvatarMessage> {
+        return try {
+            val request = GeminiRequest(
+                contents = listOf(
+                    GeminiContent(
+                        parts = listOf(
+                            GeminiPart(text = prompt)
+                        )
+                    )
+                )
+            )
+
+            val url = "$GEMINI_BASE_URL?key=$GEMINI_API_KEY"
+            val (response, status) = post<GeminiResponse>(
+                url = url,
+                body = request
+            )
+
+            if (status.isSuccess()) {
+                val generatedText = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+                    ?: return Result.failure(Exception("No response generated"))
+
+                // Clean up the response
+                val cleanText = generatedText
+                    .replace("```", "")
+                    .trim()
+                    .take(200) // Limit to 200 characters for short responses
+
+                val avatarMessage = org.awi.fitness.model.AvatarMessage(
+                    id = kotlin.random.Random.nextInt().toString(),
+                    content = cleanText,
+                    isFromAvatar = true,
+                    mood = org.awi.fitness.model.AvatarMood.ENCOURAGING
+                )
+                Result.success(avatarMessage)
+            } else {
+                Result.failure(Exception(response.error?.message ?: "Failed to generate avatar response"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 } 

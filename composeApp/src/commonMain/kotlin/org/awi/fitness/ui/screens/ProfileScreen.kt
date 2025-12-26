@@ -60,14 +60,18 @@ import compose.icons.tablericons.Sun
 import compose.icons.tablericons.Target
 import compose.icons.tablericons.Trash
 import compose.icons.tablericons.User
+import compose.icons.tablericons.ChevronRight
 import kotlinx.coroutines.launch
 import org.awi.fitness.data.Language
 import org.awi.fitness.data.StringKey
 import org.awi.fitness.data.UserSettings
 import org.awi.fitness.repository.AuthRepository
+import org.awi.fitness.ui.components.AvatarImage
+import org.awi.fitness.ui.screens.avatar.AvatarSelectionScreen
 import org.awi.fitness.viewmodel.AuthViewModel
 import org.awi.fitness.viewmodel.LanguageViewModel
 import kotlin.math.roundToInt
+import androidx.compose.foundation.clickable
 
 class ProfileScreen(private val languageViewModel: LanguageViewModel) : Screen {
     @OptIn(ExperimentalMaterial3Api::class)
@@ -171,7 +175,9 @@ class ProfileScreen(private val languageViewModel: LanguageViewModel) : Screen {
                 item {
                     SettingsSection(
                         languageViewModel = languageViewModel,
-                        currentLanguage = currentLanguage
+                        currentLanguage = currentLanguage,
+                        coroutineScope = scope,
+                        navigator = navigator
                     )
                 }
 
@@ -352,7 +358,9 @@ private fun StatItem(
 @Composable
 private fun SettingsSection(
     languageViewModel: LanguageViewModel,
-    currentLanguage: String
+    currentLanguage: String,
+    coroutineScope: kotlinx.coroutines.CoroutineScope,
+    navigator: cafe.adriel.voyager.navigator.Navigator
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -368,6 +376,38 @@ private fun SettingsSection(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Avatar Selection
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        coroutineScope.launch {
+                            navigator.push(AvatarSelectionScreen())
+                        }
+                    },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Show current avatar preview
+                    AvatarImage(
+                        mood = org.awi.fitness.model.AvatarMood.HAPPY,
+                        size = 32.dp
+                    )
+                    Text("Change Avatar")
+                }
+                Icon(
+                    imageVector = TablerIcons.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
             
             // Theme Switch

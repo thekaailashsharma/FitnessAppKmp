@@ -22,10 +22,14 @@ import androidx.compose.ui.unit.sp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import org.awi.fitness.model.Challenge
 import org.awi.fitness.model.ChallengeDifficulty
+import org.awi.fitness.model.ConversationTrigger
 import org.awi.fitness.theme.GreenAccent
 import org.awi.fitness.ui.components.FitnessButton
+import org.awi.fitness.ui.screens.avatar.AvatarScreen
 
 class ChallengeDetailScreen(
     private val challenge: Challenge
@@ -33,7 +37,9 @@ class ChallengeDetailScreen(
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
+        val coroutineScope = rememberCoroutineScope()
         var progress by remember { mutableStateOf(challenge.progress) }
+        var showCompletionCelebration by remember { mutableStateOf(false) }
         
         val progressAnimation by animateFloatAsState(
             targetValue = if (challenge.target > 0) {
@@ -100,8 +106,51 @@ class ChallengeDetailScreen(
                 ProgressSection(
                     challenge = challenge,
                     progress = progress,
-                    onProgressUpdate = { progress = it }
+                    onProgressUpdate = { newProgress ->
+                        progress = newProgress
+                        // Check if challenge is completed
+                        if (newProgress >= challenge.target && !showCompletionCelebration) {
+                            showCompletionCelebration = true
+                        }
+                    }
                 )
+            }
+            
+            // Show celebration button if completed
+            if (showCompletionCelebration && progress >= challenge.target) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                text = "🎉 Challenge Completed!",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            FitnessButton(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        navigator.push(AvatarScreen(ConversationTrigger.CHALLENGE_COMPLETED))
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Celebrate with Fitness Buddy")
+                            }
+                        }
+                    }
+                }
             }
             
             item {

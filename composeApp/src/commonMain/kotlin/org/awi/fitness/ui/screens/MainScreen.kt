@@ -8,6 +8,12 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import cafe.adriel.voyager.navigator.LocalNavigator
+import cafe.adriel.voyager.navigator.currentOrThrow
+import org.awi.fitness.model.ConversationTrigger
+import org.awi.fitness.ui.components.BuddyFab
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -17,6 +23,7 @@ import androidx.compose.ui.Modifier
 import cafe.adriel.voyager.core.screen.Screen
 import compose.icons.SimpleIcons
 import compose.icons.TablerIcons
+import compose.icons.simpleicons.Buddy
 import compose.icons.simpleicons.Ifood
 import compose.icons.tablericons.*
 import org.awi.fitness.navigation.BottomBarTab
@@ -28,15 +35,29 @@ sealed class BottomNavItem(val route: String) {
     object Community : BottomNavItem("community")
     object Challenges : BottomNavItem("challenges")
     object Meals : BottomNavItem("meals")
+    
+    // Buddy is not in the bottom nav anymore, but we keep the route for navigation
+    object Buddy : BottomNavItem("buddy")
 }
 
 class MainScreen : Screen {
     @Composable
     override fun Content() {
         var currentRoute by remember { mutableStateOf(BottomNavItem.Home.route) }
+        val navigator = LocalNavigator.currentOrThrow
+        val coroutineScope = rememberCoroutineScope()
 
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
+            floatingActionButton = {
+                BuddyFab(
+                    onClick = {
+                        coroutineScope.launch {
+                            navigator.push(org.awi.fitness.ui.screens.avatar.AvatarScreen(ConversationTrigger.MANUAL))
+                        }
+                    }
+                )
+            },
             bottomBar = {
                 NavigationBar {
                     listOf(
@@ -57,6 +78,7 @@ class MainScreen : Screen {
                                         BottomNavItem.Community -> TablerIcons.Users
                                         BottomNavItem.Challenges -> TablerIcons.Trophy
                                         BottomNavItem.Meals -> SimpleIcons.Ifood
+                                        BottomNavItem.Buddy -> SimpleIcons.Buddy
                                     },
                                     contentDescription = item.route
                                 )
@@ -78,6 +100,8 @@ class MainScreen : Screen {
                     BottomNavItem.Community.route -> org.awi.fitness.ui.screens.community.CommunityFeedScreen().Content()
                     BottomNavItem.Challenges.route -> ChallengesScreen()
                     BottomNavItem.Meals.route -> MealScreen().Content()
+                    BottomNavItem.Buddy.route -> org.awi.fitness.ui.screens.avatar.AvatarScreen(ConversationTrigger.MANUAL).Content()
+                    else -> HomeScreen().Content() // Fallback
                 }
             }
         }

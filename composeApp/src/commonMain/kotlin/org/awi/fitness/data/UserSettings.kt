@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.internal.SynchronizedObject
 import kotlinx.coroutines.internal.synchronized
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -76,6 +77,9 @@ class UserSettings internal constructor(internal val settings: Settings) {
         private const val KEY_WEIGH_IN_REMINDER_ENABLED = "weigh_in_reminder_enabled"
         private const val KEY_MEASUREMENT_REMINDER_ENABLED = "measurement_reminder_enabled"
         private const val KEY_WORKOUT_SCHEDULES = "workout_schedules"
+        private const val KEY_SELECTED_AVATAR_ID = "selected_avatar_id"
+        private const val KEY_LAST_CHECK_IN_DATE = "last_check_in_date"
+        private const val KEY_DAILY_CHECK_INS = "daily_check_ins"
 
         private var instance: UserSettings? = null
 
@@ -198,10 +202,30 @@ class UserSettings internal constructor(internal val settings: Settings) {
     private val _workoutSchedules = MutableStateFlow<List<WorkoutSchedule>>(emptyList())
     val workoutSchedules: StateFlow<List<WorkoutSchedule>> = _workoutSchedules.asStateFlow()
 
+    private val _dailyCheckIns = MutableStateFlow<List<org.awi.fitness.model.DailyCheckIn>>(emptyList())
+    val dailyCheckIns: StateFlow<List<org.awi.fitness.model.DailyCheckIn>> = _dailyCheckIns.asStateFlow()
+
+    var selectedAvatarId: String?
+        get() = settings[KEY_SELECTED_AVATAR_ID]
+        set(value) {
+            if (value == null) {
+                settings.remove(KEY_SELECTED_AVATAR_ID)
+            } else {
+                settings[KEY_SELECTED_AVATAR_ID] = value
+            }
+        }
+
+    var lastCheckInDate: Long
+        get() = settings[KEY_LAST_CHECK_IN_DATE, 0L]
+        set(value) {
+            settings[KEY_LAST_CHECK_IN_DATE] = value
+        }
+
     init {
         loadWeighIns()
         loadMeasurements()
         loadWorkoutSchedules()
+        loadDailyCheckIns()
     }
 
     private fun loadWeighIns() {
@@ -217,6 +241,11 @@ class UserSettings internal constructor(internal val settings: Settings) {
     private fun loadWorkoutSchedules() {
         val schedulesJson = settings[KEY_WORKOUT_SCHEDULES, "[]"]
         _workoutSchedules.value = Json.decodeFromString(schedulesJson)
+    }
+
+    private fun loadDailyCheckIns() {
+        val checkInsJson = settings[KEY_DAILY_CHECK_INS, "[]"]
+        _dailyCheckIns.value = Json.decodeFromString(checkInsJson)
     }
 
     fun addWeighIn(entry: WeighInEntry) {
@@ -275,6 +304,28 @@ class UserSettings internal constructor(internal val settings: Settings) {
         settings[KEY_WORKOUT_SCHEDULES] = Json.encodeToString(currentList)
     }
 
+    fun addDailyCheckIn(checkIn: org.awi.fitness.model.DailyCheckIn) {
+        val currentList = _dailyCheckIns.value.toMutableList()
+        // Remove existing check-in for the same date if any
+        currentList.removeAll { it.date == checkIn.date }
+        currentList.add(checkIn)
+        _dailyCheckIns.value = currentList
+        settings[KEY_DAILY_CHECK_INS] = Json.encodeToString(currentList)
+        lastCheckInDate = checkIn.date
+    }
+
+    fun getTodayCheckIn(): org.awi.fitness.model.DailyCheckIn? {
+        val today = kotlinx.datetime.Clock.System.now()
+            .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
+            .date
+        val todayStart = today.toEpochDays() * 86400000L // Convert to milliseconds
+        return _dailyCheckIns.value.firstOrNull { it.date == todayStart }
+    }
+
+    fun isCheckInCompletedToday(): Boolean {
+        return getTodayCheckIn()?.completed == true
+    }
+
     fun clearUserData() {
         settings.clear()
         authToken = null
@@ -291,5 +342,8 @@ class UserSettings internal constructor(internal val settings: Settings) {
         _weighIns.value = emptyList()
         _measurements.value = emptyList()
         _workoutSchedules.value = emptyList()
+        _dailyCheckIns.value = emptyList()
+        selectedAvatarId = null
+        lastCheckInDate = 0L
     }
 } 

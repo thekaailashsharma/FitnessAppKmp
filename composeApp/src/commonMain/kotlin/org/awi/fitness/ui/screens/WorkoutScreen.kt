@@ -32,7 +32,10 @@ import org.awi.fitness.data.UserSettings
 import org.awi.fitness.utils.fitnessTips
 import org.awi.fitness.utils.topFiveTips
 import org.awi.fitness.viewmodel.LanguageViewModel
+import org.awi.fitness.model.ConversationTrigger
 import org.awi.fitness.ui.components.CitationSection
+import org.awi.fitness.ui.components.WorkoutCompletionBottomSheet
+import org.awi.fitness.ui.screens.avatar.AvatarScreen
 import org.awi.fitness.utils.Citations
 
 class WorkoutScreen : Screen {
@@ -48,6 +51,7 @@ class WorkoutScreen : Screen {
         var showDeleteConfirmation by remember { mutableStateOf<String?>(null) }
         var showListView by remember { mutableStateOf(false) }
         var isDeleting by remember { mutableStateOf(false) }
+        var showWorkoutCompletionSheet by remember { mutableStateOf(false) }
         val languageViewModel = remember { LanguageViewModel(userSettings.settings) }
 
         LaunchedEffect(Unit) {
@@ -238,6 +242,18 @@ class WorkoutScreen : Screen {
                                             onCompleteClick = { exercise, completed ->
                                                 coroutineScope.launch {
                                                     viewModel.setExerciseCompleted(exercise, completed)
+                                                    // Wait a bit for state to update, then check if all exercises completed
+                                                    kotlinx.coroutines.delay(300)
+                                                    val updatedState = viewModel.state.value
+                                                    val updatedPlan = updatedState.workoutPlans.firstOrNull { 
+                                                        it.plan.id == selectedPlan.plan.id 
+                                                    }
+                                                    if (updatedPlan != null && completed && updatedPlan.exercises.isNotEmpty()) {
+                                                        val allCompleted = updatedPlan.exercises.all { it.isCompleted }
+                                                        if (allCompleted) {
+                                                            showWorkoutCompletionSheet = true
+                                                        }
+                                                    }
                                                 }
                                             }
                                         )
@@ -275,6 +291,18 @@ class WorkoutScreen : Screen {
                 },
                 onDismiss = { showGoalsSheet = false },
                 languageViewModel = languageViewModel
+            )
+        }
+
+        if (showWorkoutCompletionSheet) {
+            WorkoutCompletionBottomSheet(
+                onChatWithBuddy = {
+                    showWorkoutCompletionSheet = false
+                    coroutineScope.launch {
+                        navigator.push(AvatarScreen(ConversationTrigger.WORKOUT_COMPLETED))
+                    }
+                },
+                onDismiss = { showWorkoutCompletionSheet = false }
             )
         }
     }

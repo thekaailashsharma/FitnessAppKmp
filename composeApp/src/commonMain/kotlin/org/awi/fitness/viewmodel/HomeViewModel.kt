@@ -26,7 +26,9 @@ data class HomeScreenState(
     val scheduledWorkoutsToday: Int = 0,
     val totalScheduledWorkouts: Int = 0,
     val upcomingWorkout: WorkoutSchedulePreview? = null,
-    val dailyTips: List<DailyTip> = emptyList()
+    val dailyTips: List<DailyTip> = emptyList(),
+    val showInactivityMotivation: Boolean = false,
+    val daysSinceLastWorkout: Int = 0
 )
 
 data class WorkoutSchedulePreview(
@@ -84,10 +86,33 @@ class HomeViewModel {
                     }
                     val totalWorkouts = plans.sumOf { it.exercises.size }
 
+                    // Check for inactivity (last workout completion or check-in)
+                    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                    
+                    // Check last check-in date first (more reliable)
+                    val lastCheckIn = userSettings.lastCheckInDate
+                    val daysSinceLastActivity = if (lastCheckIn > 0) {
+                        val lastCheckInDate = Instant.fromEpochMilliseconds(lastCheckIn)
+                            .toLocalDateTime(TimeZone.currentSystemDefault()).date
+                        (today.toEpochDays() - lastCheckInDate.toEpochDays()).toInt()
+                    } else {
+                        // If no check-in, check if any workouts completed
+                        val hasCompletedWorkouts = completedWorkouts > 0
+                        if (hasCompletedWorkouts) {
+                            0 // Assume recent if workouts completed
+                        } else {
+                            999 // Very high number to trigger motivation for new users
+                        }
+                    }
+
+                    val showInactivityMotivation = daysSinceLastActivity >= 3
+
                     _state.value = _state.value.copy(
                         workoutPlans = plans,
                         completedWorkouts = completedWorkouts,
-                        totalWorkouts = totalWorkouts
+                        totalWorkouts = totalWorkouts,
+                        showInactivityMotivation = showInactivityMotivation,
+                        daysSinceLastWorkout = daysSinceLastActivity
                     )
                 }
 

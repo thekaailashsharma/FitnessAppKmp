@@ -11,7 +11,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -33,13 +35,18 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.awi.fitness.data.StringKey
 import org.awi.fitness.data.UserSettings
+import org.awi.fitness.model.ConversationTrigger
+import org.awi.fitness.ui.components.DailyCheckInBanner
 import org.awi.fitness.ui.screens.WorkoutScreen
 import org.awi.fitness.ui.screens.WorkoutSchedulerScreen
+import org.awi.fitness.ui.screens.avatar.AvatarScreen
 import org.awi.fitness.viewmodel.DailyTip
 import org.awi.fitness.viewmodel.LanguageViewModel
 import org.awi.fitness.viewmodel.TipIcon
 import org.awi.fitness.viewmodel.WorkoutSchedulePreview
 import kotlinx.datetime.Clock
+import org.awi.fitness.ui.components.AvatarOnboardingBottomSheet
+import org.awi.fitness.ui.components.BuddyMotivationCard
 
 class HomeScreen : Screen {
     @OptIn(ExperimentalMaterial3Api::class)
@@ -50,6 +57,18 @@ class HomeScreen : Screen {
         val viewModel = remember { HomeViewModel() }
         val state by viewModel.state.collectAsState()
         val languageViewModel = remember { LanguageViewModel(userSettings.settings) }
+        val coroutineScope = rememberCoroutineScope()
+        
+        var showAvatarOnboarding by remember { mutableStateOf(false) }
+
+        // Check for first-time avatar onboarding
+        LaunchedEffect(Unit) {
+            if (userSettings.selectedAvatarId == null) {
+                // Delay slightly to let screen load
+                kotlinx.coroutines.delay(1000)
+                showAvatarOnboarding = true
+            }
+        }
 
         Scaffold(
             topBar = {
@@ -111,6 +130,35 @@ class HomeScreen : Screen {
                             )
                         }
 
+                        // Daily Check-in Banner
+                        item {
+                            if (!userSettings.isCheckInCompletedToday()) {
+                                DailyCheckInBanner(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            navigator.push(AvatarScreen(ConversationTrigger.DAILY_CHECKIN))
+                                        }
+                                    }
+                                )
+                            }
+                        }
+
+                        // Inactivity Motivation Card
+                        item {
+                            if (state.showInactivityMotivation && state.daysSinceLastWorkout >= 3) {
+                                BuddyMotivationCard(
+                                    title = "Your Fitness Buddy misses you!",
+                                    message = "It's been ${state.daysSinceLastWorkout} days since your last activity. Let's get back on track!",
+                                    actionText = "Chat",
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            navigator.push(AvatarScreen(ConversationTrigger.INACTIVITY))
+                                        }
+                                    }
+                                )
+                            }
+                        }
+
                         // Quick Stats
                         item {
                             QuickStatsSection(
@@ -138,6 +186,16 @@ class HomeScreen : Screen {
                                     description = languageViewModel.getString(StringKey.PLAN_MANAGE_WORKOUT),
                                     icon = TablerIcons.CalendarEvent,
                                     onClick = { navigator.push(WorkoutSchedulerScreen()) }
+                                )
+                                NavigationCard(
+                                    title = "Fitness Buddy",
+                                    description = "Chat with your motivation companion",
+                                    icon = TablerIcons.MessageCircle,
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            navigator.push(AvatarScreen(ConversationTrigger.MANUAL))
+                                        }
+                                    }
                                 )
                             }
                         }
@@ -240,6 +298,17 @@ class HomeScreen : Screen {
                     }
                 }
             }
+        }
+        if (showAvatarOnboarding) {
+            AvatarOnboardingBottomSheet(
+                onSelectAvatar = {
+                    showAvatarOnboarding = false
+                    coroutineScope.launch {
+                        navigator.push(AvatarScreen(ConversationTrigger.MANUAL))
+                    }
+                },
+                onDismiss = { showAvatarOnboarding = false }
+            )
         }
     }
 }
