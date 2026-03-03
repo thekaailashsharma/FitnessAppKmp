@@ -12,7 +12,8 @@ import androidx.compose.ui.unit.dp
 import compose.icons.TablerIcons
 import compose.icons.tablericons.Eye
 import compose.icons.tablericons.EyeOff
-import org.awi.fitness.theme.TextGray
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.viewmodel.LanguageViewModel
 
 @Composable
 fun FitnessTextField(
@@ -26,7 +27,8 @@ fun FitnessTextField(
     isError: Boolean = false,
     errorMessage: String? = null,
     enabled: Boolean = true,
-    isPassword: Boolean = false
+    isPassword: Boolean = false,
+    languageViewModel: LanguageViewModel? = null
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
     val actualVisualTransformation = when {
@@ -61,7 +63,10 @@ fun FitnessTextField(
                     ) {
                         Icon(
                             imageVector = if (passwordVisible) TablerIcons.EyeOff else TablerIcons.Eye,
-                            contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                            contentDescription = if (passwordVisible) 
+                                (languageViewModel?.getString(StringKey.HIDE_PASSWORD) ?: "Hide password")
+                            else 
+                                (languageViewModel?.getString(StringKey.SHOW_PASSWORD) ?: "Show password"),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -80,7 +85,7 @@ fun FitnessTextField(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                 focusedLabelColor = MaterialTheme.colorScheme.primary,
-                unfocusedLabelColor = TextGray,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 cursorColor = MaterialTheme.colorScheme.primary,
                 focusedTextColor = MaterialTheme.colorScheme.onBackground,
                 unfocusedTextColor = MaterialTheme.colorScheme.onBackground

@@ -79,6 +79,8 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import compose.icons.tablericons.Send
 import org.awi.fitness.data.UserSettings
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.viewmodel.LanguageViewModel
 
 class AvatarScreen(
     private val trigger: ConversationTrigger? = null
@@ -92,10 +94,11 @@ class AvatarScreen(
         val snackbarHostState = remember { SnackbarHostState() }
         val coroutineScope = rememberCoroutineScope()
         val listState = rememberLazyListState()
-        val userSettings = UserSettings.getInstance() // Fix: Get userSettings here
+        val userSettings = UserSettings.getInstance()
+        val languageViewModel = remember { LanguageViewModel(userSettings.settings) }
         
         var isAvatarAnimating by remember { mutableStateOf(false) }
-        var userInputValue by remember { mutableStateOf("") } // Fix: Defined here
+        var userInputValue by remember { mutableStateOf("") }
 
         
         // Show error in snackbar if present
@@ -137,7 +140,7 @@ class AvatarScreen(
                 TopAppBar(
                     title = {
                         Text(
-                            text = "Fitness Buddy",
+                            text = languageViewModel.getString(StringKey.FITNESS_BUDDY),
                             style = MaterialTheme.typography.headlineSmall.copy(
                                 fontWeight = FontWeight.Bold
                             )
@@ -147,7 +150,7 @@ class AvatarScreen(
                         IconButton(onClick = { navigator.pop() }) {
                             Icon(
                                 imageVector = TablerIcons.ArrowLeft,
-                                contentDescription = "Back"
+                                contentDescription = languageViewModel.getString(StringKey.BACK)
                             )
                         }
                     },
@@ -159,13 +162,13 @@ class AvatarScreen(
                         }) {
                             Icon(
                                 imageVector = TablerIcons.Settings,
-                                contentDescription = "Avatar Settings"
+                                contentDescription = languageViewModel.getString(StringKey.AVATAR_SETTINGS)
                             )
                         }
                         IconButton(onClick = { viewModel.resetConversation() }) {
                             Icon(
                                 imageVector = TablerIcons.Refresh,
-                                contentDescription = "Reset Conversation"
+                                contentDescription = languageViewModel.getString(StringKey.RESET_CONVERSATION)
                             )
                         }
                     },
@@ -215,7 +218,7 @@ class AvatarScreen(
                             value = userInputValue,
                             onValueChange = { userInputValue = it },
                             modifier = Modifier.weight(1f),
-                            placeholder = { Text("Chat with your buddy...") },
+                            placeholder = { Text(languageViewModel.getString(StringKey.CHAT_WITH_BUDDY_PLACEHOLDER)) },
                             colors = TextFieldDefaults.colors(
                                 focusedContainerColor = Color.Transparent,
                                 unfocusedContainerColor = Color.Transparent,
@@ -243,7 +246,7 @@ class AvatarScreen(
                         ) {
                             Icon(
                                 imageVector = TablerIcons.Send,
-                                contentDescription = "Send",
+                                contentDescription = languageViewModel.getString(StringKey.SEND),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -337,7 +340,7 @@ class AvatarScreen(
                                 .padding(8.dp)
                         ) {
                             Text(
-                                text = "Conversation Topics",
+                                text = languageViewModel.getString(StringKey.CONVERSATION_TOPICS),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(8.dp)
@@ -369,7 +372,7 @@ class AvatarScreen(
                                 .padding(8.dp)
                         ) {
                             Text(
-                                text = "Motivational Quotes",
+                                text = languageViewModel.getString(StringKey.MOTIVATIONAL_QUOTES),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(8.dp)

@@ -18,6 +18,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,12 +28,17 @@ import androidx.compose.ui.unit.dp
 import compose.icons.TablerIcons
 import compose.icons.tablericons.MessageCircle
 import org.awi.fitness.theme.GreenAccent
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.data.UserSettings
+import org.awi.fitness.viewmodel.LanguageViewModel
 
 @Composable
 fun DailyCheckInBanner(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val userSettings = UserSettings.getInstance()
+    val languageViewModel = remember { LanguageViewModel(userSettings.settings) }
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -69,7 +75,7 @@ fun DailyCheckInBanner(
                 )
                 
                 Text(
-                    text = "How are you feeling today? Let's check in!",
+                    text = languageViewModel.getString(StringKey.HOW_ARE_YOU_FEELING_TODAY),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

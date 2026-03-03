@@ -99,6 +99,11 @@ class UserSettings internal constructor(internal val settings: Settings) {
         _language.value = value
     }
 
+    private val _isDarkTheme = MutableStateFlow<Boolean?>(
+        if (settings.hasKey(IS_DARK_THEME)) settings[IS_DARK_THEME, false] else null
+    )
+    val isDarkThemeFlow = _isDarkTheme.asStateFlow()
+
     var authToken: String?
         get() = settings[KEY_AUTH_TOKEN]
         set(value) {
@@ -160,13 +165,14 @@ class UserSettings internal constructor(internal val settings: Settings) {
         }
 
     var isDarkTheme: Boolean?
-        get() = if (settings.hasKey(IS_DARK_THEME)) settings[IS_DARK_THEME, false] else null
+        get() = _isDarkTheme.value
         set(value) {
             if (value == null) {
                 settings.remove(IS_DARK_THEME)
             } else {
                 settings[IS_DARK_THEME] = value
             }
+            _isDarkTheme.value = value
         }
 
     var authProvider: String?
@@ -345,5 +351,7 @@ class UserSettings internal constructor(internal val settings: Settings) {
         _dailyCheckIns.value = emptyList()
         selectedAvatarId = null
         lastCheckInDate = 0L
+        // Reset session flag for banner
+        org.awi.fitness.ui.screens.home.HomeScreen.resetBannerSession()
     }
 } 

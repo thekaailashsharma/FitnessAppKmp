@@ -30,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import org.awi.fitness.ui.components.AvatarImage
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,6 +44,9 @@ import compose.icons.tablericons.MessageCircle
 import compose.icons.tablericons.X
 import org.awi.fitness.model.AvatarMood
 import org.awi.fitness.theme.GreenAccent
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.data.UserSettings
+import org.awi.fitness.viewmodel.LanguageViewModel
 
 /**
  * Floating action button that opens the Buddy feature
@@ -52,6 +56,8 @@ fun BuddyFab(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val userSettings = UserSettings.getInstance()
+    val languageViewModel = remember { LanguageViewModel(userSettings.settings) }
     var expanded by remember { mutableStateOf(false) }
     val rotation by animateFloatAsState(
         targetValue = if (expanded) 45f else 0f,
@@ -112,7 +118,7 @@ fun BuddyFab(
                         Spacer(modifier = Modifier.height(8.dp))
                         
                         Text(
-                            text = "Need some motivation?",
+                            text = languageViewModel.getString(StringKey.NEED_SOME_MOTIVATION),
                             style = MaterialTheme.typography.bodyLarge,
                             textAlign = TextAlign.Center
                         )
@@ -128,7 +134,7 @@ fun BuddyFab(
                             }
                         ) {
                             Text(
-                                text = "Chat with your Buddy",
+                                text = languageViewModel.getString(StringKey.CHAT_WITH_YOUR_BUDDY),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Color.Black,
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -153,7 +159,7 @@ fun BuddyFab(
             ) {
                 Icon(
                     imageVector = if (expanded) TablerIcons.X else TablerIcons.MessageCircle,
-                    contentDescription = if (expanded) "Close" else "Chat with Buddy",
+                    contentDescription = if (expanded) languageViewModel.getString(StringKey.CLOSE) else languageViewModel.getString(StringKey.CHAT_WITH_BUDDY_DESC),
                     modifier = Modifier
                         .size(24.dp)
                         .rotate(rotation)

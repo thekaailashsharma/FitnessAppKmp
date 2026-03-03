@@ -61,10 +61,10 @@ class WorkoutScreen : Screen {
         if (showDeleteConfirmation != null) {
             AlertDialog(
                 onDismissRequest = { showDeleteConfirmation = null },
-                title = { Text("Delete Workout Plan") },
+                title = { Text(languageViewModel.getString(StringKey.DELETE_WORKOUT_PLAN)) },
                 text = { 
                     Column {
-                        Text("Are you sure you want to delete this workout plan? This action cannot be undone.")
+                        Text(languageViewModel.getString(StringKey.ARE_YOU_SURE_DELETE_WORKOUT))
                         if (isDeleting) {
                             Spacer(modifier = Modifier.height(16.dp))
                             LinearProgressIndicator(
@@ -89,7 +89,7 @@ class WorkoutScreen : Screen {
                         ),
                         enabled = !isDeleting
                     ) {
-                        Text("Delete")
+                        Text(languageViewModel.getString(StringKey.DELETE))
                     }
                 },
                 dismissButton = {
@@ -97,7 +97,7 @@ class WorkoutScreen : Screen {
                         onClick = { showDeleteConfirmation = null },
                         enabled = !isDeleting
                     ) {
-                        Text("Cancel")
+                        Text(languageViewModel.getString(StringKey.CANCEL))
                     }
                 }
             )
@@ -116,7 +116,7 @@ class WorkoutScreen : Screen {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Workout Plans",
+                    text = languageViewModel.getString(StringKey.WORKOUT_PLANS),
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.onBackground
                 )
@@ -132,10 +132,10 @@ class WorkoutScreen : Screen {
                     ) {
                         Icon(
                             imageVector = if (showListView) TablerIcons.LayoutGrid else TablerIcons.LayoutList,
-                            contentDescription = if (showListView) "Show Grid" else "Show List"
+                            contentDescription = if (showListView) languageViewModel.getString(StringKey.SHOW_GRID) else languageViewModel.getString(StringKey.SHOW_LIST)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(if (showListView) "Show Grid" else "Show List")
+                        Text(if (showListView) languageViewModel.getString(StringKey.SHOW_GRID) else languageViewModel.getString(StringKey.SHOW_LIST))
                     }
                     
                     IconButton(
@@ -143,7 +143,7 @@ class WorkoutScreen : Screen {
                     ) {
                         Icon(
                             imageVector = TablerIcons.Plus,
-                            contentDescription = "Add New Plan",
+                            contentDescription = languageViewModel.getString(StringKey.ADD_NEW_PLAN),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -174,7 +174,8 @@ class WorkoutScreen : Screen {
                 }
                 uiState.workoutPlans.isEmpty() -> {
                     EmptyWorkoutState(
-                        onSetupClick = { showGoalsSheet = true }
+                        onSetupClick = { showGoalsSheet = true },
+                        languageViewModel = languageViewModel
                     )
                 }
                 else -> {
@@ -195,7 +196,8 @@ class WorkoutScreen : Screen {
                                     },
                                     onDeleteClick = {
                                         showDeleteConfirmation = planWithExercises.plan.id
-                                    }
+                                    },
+                                    languageViewModel = languageViewModel
                                 )
                             }
                         }
@@ -214,7 +216,8 @@ class WorkoutScreen : Screen {
                                     },
                                     onDeleteClick = {
                                         showDeleteConfirmation = planWithExercises.plan.id
-                                    }
+                                    },
+                                    languageViewModel = languageViewModel
                                 )
                             }
                         }
@@ -255,7 +258,8 @@ class WorkoutScreen : Screen {
                                                         }
                                                     }
                                                 }
-                                            }
+                                            },
+                                            languageViewModel = languageViewModel
                                         )
                                     }
 
@@ -263,14 +267,16 @@ class WorkoutScreen : Screen {
                                         ExerciseDetailsCard(
                                             exercises = exercisesForDay.sortedWith(
                                                 compareBy({ it.isCompleted }, { it.orderInDay })
-                                            )
+                                            ),
+                                            languageViewModel = languageViewModel
                                         )
                                     }
 
                                     item {
                                         WorkoutTipsCard(
                                             tips = fitnessTips.topFiveTips(),
-                                            difficulty = selectedPlan.plan.difficulty
+                                            difficulty = selectedPlan.plan.difficulty,
+                                            languageViewModel = languageViewModel
                                         )
                                     }
                                 }
@@ -313,7 +319,8 @@ private fun WorkoutPlanCard(
     plan: WorkoutPlan,
     isSelected: Boolean,
     onClick: () -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
+    languageViewModel: LanguageViewModel
 ) {
     Card(
         modifier = Modifier
@@ -360,7 +367,7 @@ private fun WorkoutPlanCard(
                 ) {
                     Icon(
                         imageVector = TablerIcons.Trash,
-                        contentDescription = "Delete Plan",
+                        contentDescription = languageViewModel.getString(StringKey.DELETE_PLAN),
                         tint = if (isSelected)
                             MaterialTheme.colorScheme.error
                         else
@@ -435,7 +442,8 @@ private fun WorkoutPlanCard(
 
 @Composable
 private fun EmptyWorkoutState(
-    onSetupClick: () -> Unit
+    onSetupClick: () -> Unit,
+    languageViewModel: LanguageViewModel
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -452,13 +460,13 @@ private fun EmptyWorkoutState(
         Spacer(modifier = Modifier.height(16.dp))
         
         Text(
-            text = "No Workout Plan Yet",
+            text = languageViewModel.getString(StringKey.NO_WORKOUT_PLAN_YET),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onBackground
         )
         
         Text(
-            text = "Set up your fitness goals to get a personalized plan",
+            text = languageViewModel.getString(StringKey.SET_UP_FITNESS_GOALS_PLAN),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
         )
@@ -471,14 +479,15 @@ private fun EmptyWorkoutState(
                 containerColor = MaterialTheme.colorScheme.primary
             )
         ) {
-            Text("Set Up My Goals")
+            Text(languageViewModel.getString(StringKey.SET_UP_MY_GOALS))
         }
     }
 }
 
 @Composable
 private fun ExerciseDetailsCard(
-    exercises: List<Exercise>
+    exercises: List<Exercise>,
+    languageViewModel: LanguageViewModel
 ) {
     Card(
         modifier = Modifier
@@ -498,7 +507,7 @@ private fun ExerciseDetailsCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Exercise Details",
+                    text = languageViewModel.getString(StringKey.EXERCISE_DETAILS),
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -553,7 +562,7 @@ private fun ExerciseDetailsCard(
                                 )
                                 if (exercise.isCompleted) {
                                     Text(
-                                        text = "Completed",
+                                        text = languageViewModel.getString(StringKey.COMPLETED),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                                     )
@@ -585,17 +594,17 @@ private fun ExerciseDetailsCard(
                             ) {
                                 MetricItem(
                                     icon = TablerIcons.Repeat,
-                                    label = "Sets",
+                                    label = languageViewModel.getString(StringKey.SETS),
                                     value = exercise.sets.toString()
                                 )
                                 MetricItem(
                                     icon = TablerIcons.RotateClockwise,
-                                    label = "Reps",
+                                    label = languageViewModel.getString(StringKey.REPS),
                                     value = exercise.reps.toString()
                                 )
                                 MetricItem(
                                     icon = TablerIcons.Clock,
-                                    label = "Rest",
+                                    label = languageViewModel.getString(StringKey.REST),
                                     value = "${exercise.restTime}s"
                                 )
                             }
@@ -646,7 +655,8 @@ private fun MetricItem(
 @Composable
 private fun WorkoutTipsCard(
     tips: List<String>,
-    difficulty: WorkoutDifficulty
+    difficulty: WorkoutDifficulty,
+    languageViewModel: LanguageViewModel
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -664,7 +674,7 @@ private fun WorkoutTipsCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "AI-Powered Tips",
+                    text = languageViewModel.getString(StringKey.AI_POWERED_TIPS),
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -713,7 +723,8 @@ private fun EnhancedWorkoutCard(
     workoutPlan: WorkoutPlan,
     exercises: List<Exercise>,
     onExerciseClick: () -> Unit,
-    onCompleteClick: (Exercise, Boolean) -> Unit
+    onCompleteClick: (Exercise, Boolean) -> Unit,
+    languageViewModel: LanguageViewModel
 ) {
     Card(
         modifier = Modifier
@@ -754,7 +765,7 @@ private fun EnhancedWorkoutCard(
                 IconButton(onClick = onExerciseClick) {
                     Icon(
                         imageVector = TablerIcons.PlayerPlay,
-                        contentDescription = "Start Workout",
+                        contentDescription = languageViewModel.getString(StringKey.START_WORKOUT),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(32.dp)
                     )
@@ -770,17 +781,17 @@ private fun EnhancedWorkoutCard(
             ) {
                 WorkoutStat(
                     icon = TablerIcons.Clock,
-                    label = "Duration",
+                    label = languageViewModel.getString(StringKey.DURATION),
                     value = "${workoutPlan.duration} min"
                 )
                 WorkoutStat(
                     icon = TablerIcons.ShieldCheck,
-                    label = "Category",
+                    label = languageViewModel.getString(StringKey.CATEGORY),
                     value = workoutPlan.category.name.lowercase().replaceFirstChar { it.uppercase() }
                 )
                 WorkoutStat(
                     icon = TablerIcons.Walk,
-                    label = "Exercises",
+                    label = languageViewModel.getString(StringKey.EXERCISES),
                     value = exercises.size.toString()
                 )
             }
@@ -789,7 +800,7 @@ private fun EnhancedWorkoutCard(
 
             // Exercise Preview
             Text(
-                text = "Today's Exercises",
+                text = languageViewModel.getString(StringKey.TODAYS_EXERCISES),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -928,7 +939,8 @@ private fun WorkoutPlanListCard(
     plan: WorkoutPlan,
     isSelected: Boolean,
     onClick: () -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
+    languageViewModel: LanguageViewModel
 ) {
     Card(
         modifier = Modifier
@@ -1064,7 +1076,7 @@ private fun WorkoutPlanListCard(
             ) {
                 Icon(
                     imageVector = TablerIcons.Trash,
-                    contentDescription = "Delete Plan",
+                    contentDescription = languageViewModel.getString(StringKey.DELETE_PLAN),
                     tint = if (isSelected)
                         MaterialTheme.colorScheme.error
                     else

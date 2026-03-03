@@ -1,6 +1,5 @@
 package org.awi.fitness.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
@@ -9,7 +8,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 
 @Composable
 fun FitnessAppTheme(
-    useDarkTheme: Boolean = isSystemInDarkTheme(),
+    useDarkTheme: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colors = if (!useDarkTheme) {

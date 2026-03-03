@@ -99,16 +99,11 @@ import org.awi.fitness.data.UserSettings
 import org.awi.fitness.data.WeighInEntry
 import org.awi.fitness.repository.GeminiRepository
 import org.awi.fitness.repository.MeasurementAnalysis
-import org.awi.fitness.theme.BackgroundDark
 import org.awi.fitness.theme.ChipSelectedText
 import org.awi.fitness.theme.ChipUnselectedBackground
 import org.awi.fitness.theme.ChipUnselectedText
-import org.awi.fitness.theme.DarkCard
 import org.awi.fitness.theme.GreenAccent
-import org.awi.fitness.theme.InputFieldBackground
 import org.awi.fitness.theme.InputFieldBorder
-import org.awi.fitness.theme.TextGray
-import org.awi.fitness.theme.TextWhite
 import org.awi.fitness.ui.components.CitationSection
 import org.awi.fitness.utils.Citations
 import org.awi.fitness.viewmodel.CalorieViewModel
@@ -116,7 +111,7 @@ import org.awi.fitness.viewmodel.LanguageViewModel
 import kotlin.math.pow
 
 private val IconSelected = GreenAccent
-private val IconUnselected = TextGray
+private val IconUnselected = Color(0xFF8E8E8E) // Gray for unselected icons
 
 private fun Float.formatToString(digits: Int = 1): String {
     val multiplier = pow(digits).toFloat()
@@ -133,7 +128,11 @@ class CalorieCalculatorScreen() : Screen {
         val userSettings = UserSettings.getInstance()
         val languageViewModel = remember { LanguageViewModel(userSettings.settings) }
         var selectedTab by remember { mutableStateOf(0) }
-        val tabs = listOf("Calories", "Weight", "Measure")
+        val tabs = listOf(
+            languageViewModel.getString(StringKey.CALORIES_TAB),
+            languageViewModel.getString(StringKey.WEIGHT_TAB),
+            languageViewModel.getString(StringKey.MEASURE_TAB)
+        )
         val navigator = LocalNavigator.currentOrThrow
 
         Scaffold(
@@ -149,9 +148,9 @@ class CalorieCalculatorScreen() : Screen {
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = BackgroundDark,
-                        titleContentColor = TextWhite,
-                        navigationIconContentColor = TextWhite
+                        containerColor = MaterialTheme.colorScheme.background,
+                        titleContentColor = MaterialTheme.colorScheme.onBackground,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onBackground
                     )
                 )
             }
@@ -160,7 +159,7 @@ class CalorieCalculatorScreen() : Screen {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(BackgroundDark)
+                        .background(MaterialTheme.colorScheme.background)
                         .verticalScroll(rememberScrollState())
                         .padding(paddingValues)
                         .padding(16.dp)
@@ -169,7 +168,7 @@ class CalorieCalculatorScreen() : Screen {
                 ) {
                     TabRow(
                         selectedTabIndex = selectedTab,
-                        containerColor = DarkCard,
+                        containerColor = MaterialTheme.colorScheme.surface,
                         contentColor = GreenAccent
                     ) {
                         tabs.forEachIndexed { index, title ->
@@ -217,7 +216,7 @@ class CalorieCalculatorScreen() : Screen {
                 Text(
                     languageViewModel.getString(StringKey.WEIGHT_TRACKING),
                     style = MaterialTheme.typography.titleLarge,
-                    color = TextWhite
+                    color = MaterialTheme.colorScheme.onBackground
                 )
 
                 Button(
@@ -245,7 +244,7 @@ class CalorieCalculatorScreen() : Screen {
             if (weighIns.size >= 2) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = DarkCard)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -259,7 +258,7 @@ class CalorieCalculatorScreen() : Screen {
                             Text(
                                 languageViewModel.getString(StringKey.PROGRESS_GRAPH),
                                 style = MaterialTheme.typography.titleMedium,
-                                color = TextWhite
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -276,7 +275,7 @@ class CalorieCalculatorScreen() : Screen {
                                 val diffColor = when {
                                     diff > 0 -> Color.Red.copy(alpha = 0.8f)
                                     diff < 0 -> GreenAccent
-                                    else -> TextWhite
+                                    else -> MaterialTheme.colorScheme.onSurface
                                 }
 
                                 Text(
@@ -292,13 +291,13 @@ class CalorieCalculatorScreen() : Screen {
             } else if (weighIns.size == 1) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = DarkCard)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Text(
                         languageViewModel.getString(StringKey.ADD_ONE_MORE_WEIGHT_ENTRY),
                         modifier = Modifier.padding(16.dp),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextGray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -307,7 +306,7 @@ class CalorieCalculatorScreen() : Screen {
             weighIns.sortedByDescending { it.date }.forEach { entry ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = DarkCard)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Row(
                         modifier = Modifier
@@ -325,14 +324,14 @@ class CalorieCalculatorScreen() : Screen {
                             if (entry.note.isNotEmpty()) {
                                 Text(
                                     entry.note,
-                                    color = TextWhite,
+                                    color = MaterialTheme.colorScheme.onSurface,
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             }
                         }
                         Text(
                             formatDate(entry.date),
-                            color = TextGray,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -356,7 +355,7 @@ class CalorieCalculatorScreen() : Screen {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = DarkCard)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -365,7 +364,7 @@ class CalorieCalculatorScreen() : Screen {
                         Text(
                             languageViewModel.getString(StringKey.ADD_WEIGHT_ENTRY),
                             style = MaterialTheme.typography.titleLarge,
-                            color = TextWhite
+                            color = MaterialTheme.colorScheme.onBackground
                         )
 
                         OutlinedTextField(
@@ -375,10 +374,10 @@ class CalorieCalculatorScreen() : Screen {
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedTextColor = TextWhite,
-                                focusedTextColor = TextWhite,
-                                unfocusedContainerColor = InputFieldBackground,
-                                focusedContainerColor = InputFieldBackground,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                                 unfocusedBorderColor = InputFieldBorder,
                                 focusedBorderColor = InputFieldBorder
                             )
@@ -390,10 +389,10 @@ class CalorieCalculatorScreen() : Screen {
                             label = { Text(languageViewModel.getString(StringKey.WEIGHT_NOTE)) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedTextColor = TextWhite,
-                                focusedTextColor = TextWhite,
-                                unfocusedContainerColor = InputFieldBackground,
-                                focusedContainerColor = InputFieldBackground,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                                 unfocusedBorderColor = InputFieldBorder,
                                 focusedBorderColor = InputFieldBorder
                             )
@@ -405,7 +404,7 @@ class CalorieCalculatorScreen() : Screen {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             TextButton(onClick = { showAddDialog = false }) {
-                                Text(languageViewModel.getString(StringKey.CANCEL), color = TextGray)
+                                Text(languageViewModel.getString(StringKey.CANCEL), color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Button(
                                 onClick = {
@@ -479,7 +478,7 @@ class CalorieCalculatorScreen() : Screen {
                 Text(
                     languageViewModel.getString(StringKey.MEASUREMENTS),
                     style = MaterialTheme.typography.titleLarge,
-                    color = TextWhite
+                    color = MaterialTheme.colorScheme.onBackground
                 )
 
                 Button(
@@ -506,7 +505,7 @@ class CalorieCalculatorScreen() : Screen {
             if (isAnalyzing) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = DarkCard)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(
                         modifier = Modifier
@@ -522,7 +521,7 @@ class CalorieCalculatorScreen() : Screen {
                         )
                         Text(
                             languageViewModel.getString(StringKey.ANALYZING_YOUR_MEASUREMENTS),
-                            color = TextWhite,
+                            color = MaterialTheme.colorScheme.onBackground,
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -533,7 +532,7 @@ class CalorieCalculatorScreen() : Screen {
             analysis?.let { measurementAnalysis ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = DarkCard)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -542,13 +541,13 @@ class CalorieCalculatorScreen() : Screen {
                         Text(
                             languageViewModel.getString(StringKey.ANALYSIS),
                             style = MaterialTheme.typography.titleMedium,
-                            color = TextWhite
+                            color = MaterialTheme.colorScheme.onBackground
                         )
 
                         measurementAnalysis.insights.forEach { insight ->
                             Text(
                                 insight,
-                                color = TextWhite,
+                                color = MaterialTheme.colorScheme.onBackground,
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
@@ -562,7 +561,7 @@ class CalorieCalculatorScreen() : Screen {
                             measurementAnalysis.recommendations.forEach { recommendation ->
                                 Text(
                                     "• $recommendation",
-                                    color = TextWhite,
+                                    color = MaterialTheme.colorScheme.onSurface,
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             }
@@ -575,7 +574,7 @@ class CalorieCalculatorScreen() : Screen {
             measurements.sortedByDescending { it.date }.forEach { entry ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = DarkCard)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(
                         modifier = Modifier
@@ -590,7 +589,7 @@ class CalorieCalculatorScreen() : Screen {
                         ) {
                             Text(
                                 formatDate(entry.date),
-                                color = TextGray,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
@@ -601,7 +600,7 @@ class CalorieCalculatorScreen() : Screen {
                             Column {
                                 Text(
                                     languageViewModel.getString(StringKey.WAIST),
-                                    color = TextGray,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     style = MaterialTheme.typography.bodySmall
                                 )
                                 Text(
@@ -613,7 +612,7 @@ class CalorieCalculatorScreen() : Screen {
                             Column {
                                 Text(
                                     languageViewModel.getString(StringKey.HIPS),
-                                    color = TextGray,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     style = MaterialTheme.typography.bodySmall
                                 )
                                 Text(
@@ -625,7 +624,7 @@ class CalorieCalculatorScreen() : Screen {
                             Column {
                                 Text(
                                     languageViewModel.getString(StringKey.ARMS),
-                                    color = TextGray,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     style = MaterialTheme.typography.bodySmall
                                 )
                                 Text(
@@ -646,7 +645,7 @@ class CalorieCalculatorScreen() : Screen {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = DarkCard)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -655,7 +654,7 @@ class CalorieCalculatorScreen() : Screen {
                         Text(
                             languageViewModel.getString(StringKey.ADD_MEASUREMENTS),
                             style = MaterialTheme.typography.titleLarge,
-                            color = TextWhite
+                            color = MaterialTheme.colorScheme.onBackground
                         )
 
                         OutlinedTextField(
@@ -665,10 +664,10 @@ class CalorieCalculatorScreen() : Screen {
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedTextColor = TextWhite,
-                                focusedTextColor = TextWhite,
-                                unfocusedContainerColor = InputFieldBackground,
-                                focusedContainerColor = InputFieldBackground,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                                 unfocusedBorderColor = InputFieldBorder,
                                 focusedBorderColor = InputFieldBorder
                             )
@@ -681,10 +680,10 @@ class CalorieCalculatorScreen() : Screen {
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedTextColor = TextWhite,
-                                focusedTextColor = TextWhite,
-                                unfocusedContainerColor = InputFieldBackground,
-                                focusedContainerColor = InputFieldBackground,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                                 unfocusedBorderColor = InputFieldBorder,
                                 focusedBorderColor = InputFieldBorder
                             )
@@ -697,10 +696,10 @@ class CalorieCalculatorScreen() : Screen {
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedTextColor = TextWhite,
-                                focusedTextColor = TextWhite,
-                                unfocusedContainerColor = InputFieldBackground,
-                                focusedContainerColor = InputFieldBackground,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                                 unfocusedBorderColor = InputFieldBorder,
                                 focusedBorderColor = InputFieldBorder
                             )
@@ -712,10 +711,10 @@ class CalorieCalculatorScreen() : Screen {
                             label = { Text(languageViewModel.getString(StringKey.WEIGHT_NOTE)) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedTextColor = TextWhite,
-                                focusedTextColor = TextWhite,
-                                unfocusedContainerColor = InputFieldBackground,
-                                focusedContainerColor = InputFieldBackground,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                                 unfocusedBorderColor = InputFieldBorder,
                                 focusedBorderColor = InputFieldBorder
                             )
@@ -727,7 +726,7 @@ class CalorieCalculatorScreen() : Screen {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             TextButton(onClick = { showAddDialog = false }) {
-                                Text(languageViewModel.getString(StringKey.CANCEL), color = TextGray)
+                                Text(languageViewModel.getString(StringKey.CANCEL), color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Button(
                                 onClick = {
@@ -801,7 +800,7 @@ class CalorieCalculatorScreen() : Screen {
                     val weight = minWeight + (weightRange * (i.toFloat() / steps))
                     Text(
                         weight.formatToString(),
-                        color = TextGray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(end = 4.dp)
                     )
@@ -972,7 +971,7 @@ class CalorieCalculatorScreen() : Screen {
             Text(
                 text = languageViewModel.getString(StringKey.CALORIE_CALCULATOR_TITLE),
                 style = MaterialTheme.typography.headlineMedium,
-                color = TextWhite
+                color = MaterialTheme.colorScheme.onBackground
             )
 
             CalorieInputField(
@@ -999,7 +998,7 @@ class CalorieCalculatorScreen() : Screen {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     languageViewModel.getString(StringKey.GENDER),
-                    color = TextWhite,
+                    color = MaterialTheme.colorScheme.onBackground,
                     style = MaterialTheme.typography.titleLarge
                 )
                 Row(
@@ -1025,7 +1024,7 @@ class CalorieCalculatorScreen() : Screen {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     languageViewModel.getString(StringKey.GOAL),
-                    color = TextWhite,
+                    color = MaterialTheme.colorScheme.onBackground,
                     style = MaterialTheme.typography.titleLarge
                 )
                 Row(
@@ -1066,7 +1065,7 @@ class CalorieCalculatorScreen() : Screen {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = label,
-                color = TextGray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall
             )
             OutlinedTextField(
@@ -1077,13 +1076,13 @@ class CalorieCalculatorScreen() : Screen {
                     .clip(RoundedCornerShape(8.dp)),
                 keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
                 colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedTextColor = TextWhite,
-                    focusedTextColor = TextWhite,
-                    unfocusedContainerColor = InputFieldBackground,
-                    focusedContainerColor = InputFieldBackground,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                     unfocusedBorderColor = InputFieldBorder,
                     focusedBorderColor = InputFieldBorder,
-                    cursorColor = TextWhite
+                    cursorColor = MaterialTheme.colorScheme.onSurface
                 ),
                 textStyle = MaterialTheme.typography.bodyLarge
             )
@@ -1186,7 +1185,7 @@ class CalorieCalculatorScreen() : Screen {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = DarkCard
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             ) {
                 Column(
@@ -1253,7 +1252,7 @@ class CalorieCalculatorScreen() : Screen {
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
-                containerColor = DarkCard
+                containerColor = MaterialTheme.colorScheme.surface
             )
         ) {
             Column(
@@ -1263,28 +1262,28 @@ class CalorieCalculatorScreen() : Screen {
                 Text(
                     text = languageViewModel.getString(StringKey.MEDICAL_CITATIONS),
                     style = MaterialTheme.typography.titleMedium,
-                    color = TextWhite
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 // BMR Citation
                 Text(
                     text = languageViewModel.getString(StringKey.BMR_CITATION),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = TextGray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 // Activity Level Citation
                 Text(
                     text = languageViewModel.getString(StringKey.ACTIVITY_LEVEL_CITATION),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = TextGray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 // Calorie Adjustment Citation
                 Text(
                     text = languageViewModel.getString(StringKey.CALORIE_ADJUSTMENT_CITATION),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = TextGray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -1302,7 +1301,7 @@ class CalorieCalculatorScreen() : Screen {
                 .fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
-                containerColor = DarkCard
+                containerColor = MaterialTheme.colorScheme.surface
             ),
             elevation = CardDefaults.cardElevation(
                 defaultElevation = 0.dp
@@ -1327,7 +1326,7 @@ class CalorieCalculatorScreen() : Screen {
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleMedium,
-                        color = TextWhite
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = value,
@@ -1338,7 +1337,7 @@ class CalorieCalculatorScreen() : Screen {
                     Text(
                         text = description,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextGray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -1361,7 +1360,7 @@ class CalorieCalculatorScreen() : Screen {
                 progress = 1f,
                 modifier = Modifier.fillMaxSize(),
                 strokeWidth = 24.dp,
-                color = DarkCard.copy(alpha = 0.3f)
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)
             )
 
             val animatedProgress by animateFloatAsState(
@@ -1424,7 +1423,7 @@ class CalorieCalculatorScreen() : Screen {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 languageViewModel.getString(StringKey.ACTIVITY_LEVEL),
-                color = TextWhite,
+                color = MaterialTheme.colorScheme.onBackground,
                 style = MaterialTheme.typography.titleLarge
             )
             FlowRow(

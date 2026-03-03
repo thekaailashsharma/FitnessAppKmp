@@ -132,6 +132,7 @@ class AuthScreen(
                                 viewModel.updateEmail(it)
                                 errorMessage = null
                             },
+                            languageViewModel = languageViewModel,
                             label = languageViewModel.getString(StringKey.EMAIL),
                             leadingIcon = TablerIcons.Mail,
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
@@ -145,6 +146,7 @@ class AuthScreen(
                             label = languageViewModel.getString(StringKey.PASSWORD),
                             leadingIcon = TablerIcons.Lock,
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                            languageViewModel = languageViewModel,
                             isError = errorMessage?.contains("password", ignoreCase = true) == true,
                             errorMessage = if (errorMessage?.contains("password", ignoreCase = true) == true) errorMessage else null,
                             isPassword = true

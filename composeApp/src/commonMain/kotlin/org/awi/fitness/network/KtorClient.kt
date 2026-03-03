@@ -2,6 +2,7 @@ package org.awi.fitness.network
 
 import io.ktor.client.*
 import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
@@ -19,6 +20,12 @@ object KtorClient {
                 ignoreUnknownKeys = true
                 encodeDefaults = true
             })
+        }
+
+        install(HttpTimeout) {
+            connectTimeoutMillis = 30_000 // 30 seconds
+            socketTimeoutMillis = 120_000 // 120 seconds for AI generation
+            requestTimeoutMillis = 120_000 // 120 seconds
         }
 
         install(Logging) {

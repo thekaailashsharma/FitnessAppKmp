@@ -17,12 +17,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.awi.fitness.model.LeaderboardEntry
 import org.awi.fitness.theme.GreenAccent
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.data.UserSettings
+import org.awi.fitness.viewmodel.LanguageViewModel
 
 @Composable
 fun LeaderboardCard(
     entry: LeaderboardEntry,
     modifier: Modifier = Modifier
 ) {
+    val userSettings = UserSettings.getInstance()
+    val languageViewModel = remember { LanguageViewModel(userSettings.settings) }
     val slideInAnimation by animateFloatAsState(
         targetValue = 1f,
         animationSpec = tween(
@@ -66,7 +71,8 @@ fun LeaderboardCard(
             AvatarSection(
                 avatar = entry.avatar,
                 username = entry.username,
-                isCurrentUser = isCurrentUser
+                isCurrentUser = isCurrentUser,
+                languageViewModel = languageViewModel
             )
             
             Spacer(modifier = Modifier.weight(1f))
@@ -75,7 +81,8 @@ fun LeaderboardCard(
             StatsSection(
                 xp = entry.xp,
                 level = entry.level,
-                streak = entry.streak
+                streak = entry.streak,
+                languageViewModel = languageViewModel
             )
         }
     }
@@ -123,6 +130,7 @@ private fun AvatarSection(
     avatar: String?,
     username: String,
     isCurrentUser: Boolean,
+    languageViewModel: LanguageViewModel,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -165,7 +173,7 @@ private fun AvatarSection(
             
             if (isCurrentUser) {
                 Text(
-                    text = "You",
+                    text = languageViewModel.getString(StringKey.YOU),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -179,6 +187,7 @@ private fun StatsSection(
     xp: Int,
     level: Int,
     streak: Int,
+    languageViewModel: LanguageViewModel,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -207,7 +216,7 @@ private fun StatsSection(
                     .padding(horizontal = 6.dp, vertical = 2.dp)
             ) {
                 Text(
-                    text = "Lv.$level",
+                    text = "${languageViewModel.getString(StringKey.LEVEL_SHORT)}$level",
                     style = MaterialTheme.typography.labelSmall,
                     color = GreenAccent,
                     fontWeight = FontWeight.Bold
@@ -227,7 +236,7 @@ private fun StatsSection(
             )
             Spacer(modifier = Modifier.width(2.dp))
             Text(
-                text = "$streak days",
+                text = "$streak ${languageViewModel.getString(StringKey.DAYS)}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )

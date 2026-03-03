@@ -8,12 +8,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.awi.fitness.data.UserSettings
 import org.awi.fitness.model.AvatarConversationState
+import org.awi.fitness.model.AvatarMessage
 import org.awi.fitness.model.AvatarMood
 import org.awi.fitness.model.AvatarSelection
 import org.awi.fitness.model.ConversationTopic
 import org.awi.fitness.model.ConversationTrigger
 import org.awi.fitness.model.MotivationalQuote
 import org.awi.fitness.repository.AvatarRepository
+import kotlin.random.Random
 
 class AvatarViewModel(
     private val initialTrigger: ConversationTrigger? = null
@@ -93,9 +95,26 @@ class AvatarViewModel(
     fun sendUserMessage(message: String) {
         if (message.isBlank()) return
         
+        // IMMEDIATELY add user message to UI (optimistic update)
+        val userMessage = AvatarMessage(
+            id = Random.nextInt().toString(),
+            content = message,
+            isFromAvatar = false
+        )
+        
+        mutableState.update { currentState ->
+            currentState.copy(
+                conversationState = currentState.conversationState.copy(
+                    messages = currentState.conversationState.messages + userMessage,
+                    suggestedResponses = emptyList(),
+                    isTyping = true // Show typing indicator
+                ),
+                isLoading = true
+            )
+        }
+        
         viewModelScope.launch {
             try {
-                mutableState.update { it.copy(isLoading = true) }
                 avatarRepository.sendUserMessage(message)
                 mutableState.update { currentState ->
                     currentState.copy(
@@ -109,7 +128,8 @@ class AvatarViewModel(
                 mutableState.update { currentState ->
                     currentState.copy(
                         error = "Failed to send message: ${e.message}",
-                        isLoading = false
+                        isLoading = false,
+                        conversationState = currentState.conversationState.copy(isTyping = false)
                     )
                 }
             }

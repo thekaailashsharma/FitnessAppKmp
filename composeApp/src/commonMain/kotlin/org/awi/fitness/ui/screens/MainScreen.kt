@@ -28,6 +28,9 @@ import compose.icons.simpleicons.Ifood
 import compose.icons.tablericons.*
 import org.awi.fitness.navigation.BottomBarTab
 import org.awi.fitness.ui.screens.home.HomeScreen
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.data.UserSettings
+import org.awi.fitness.viewmodel.LanguageViewModel
 
 sealed class BottomNavItem(val route: String) {
     object Home : BottomNavItem("home")
@@ -46,6 +49,8 @@ class MainScreen : Screen {
         var currentRoute by remember { mutableStateOf(BottomNavItem.Home.route) }
         val navigator = LocalNavigator.currentOrThrow
         val coroutineScope = rememberCoroutineScope()
+        val userSettings = UserSettings.getInstance()
+        val languageViewModel = remember { LanguageViewModel(userSettings.settings) }
 
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
@@ -83,7 +88,16 @@ class MainScreen : Screen {
                                     contentDescription = item.route
                                 )
                             },
-                            label = { Text(text = item.route.replaceFirstChar { it.uppercase() }) }
+                            label = { 
+                                Text(text = when (item) {
+                                    BottomNavItem.Home -> languageViewModel.getString(StringKey.HOME)
+                                    BottomNavItem.Workouts -> languageViewModel.getString(StringKey.WORKOUTS)
+                                    BottomNavItem.Community -> languageViewModel.getString(StringKey.COMMUNITY)
+                                    BottomNavItem.Challenges -> languageViewModel.getString(StringKey.CHALLENGES)
+                                    BottomNavItem.Meals -> languageViewModel.getString(StringKey.MEALS)
+                                    else -> item.route.replaceFirstChar { it.uppercase() }
+                                })
+                            }
                         )
                     }
                 }

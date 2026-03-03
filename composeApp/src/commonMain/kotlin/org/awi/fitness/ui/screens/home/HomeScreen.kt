@@ -49,6 +49,15 @@ import org.awi.fitness.ui.components.AvatarOnboardingBottomSheet
 import org.awi.fitness.ui.components.BuddyMotivationCard
 
 class HomeScreen : Screen {
+    companion object {
+        // Session-based flag to track if banner has been shown in current login session
+        private var hasShownBannerThisSession = false
+        
+        fun resetBannerSession() {
+            hasShownBannerThisSession = false
+        }
+    }
+    
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
@@ -61,12 +70,13 @@ class HomeScreen : Screen {
         
         var showAvatarOnboarding by remember { mutableStateOf(false) }
 
-        // Check for first-time avatar onboarding
+        // Check for first-time avatar onboarding - only once per login session
         LaunchedEffect(Unit) {
-            if (userSettings.selectedAvatarId == null) {
+            if (userSettings.selectedAvatarId == null && !hasShownBannerThisSession) {
                 // Delay slightly to let screen load
                 kotlinx.coroutines.delay(1000)
                 showAvatarOnboarding = true
+                hasShownBannerThisSession = true
             }
         }
 
@@ -147,9 +157,9 @@ class HomeScreen : Screen {
                         item {
                             if (state.showInactivityMotivation && state.daysSinceLastWorkout >= 3) {
                                 BuddyMotivationCard(
-                                    title = "Your Fitness Buddy misses you!",
-                                    message = "It's been ${state.daysSinceLastWorkout} days since your last activity. Let's get back on track!",
-                                    actionText = "Chat",
+                                    title = languageViewModel.getString(StringKey.FITNESS_BUDDY_MISSES_YOU),
+                                    message = "${languageViewModel.getString(StringKey.DAYS_SINCE_LAST_ACTIVITY).replace("{days}", state.daysSinceLastWorkout.toString())} ${languageViewModel.getString(StringKey.LETS_GET_BACK_ON_TRACK)}",
+                                    actionText = languageViewModel.getString(StringKey.CHAT),
                                     onClick = {
                                         coroutineScope.launch {
                                             navigator.push(AvatarScreen(ConversationTrigger.INACTIVITY))
@@ -188,8 +198,8 @@ class HomeScreen : Screen {
                                     onClick = { navigator.push(WorkoutSchedulerScreen()) }
                                 )
                                 NavigationCard(
-                                    title = "Fitness Buddy",
-                                    description = "Chat with your motivation companion",
+                                    title = languageViewModel.getString(StringKey.FITNESS_BUDDY),
+                                    description = languageViewModel.getString(StringKey.CHAT_WITH_MOTIVATION_COMPANION),
                                     icon = TablerIcons.MessageCircle,
                                     onClick = {
                                         coroutineScope.launch {
@@ -262,7 +272,7 @@ class HomeScreen : Screen {
                                     ) {
                                         Icon(
                                             imageVector = TablerIcons.Refresh,
-                                            contentDescription = "Refresh Tips",
+                                            contentDescription = languageViewModel.getString(StringKey.REFRESH_TIPS),
                                             tint = MaterialTheme.colorScheme.primary
                                         )
                                     }
@@ -307,7 +317,8 @@ class HomeScreen : Screen {
                         navigator.push(AvatarScreen(ConversationTrigger.MANUAL))
                     }
                 },
-                onDismiss = { showAvatarOnboarding = false }
+                onDismiss = { showAvatarOnboarding = false },
+                languageViewModel = languageViewModel
             )
         }
     }
@@ -589,7 +600,8 @@ private fun WorkoutPreviewCard(
 @Composable
 private fun UpcomingWorkoutCard(
     workout: WorkoutSchedulePreview,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    languageViewModel: LanguageViewModel
 ) {
     Card(
         modifier = Modifier
@@ -608,7 +620,7 @@ private fun UpcomingWorkoutCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Upcoming Workout",
+                    text = languageViewModel.getString(StringKey.UPCOMING_WORKOUT),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )

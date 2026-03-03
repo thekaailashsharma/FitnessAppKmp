@@ -23,6 +23,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -31,6 +32,9 @@ import androidx.compose.ui.unit.dp
 import compose.icons.TablerIcons
 import compose.icons.tablericons.Check
 import org.awi.fitness.theme.GreenAccent
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.data.UserSettings
+import org.awi.fitness.viewmodel.LanguageViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,6 +44,8 @@ fun WorkoutCompletionBottomSheet(
     modifier: Modifier = Modifier
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val userSettings = UserSettings.getInstance()
+    val languageViewModel = remember { LanguageViewModel(userSettings.settings) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -73,7 +79,7 @@ fun WorkoutCompletionBottomSheet(
             }
 
             Text(
-                text = "Great job completing your workout! 🎉",
+                text = languageViewModel.getString(StringKey.GREAT_JOB_COMPLETING_WORKOUT),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -81,7 +87,7 @@ fun WorkoutCompletionBottomSheet(
             )
 
             Text(
-                text = "You've shown amazing dedication. Your Fitness Buddy wants to celebrate with you!",
+                text = languageViewModel.getString(StringKey.AMAZING_DEDICATION),
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
@@ -98,7 +104,7 @@ fun WorkoutCompletionBottomSheet(
                 )
             ) {
                 Text(
-                    text = "Chat with your Fitness Buddy",
+                    text = languageViewModel.getString(StringKey.CHAT_WITH_FITNESS_BUDDY),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium
                 )

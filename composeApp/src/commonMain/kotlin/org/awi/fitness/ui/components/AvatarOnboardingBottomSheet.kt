@@ -33,12 +33,15 @@ import org.awi.fitness.theme.GreenAccent
 import org.jetbrains.compose.resources.painterResource
 import fitnessappkmp.composeapp.generated.resources.Res
 import fitnessappkmp.composeapp.generated.resources.*
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.viewmodel.LanguageViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AvatarOnboardingBottomSheet(
     onSelectAvatar: () -> Unit,
     onDismiss: () -> Unit,
+    languageViewModel: LanguageViewModel,
     modifier: Modifier = Modifier
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -57,7 +60,7 @@ fun AvatarOnboardingBottomSheet(
             // Background Image with Overlay
             Image(
                 painter = painterResource(Res.drawable.background1),
-                contentDescription = "Onboarding Background",
+                contentDescription = languageViewModel.getString(StringKey.ONBOARDING_BACKGROUND),
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
@@ -104,7 +107,7 @@ fun AvatarOnboardingBottomSheet(
                 androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(32.dp))
 
                 Text(
-                    text = "Meet Your Fitness Buddy!",
+                    text = languageViewModel.getString(StringKey.MEET_YOUR_FITNESS_BUDDY),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
@@ -114,7 +117,7 @@ fun AvatarOnboardingBottomSheet(
                 androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "A personal companion to keep you motivated, track your mood, and celebrate your wins.",
+                    text = languageViewModel.getString(StringKey.PERSONAL_COMPANION_DESCRIPTION),
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
@@ -133,7 +136,7 @@ fun AvatarOnboardingBottomSheet(
                     )
                 ) {
                     Text(
-                        text = "Choose Your Buddy",
+                        text = languageViewModel.getString(StringKey.CHOOSE_YOUR_BUDDY),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -142,7 +145,10 @@ fun AvatarOnboardingBottomSheet(
                 androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(16.dp))
                 
                 androidx.compose.material3.TextButton(onClick = onDismiss) {
-                    Text("Maybe Later", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                    Text(
+                        languageViewModel.getString(StringKey.MAYBE_LATER), 
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
                 }
             }
         }

@@ -31,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,6 +51,9 @@ import compose.icons.tablericons.ArrowLeft
 import compose.icons.tablericons.Check
 import org.awi.fitness.ui.components.statusBarPadding
 import org.awi.fitness.viewmodel.AvatarViewModel
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.data.UserSettings
+import org.awi.fitness.viewmodel.LanguageViewModel
 import org.jetbrains.compose.resources.painterResource
 import fitnessappkmp.composeapp.generated.resources.Res
 import fitnessappkmp.composeapp.generated.resources.*
@@ -65,6 +69,8 @@ class AvatarSelectionScreen : Screen {
         val navigator = LocalNavigator.currentOrThrow
         val viewModel = rememberScreenModel { AvatarViewModel() }
         val state by viewModel.state.collectAsState()
+        val userSettings = UserSettings.getInstance()
+        val languageViewModel = remember { LanguageViewModel(userSettings.settings) }
 
         val pagerState = rememberPagerState(
             initialPage = state.availableAvatars.indexOfFirst { it.isSelected }.takeIf { it != -1 } ?: 0,
@@ -84,7 +90,7 @@ class AvatarSelectionScreen : Screen {
                 TopAppBar(
                     title = {
                         Text(
-                            text = "Choose Your Buddy",
+                            text = languageViewModel.getString(StringKey.CHOOSE_YOUR_BUDDY),
                             style = MaterialTheme.typography.headlineSmall.copy(
                                 fontWeight = FontWeight.Bold
                             )
@@ -94,7 +100,7 @@ class AvatarSelectionScreen : Screen {
                         IconButton(onClick = { navigator.pop() }) {
                             Icon(
                                 imageVector = TablerIcons.ArrowLeft,
-                                contentDescription = "Back"
+                                contentDescription = languageViewModel.getString(StringKey.BACK)
                             )
                         }
                     },
@@ -122,7 +128,7 @@ class AvatarSelectionScreen : Screen {
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "Swipe to select",
+                        text = languageViewModel.getString(StringKey.SWIPE_TO_SELECT),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                     )
@@ -226,7 +232,7 @@ class AvatarSelectionScreen : Screen {
                                         ) {
                                             Icon(
                                                 imageVector = TablerIcons.Check,
-                                                contentDescription = "Selected",
+                                                contentDescription = languageViewModel.getString(StringKey.SELECTED),
                                                 tint = MaterialTheme.colorScheme.onPrimary,
                                                 modifier = Modifier.size(20.dp)
                                             )
@@ -249,7 +255,7 @@ class AvatarSelectionScreen : Screen {
 
                 if (state.selectedAvatar != null) {
                     Text(
-                        text = "Great choice!",
+                        text = languageViewModel.getString(StringKey.GREAT_CHOICE),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier

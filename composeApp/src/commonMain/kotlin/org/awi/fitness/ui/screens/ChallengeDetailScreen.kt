@@ -30,6 +30,9 @@ import org.awi.fitness.model.ConversationTrigger
 import org.awi.fitness.theme.GreenAccent
 import org.awi.fitness.ui.components.FitnessButton
 import org.awi.fitness.ui.screens.avatar.AvatarScreen
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.data.UserSettings
+import org.awi.fitness.viewmodel.LanguageViewModel
 
 class ChallengeDetailScreen(
     private val challenge: Challenge
@@ -38,6 +41,8 @@ class ChallengeDetailScreen(
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val coroutineScope = rememberCoroutineScope()
+        val userSettings = UserSettings.getInstance()
+        val languageViewModel = remember { LanguageViewModel(userSettings.settings) }
         var progress by remember { mutableStateOf(challenge.progress) }
         var showCompletionCelebration by remember { mutableStateOf(false) }
         
@@ -84,7 +89,7 @@ class ChallengeDetailScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     
                     Text(
-                        text = "Challenge Details",
+                        text = languageViewModel.getString(StringKey.CHALLENGE_DETAILS),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -146,7 +151,7 @@ class ChallengeDetailScreen(
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("Celebrate with Fitness Buddy")
+                                Text(languageViewModel.getString(StringKey.CELEBRATE_WITH_FITNESS_BUDDY))
                             }
                         }
                     }

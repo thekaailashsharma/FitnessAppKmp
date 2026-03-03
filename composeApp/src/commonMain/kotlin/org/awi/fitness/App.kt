@@ -1,7 +1,6 @@
 package org.awi.fitness
 
 import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -53,9 +52,9 @@ fun App() {
         }
     }
 
-    // Use remember for theme state
-    val isSystemInDarkTheme = isSystemInDarkTheme()
-    var isDarkTheme by remember { mutableStateOf(isSystemInDarkTheme) }
+    // Get theme preference from user settings, default to light mode
+    val isDarkThemeState = userSettings.isDarkThemeFlow.collectAsState()
+    val isDarkTheme = isDarkThemeState.value ?: false
 
     // Effect to handle language changes
     LaunchedEffect(currentLanguage) {

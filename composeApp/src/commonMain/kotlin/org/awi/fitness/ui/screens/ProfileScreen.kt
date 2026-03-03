@@ -18,6 +18,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -44,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
@@ -55,12 +57,15 @@ import compose.icons.tablericons.ArrowLeft
 import compose.icons.tablericons.Flame
 import compose.icons.tablericons.Language
 import compose.icons.tablericons.Logout
-import compose.icons.tablericons.Moon
-import compose.icons.tablericons.Sun
 import compose.icons.tablericons.Target
 import compose.icons.tablericons.Trash
 import compose.icons.tablericons.User
 import compose.icons.tablericons.ChevronRight
+import compose.icons.tablericons.ChevronUp
+import compose.icons.tablericons.ChevronDown
+import compose.icons.tablericons.Check
+import compose.icons.tablericons.Moon
+import compose.icons.tablericons.Sun
 import kotlinx.coroutines.launch
 import org.awi.fitness.data.Language
 import org.awi.fitness.data.StringKey
@@ -378,39 +383,7 @@ private fun SettingsSection(
             )
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Avatar Selection
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        coroutineScope.launch {
-                            navigator.push(AvatarSelectionScreen())
-                        }
-                    },
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // Show current avatar preview
-                    AvatarImage(
-                        mood = org.awi.fitness.model.AvatarMood.HAPPY,
-                        size = 32.dp
-                    )
-                    Text("Change Avatar")
-                }
-                Icon(
-                    imageVector = TablerIcons.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Theme Switch
+            // Theme Toggle
             var isDarkTheme by remember { mutableStateOf(UserSettings.getInstance().isDarkTheme ?: false) }
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -438,8 +411,40 @@ private fun SettingsSection(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+            
+            // Avatar Selection
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        coroutineScope.launch {
+                            navigator.push(AvatarSelectionScreen())
+                        }
+                    },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Show current avatar preview
+                    AvatarImage(
+                        mood = org.awi.fitness.model.AvatarMood.HAPPY,
+                        size = 32.dp
+                    )
+                    Text(languageViewModel.getString(StringKey.CHANGE_AVATAR))
+                }
+                Icon(
+                    imageVector = TablerIcons.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
 
-            // Language Selector
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Language Selector - Simple and Working Dropdown
             var expanded by remember { mutableStateOf(false) }
             val selectedLanguage = Language.entries.find { it.code == currentLanguage } ?: Language.ENGLISH
 
@@ -459,31 +464,51 @@ private fun SettingsSection(
                     )
                     Text(languageViewModel.getString(StringKey.LANGUAGE))
                 }
-                ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = it }
-                ) {
-                    OutlinedTextField(
-                        value = selectedLanguage.displayName,
-                        onValueChange = {},
-                        readOnly = true,
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier.menuAnchor(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                
+                Box {
+                    Row(
+                        modifier = Modifier.clickable { expanded = true },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = selectedLanguage.displayName,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
-                    )
-                    ExposedDropdownMenu(
+                        Icon(
+                            imageVector = if (expanded) TablerIcons.ChevronUp else TablerIcons.ChevronDown,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    
+                    DropdownMenu(
                         expanded = expanded,
                         onDismissRequest = { expanded = false }
                     ) {
                         Language.entries.forEach { language ->
                             DropdownMenuItem(
-                                text = { Text(language.displayName) },
+                                text = { 
+                                    Text(
+                                        text = language.displayName,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                },
                                 onClick = {
                                     languageViewModel.setLanguage(language)
                                     expanded = false
-                                }
+                                },
+                                leadingIcon = if (language == selectedLanguage) {
+                                    {
+                                        Icon(
+                                            imageVector = TablerIcons.Check,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                } else null
                             )
                         }
                     }

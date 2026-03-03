@@ -6,6 +6,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import org.awi.fitness.data.UserSettings
+import org.awi.fitness.data.Language
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.data.Strings
 import org.awi.fitness.model.AvatarConversationState
 import org.awi.fitness.model.AvatarMessage
 import org.awi.fitness.model.AvatarMood
@@ -23,6 +26,11 @@ class AvatarRepository {
     private val geminiRepository = GeminiRepository()
     private val _conversationState = MutableStateFlow(AvatarConversationState())
     val conversationState: StateFlow<AvatarConversationState> = _conversationState.asStateFlow()
+    
+    private fun getString(key: StringKey): String {
+        val currentLanguage = Language.entries.find { it.code == userSettings.language.value } ?: Language.ENGLISH
+        return Strings.get(key, currentLanguage)
+    }
 
     // Mock data for motivational quotes
     val motivationalQuotes = listOf(
@@ -94,15 +102,15 @@ class AvatarRepository {
                 messages = listOf(
                     AvatarMessage(
                         id = "welcome",
-                        content = "Hi there! I'm your fitness buddy. How are you feeling today?",
+                        content = getString(StringKey.HI_THERE_FITNESS_BUDDY),
                         isFromAvatar = true,
                         mood = AvatarMood.HAPPY
                     )
                 ),
                 suggestedResponses = listOf(
-                    "I'm feeling good!",
-                    "I'm not motivated today",
-                    "I need some advice"
+                    getString(StringKey.FEELING_GOOD_REPLY),
+                    getString(StringKey.FEELING_TIRED_REPLY),
+                    getString(StringKey.NO_MOTIVATION_REPLY)
                 )
             )
         }
@@ -116,7 +124,7 @@ class AvatarRepository {
             ConversationTrigger.DAILY_CHECKIN -> {
                 AvatarMessage(
                     id = "checkin_welcome",
-                    content = "Good morning! Let's start your day with a quick check-in. How are you feeling today?",
+                    content = getString(StringKey.GOOD_MORNING_CHECKIN),
                     isFromAvatar = true,
                     mood = AvatarMood.HAPPY
                 )
@@ -124,7 +132,7 @@ class AvatarRepository {
             ConversationTrigger.WORKOUT_COMPLETED -> {
                 AvatarMessage(
                     id = "workout_completed",
-                    content = "Amazing work! 🎉 You just completed your workout! How do you feel?",
+                    content = getString(StringKey.AMAZING_WORK_WORKOUT),
                     isFromAvatar = true,
                     mood = AvatarMood.EXCITED
                 )
@@ -132,7 +140,7 @@ class AvatarRepository {
             ConversationTrigger.CHALLENGE_COMPLETED -> {
                 AvatarMessage(
                     id = "challenge_completed",
-                    content = "Congratulations! You completed a challenge! That's incredible! 🏆",
+                    content = getString(StringKey.CONGRATULATIONS_CHALLENGE),
                     isFromAvatar = true,
                     mood = AvatarMood.EXCITED
                 )
@@ -140,7 +148,7 @@ class AvatarRepository {
             ConversationTrigger.INACTIVITY -> {
                 AvatarMessage(
                     id = "inactivity",
-                    content = "Hey there! I noticed you haven't been active lately. That's okay - we all need breaks. Want to chat about getting back on track?",
+                    content = getString(StringKey.HEY_INACTIVITY),
                     isFromAvatar = true,
                     mood = AvatarMood.CALM
                 )
@@ -148,7 +156,7 @@ class AvatarRepository {
             ConversationTrigger.MISSED_WORKOUT -> {
                 AvatarMessage(
                     id = "missed_workout",
-                    content = "I noticed you missed a scheduled workout. No worries! Sometimes life gets in the way. Want to talk about it?",
+                    content = getString(StringKey.NOTICED_MISSED_WORKOUT),
                     isFromAvatar = true,
                     mood = AvatarMood.CONCERNED
                 )
@@ -156,7 +164,7 @@ class AvatarRepository {
             ConversationTrigger.MANUAL -> {
                 AvatarMessage(
                     id = "manual",
-                    content = "Hi there! I'm your fitness buddy. How are you feeling today?",
+                    content = getString(StringKey.HI_THERE_FITNESS_BUDDY),
                     isFromAvatar = true,
                     mood = AvatarMood.HAPPY
                 )
@@ -165,33 +173,33 @@ class AvatarRepository {
 
         val quickReplies = when (trigger) {
             ConversationTrigger.DAILY_CHECKIN -> listOf(
-                "Feeling good",
-                "Feeling tired",
-                "No motivation",
-                "Feeling great"
+                getString(StringKey.FEELING_GOOD),
+                getString(StringKey.FEELING_TIRED),
+                getString(StringKey.NO_MOTIVATION),
+                getString(StringKey.FEELING_GREAT)
             )
             ConversationTrigger.WORKOUT_COMPLETED -> listOf(
-                "That felt great!",
-                "I'm proud of myself",
-                "What's next?",
-                "I need a rest"
+                getString(StringKey.THAT_FELT_GREAT),
+                getString(StringKey.IM_PROUD_OF_MYSELF),
+                getString(StringKey.WHATS_NEXT),
+                getString(StringKey.I_NEED_A_REST)
             )
             ConversationTrigger.CHALLENGE_COMPLETED -> listOf(
-                "I did it!",
-                "That was tough",
-                "What challenge next?",
-                "I'm exhausted"
+                getString(StringKey.I_DID_IT),
+                getString(StringKey.THAT_WAS_TOUGH),
+                getString(StringKey.WHAT_CHALLENGE_NEXT),
+                getString(StringKey.IM_EXHAUSTED)
             )
             ConversationTrigger.INACTIVITY, ConversationTrigger.MISSED_WORKOUT -> listOf(
-                "I'll get back on track",
-                "I've been busy",
-                "Help me get motivated",
-                "I forgot"
+                getString(StringKey.ILL_GET_BACK_ON_TRACK),
+                getString(StringKey.IVE_BEEN_BUSY),
+                getString(StringKey.HELP_ME_GET_MOTIVATED),
+                getString(StringKey.I_FORGOT)
             )
             ConversationTrigger.MANUAL -> listOf(
-                "I'm feeling good!",
-                "I'm not motivated today",
-                "I need some advice"
+                getString(StringKey.FEELING_GOOD_REPLY),
+                getString(StringKey.FEELING_TIRED_REPLY),
+                getString(StringKey.NO_MOTIVATION_REPLY)
             )
         }
 
@@ -220,12 +228,22 @@ class AvatarRepository {
             handleDailyCheckInResponse(content)
         }
 
-        // Add user message to conversation
+        // Add user message to conversation (only if not already added optimistically)
         _conversationState.update { state ->
-            state.copy(
-                messages = state.messages + userMessage,
-                suggestedResponses = emptyList()
-            )
+            val lastMessage = state.messages.lastOrNull()
+            val alreadyAdded = lastMessage?.isFromAvatar == false && 
+                              lastMessage.content == content
+            
+            if (alreadyAdded) {
+                // Message already added optimistically, just clear suggested responses
+                state.copy(suggestedResponses = emptyList())
+            } else {
+                // Add user message to conversation
+                state.copy(
+                    messages = state.messages + userMessage,
+                    suggestedResponses = emptyList()
+                )
+            }
         }
 
         // Simulate avatar typing
@@ -246,7 +264,7 @@ class AvatarRepository {
                 // Second question: Did you move today?
                 AvatarMessage(
                     id = Random.nextInt().toString(),
-                    content = "Great! Did you move today?",
+                    content = getString(StringKey.GREAT_DID_YOU_MOVE),
                     isFromAvatar = true,
                     mood = AvatarMood.HAPPY
                 )
@@ -316,7 +334,8 @@ class AvatarRepository {
     ): AvatarMessage {
         return try {
             val userContext = buildUserContext()
-            val prompt = buildGeminiPrompt(userMessage, trigger, userContext)
+            val conversationHistory = _conversationState.value.messages.takeLast(3) // Last 3 messages
+            val prompt = buildGeminiPrompt(userMessage, trigger, userContext, conversationHistory)
             
             val response = geminiRepository.generateAvatarResponse(prompt)
             response.getOrElse {
@@ -348,7 +367,8 @@ class AvatarRepository {
     private fun buildGeminiPrompt(
         userMessage: String,
         trigger: ConversationTrigger?,
-        userContext: String
+        userContext: String,
+        conversationHistory: List<AvatarMessage> = emptyList()
     ): String {
         val contextPart = if (userContext.isNotEmpty()) "User context: $userContext. " else ""
         val triggerPart = when (trigger) {
@@ -360,9 +380,30 @@ class AvatarRepository {
             else -> ""
         }
         
+        // Detect meal-related keywords
+        val lowercaseMessage = userMessage.lowercase()
+        val mealKeywords = listOf("meal", "food", "eat", "eating", "nutrition", "diet", "recipe", 
+                                  "breakfast", "lunch", "dinner", "snack", "calorie", "calories", 
+                                  "protein", "carb", "carbs", "fat", "fats", "should i eat", 
+                                  "what should i eat", "what meals", "suggest me", "recommend",
+                                  "meal plan", "meal plans", "what to eat", "eating plan")
+        val isMealRelated = mealKeywords.any { lowercaseMessage.contains(it) }
+        
+        val mealContext = if (isMealRelated) {
+            "The user is asking about meals, nutrition, or food. Provide helpful, generic meal suggestions focusing on balanced nutrition, healthy eating habits, and general meal ideas. Keep it supportive and encouraging. "
+        } else ""
+        
+        // Build conversation history context
+        val historyContext = if (conversationHistory.isNotEmpty()) {
+            val recentMessages = conversationHistory.joinToString("\n") { msg ->
+                "${if (msg.isFromAvatar) "Avatar" else "User"}: ${msg.content}"
+            }
+            "Recent conversation:\n$recentMessages\n"
+        } else ""
+        
         return """
             You are a friendly fitness buddy avatar. Keep responses short (1-2 sentences max), simple, and supportive.
-            $triggerPart$contextPart
+            $triggerPart$contextPart$mealContext$historyContext
             User said: "$userMessage"
             Respond as a supportive friend, not a trainer. No medical advice. Be encouraging and calm.
         """.trimIndent()
@@ -440,28 +481,28 @@ class AvatarRepository {
                 lowercaseMessage.contains("feeling tired") || lowercaseMessage.contains("no motivation")) {
                 // Show movement question replies
                 return listOf(
-                    "Yes, did my workout",
-                    "Not yet",
-                    "Planning to later",
-                    "Rest day today"
+                    getString(StringKey.YES_DID_WORKOUT),
+                    getString(StringKey.NOT_YET),
+                    getString(StringKey.PLANNING_TO_LATER),
+                    getString(StringKey.REST_DAY_TODAY)
                 )
             }
             
             // If movement question answered, show general replies
             if (checkIn?.movementResponse != null) {
                 return listOf(
-                    "That helps!",
-                    "Tell me more",
-                    "Thanks!"
+                    getString(StringKey.THAT_HELPS),
+                    getString(StringKey.TELL_ME_MORE),
+                    getString(StringKey.THANKS)
                 )
             }
             
             // Initial feeling question replies
             return listOf(
-                "Feeling good",
-                "Feeling tired",
-                "No motivation",
-                "Feeling great"
+                getString(StringKey.FEELING_GOOD),
+                getString(StringKey.FEELING_TIRED),
+                getString(StringKey.NO_MOTIVATION),
+                getString(StringKey.FEELING_GREAT)
             )
         }
 
@@ -471,41 +512,41 @@ class AvatarRepository {
             ConversationTrigger.DAILY_CHECKIN -> {
                 if (lowercaseMessage.contains("feeling")) {
                     listOf(
-                        "Yes, did my workout",
-                        "Not yet",
-                        "Planning to later",
-                        "Rest day today"
+                        getString(StringKey.YES_DID_WORKOUT),
+                        getString(StringKey.NOT_YET),
+                        getString(StringKey.PLANNING_TO_LATER),
+                        getString(StringKey.REST_DAY_TODAY)
                     )
                 } else {
                     listOf(
-                        "That helps!",
-                        "Tell me more",
-                        "Thanks!"
+                        getString(StringKey.THAT_HELPS),
+                        getString(StringKey.TELL_ME_MORE),
+                        getString(StringKey.THANKS)
                     )
                 }
             }
             ConversationTrigger.WORKOUT_COMPLETED -> {
                 listOf(
-                    "That felt great!",
-                    "I'm proud of myself",
-                    "What's next?",
-                    "I need a rest"
+                    getString(StringKey.THAT_FELT_GREAT),
+                    getString(StringKey.IM_PROUD_OF_MYSELF),
+                    getString(StringKey.WHATS_NEXT),
+                    getString(StringKey.I_NEED_A_REST)
                 )
             }
             ConversationTrigger.CHALLENGE_COMPLETED -> {
                 listOf(
-                    "I did it!",
-                    "That was tough",
-                    "What challenge next?",
-                    "I'm exhausted"
+                    getString(StringKey.I_DID_IT),
+                    getString(StringKey.THAT_WAS_TOUGH),
+                    getString(StringKey.WHAT_CHALLENGE_NEXT),
+                    getString(StringKey.IM_EXHAUSTED)
                 )
             }
             ConversationTrigger.INACTIVITY, ConversationTrigger.MISSED_WORKOUT -> {
                 listOf(
-                    "I'll get back on track",
-                    "I've been busy",
-                    "Help me get motivated",
-                    "I forgot"
+                    getString(StringKey.ILL_GET_BACK_ON_TRACK),
+                    getString(StringKey.IVE_BEEN_BUSY),
+                    getString(StringKey.HELP_ME_GET_MOTIVATED),
+                    getString(StringKey.I_FORGOT)
                 )
             }
             else -> {
@@ -540,10 +581,10 @@ class AvatarRepository {
                     }
                     else -> {
                         listOf(
-                            "Tell me more",
-                            "That helps!",
-                            "I need motivation",
-                            "Thanks!"
+                            getString(StringKey.TELL_ME_MORE),
+                            getString(StringKey.THAT_HELPS),
+                            getString(StringKey.HELP_ME_GET_MOTIVATED),
+                            getString(StringKey.THANKS)
                         )
                     }
                 }
@@ -563,15 +604,15 @@ class AvatarRepository {
                 messages = listOf(
                     AvatarMessage(
                         id = "welcome",
-                        content = "Hi there! I'm your fitness buddy. How are you feeling today?",
+                        content = getString(StringKey.HI_THERE_FITNESS_BUDDY),
                         isFromAvatar = true,
                         mood = AvatarMood.HAPPY
                     )
                 ),
                 suggestedResponses = listOf(
-                    "I'm feeling good!",
-                    "I'm not motivated today",
-                    "I need some advice"
+                    getString(StringKey.FEELING_GOOD_REPLY),
+                    getString(StringKey.FEELING_TIRED_REPLY),
+                    getString(StringKey.NO_MOTIVATION_REPLY)
                 ),
                 trigger = ConversationTrigger.MANUAL,
                 isDailyCheckIn = false
