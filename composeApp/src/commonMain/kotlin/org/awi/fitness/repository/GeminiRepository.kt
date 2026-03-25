@@ -78,8 +78,8 @@ data class MeasurementAnalysis(
 
 class GeminiRepository : ApiService() {
     companion object {
-        private const val GEMINI_API_KEY = "AIzaSyBYjPI1XnhwFFFZznzw3XLpr1RKcl0tc7U" // Replace with actual key
-        private const val GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+        private const val GEMINI_API_KEY = "AIzaSyDAAoM5EaGDHMXSqkwgALTJ0hbcnIYbuGc" // Replace with actual key
+        private const val GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
     }
 
     suspend fun generateWorkoutPlan(
