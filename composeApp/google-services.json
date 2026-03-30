@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "853802015469",
+    "project_id": "fitness-admin-73a72",
+    "storage_bucket": "fitness-admin-73a72.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:853802015469:android:194534b7601e2342670ae4",
+        "android_client_info": {
+          "package_name": "org.awi.fitness.admin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQClgruJ0Q0l_B4v3J8Sv8gury_8NGK8g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:853802015469:android:de38cf0fef2e209d670ae4",
+        "android_client_info": {
+          "package_name": "org.sivan.fitness"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQClgruJ0Q0l_B4v3J8Sv8gury_8NGK8g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
