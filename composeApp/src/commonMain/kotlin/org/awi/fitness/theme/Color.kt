@@ -1,7 +1,6 @@
 package org.awi.fitness.theme
 
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
@@ -82,7 +81,7 @@ val DarkColorScheme = darkColorScheme(
     outline = TextGray
 )
 
-val LightColorScheme = lightColorScheme(
+val LightColorScheme = darkColorScheme(
     primary = GreenAccent,
     onPrimary = TextWhite,
     primaryContainer = GreenCard,
@@ -102,4 +101,4 @@ val LightColorScheme = lightColorScheme(
     surfaceVariant = DarkGray,
     onSurfaceVariant = TextGray,
     outline = TextGray
-) 
+)

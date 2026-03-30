@@ -76,6 +76,9 @@ class UserSettings internal constructor(internal val settings: Settings) {
         private const val KEY_WEIGH_IN_REMINDER_ENABLED = "weigh_in_reminder_enabled"
         private const val KEY_MEASUREMENT_REMINDER_ENABLED = "measurement_reminder_enabled"
         private const val KEY_WORKOUT_SCHEDULES = "workout_schedules"
+        private const val KEY_MEAL_COMPLETIONS = "meal_completions"
+        private const val KEY_SHOPPING_CHECKS = "shopping_checks"
+        private const val KEY_LAST_ARTICLE_REFRESH = "last_article_refresh"
 
         private var instance: UserSettings? = null
 
@@ -198,10 +201,18 @@ class UserSettings internal constructor(internal val settings: Settings) {
     private val _workoutSchedules = MutableStateFlow<List<WorkoutSchedule>>(emptyList())
     val workoutSchedules: StateFlow<List<WorkoutSchedule>> = _workoutSchedules.asStateFlow()
 
+    private val _mealCompletions = MutableStateFlow<Map<String, Set<String>>>(emptyMap())
+    val mealCompletions: StateFlow<Map<String, Set<String>>> = _mealCompletions.asStateFlow()
+
+    private val _shoppingChecks = MutableStateFlow<Set<String>>(emptySet())
+    val shoppingChecks: StateFlow<Set<String>> = _shoppingChecks.asStateFlow()
+
     init {
         loadWeighIns()
         loadMeasurements()
         loadWorkoutSchedules()
+        loadMealCompletions()
+        loadShoppingChecks()
     }
 
     private fun loadWeighIns() {
@@ -275,6 +286,67 @@ class UserSettings internal constructor(internal val settings: Settings) {
         settings[KEY_WORKOUT_SCHEDULES] = Json.encodeToString(currentList)
     }
 
+    // ── Meal Completions ──
+
+    private fun loadMealCompletions() {
+        val json = settings[KEY_MEAL_COMPLETIONS, "{}"]
+        _mealCompletions.value = try {
+            Json.decodeFromString<Map<String, Set<String>>>(json)
+        } catch (_: Exception) {
+            emptyMap()
+        }
+    }
+
+    fun isMealCompleted(date: String, mealId: String): Boolean {
+        return _mealCompletions.value[date]?.contains(mealId) == true
+    }
+
+    fun toggleMealCompletion(date: String, mealId: String) {
+        val current = _mealCompletions.value.toMutableMap()
+        val daySet = current[date]?.toMutableSet() ?: mutableSetOf()
+        if (daySet.contains(mealId)) daySet.remove(mealId) else daySet.add(mealId)
+        if (daySet.isEmpty()) current.remove(date) else current[date] = daySet
+        _mealCompletions.value = current
+        settings[KEY_MEAL_COMPLETIONS] = Json.encodeToString(current)
+    }
+
+    fun getCompletionsForDate(date: String): Set<String> {
+        return _mealCompletions.value[date] ?: emptySet()
+    }
+
+    // ── Shopping List Checks ──
+
+    private fun loadShoppingChecks() {
+        val json = settings[KEY_SHOPPING_CHECKS, "[]"]
+        _shoppingChecks.value = try {
+            Json.decodeFromString<Set<String>>(json)
+        } catch (_: Exception) {
+            emptySet()
+        }
+    }
+
+    fun toggleShoppingCheck(item: String) {
+        val current = _shoppingChecks.value.toMutableSet()
+        if (current.contains(item)) current.remove(item) else current.add(item)
+        _shoppingChecks.value = current
+        settings[KEY_SHOPPING_CHECKS] = Json.encodeToString(current)
+    }
+
+    fun isShoppingItemChecked(item: String): Boolean {
+        return _shoppingChecks.value.contains(item)
+    }
+
+    fun clearShoppingChecks() {
+        _shoppingChecks.value = emptySet()
+        settings[KEY_SHOPPING_CHECKS] = "[]"
+    }
+
+    var lastArticleRefresh: Long
+        get() = settings[KEY_LAST_ARTICLE_REFRESH, 0L]
+        set(value) {
+            settings[KEY_LAST_ARTICLE_REFRESH] = value
+        }
+
     fun clearUserData() {
         settings.clear()
         authToken = null
@@ -291,5 +363,7 @@ class UserSettings internal constructor(internal val settings: Settings) {
         _weighIns.value = emptyList()
         _measurements.value = emptyList()
         _workoutSchedules.value = emptyList()
+        _mealCompletions.value = emptyMap()
+        _shoppingChecks.value = emptySet()
     }
 } 

@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinxSerialization)
+    id("com.google.gms.google-services")
 }
 
 kotlin {
@@ -33,6 +34,7 @@ kotlin {
         commonMain.dependencies {
             implementation(compose.runtime)
             implementation(compose.foundation)
+            implementation(compose.material)
             implementation(compose.material3)
             implementation(compose.ui)
             @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
@@ -74,6 +76,12 @@ kotlin {
 
             // Settings
             implementation(libs.multiplatform.settings)
+
+            // RSS Parser
+            implementation("com.prof18.rssparser:rssparser:6.0.6")
+
+            // WebView — commented out: requires CMP 1.8.0 / Kotlin 2.1.20, causes IrLinkageError on iOS
+            // implementation("io.github.kevinnzou:compose-webview-multiplatform:2.0.3")
         }
 
         iosMain.dependencies {
@@ -99,6 +107,9 @@ kotlin {
             implementation("androidx.media3:media3-exoplayer-dash:$media3Version")
             implementation("androidx.media3:media3-ui:$media3Version")
             implementation("androidx.media3:media3-common:$media3Version")
+
+            implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+            implementation("com.google.firebase:firebase-messaging")
         }
     }
 }

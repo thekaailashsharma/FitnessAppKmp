@@ -45,7 +45,9 @@ data class WorkoutPlanFields(
     @SerialName("category")
     val category: StringValue? = null,
     @SerialName("imageUrl")
-    val imageUrl: StringValue? = null
+    val imageUrl: StringValue? = null,
+    @SerialName("clientEmail")
+    val clientEmail: StringValue? = null
 )
 
 @Serializable
@@ -110,7 +112,24 @@ data class ClientFields(
     val goal: StringValue? = null,
     val notes: StringValue? = null,
     val password: StringValue? = null,
-    val endDate: StringValue? = null
+    val endDate: StringValue? = null,
+    val fcmToken: StringValue? = null,
+    val timezone: StringValue? = null,
+    val lastActiveAt: StringValue? = null,
+    val language: StringValue? = null
+)
+
+@Serializable
+data class NotificationFieldsRequest(
+    val fields: NotificationFields
+)
+
+@Serializable
+data class NotificationFields(
+    val fcmToken: StringValue? = null,
+    val timezone: StringValue? = null,
+    val lastActiveAt: StringValue? = null,
+    val language: StringValue? = null
 )
 @Serializable
 data class ArrayValueWrapper(
@@ -151,10 +170,11 @@ fun WorkoutPlanFields.toDomainModel(): WorkoutPlan {
         id = id?.value ?: "",
         name = name?.value ?: "",
         description = description?.value ?: "",
-        difficulty = WorkoutDifficulty.valueOf(difficulty?.value ?: "BEGINNER"),
+        difficulty = try { WorkoutDifficulty.valueOf(difficulty?.value ?: "BEGINNER") } catch (_: Exception) { WorkoutDifficulty.BEGINNER },
         duration = duration?.value?.toIntOrNull() ?: 45,
-        category = WorkoutCategory.valueOf(category?.value ?: "STRENGTH"),
-        imageUrl = imageUrl?.value
+        category = try { WorkoutCategory.valueOf(category?.value ?: "STRENGTH") } catch (_: Exception) { WorkoutCategory.STRENGTH },
+        imageUrl = imageUrl?.value,
+        clientEmail = clientEmail?.value ?: ""
     )
 }
 

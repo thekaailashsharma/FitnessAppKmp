@@ -40,7 +40,8 @@ fun WorkoutPlan.toFirestoreRequest(): WorkoutPlanFirestoreRequest {
             difficulty = StringValue(difficulty.name),
             duration = IntegerValue(duration.toString()),
             category = StringValue(category.name),
-            imageUrl = StringValue(imageUrl ?: "")
+            imageUrl = StringValue(imageUrl ?: ""),
+            clientEmail = StringValue(clientEmail)
         )
     )
 }
@@ -111,10 +112,11 @@ fun FirestoreDocument<WorkoutPlanFields>.toWorkoutPlan(): WorkoutPlan {
         id = documentId,
         name = fields?.name?.value ?: "",
         description = fields?.description?.value ?: "",
-        difficulty = fields?.difficulty?.value?.let { WorkoutDifficulty.valueOf(it) } ?: WorkoutDifficulty.BEGINNER,
+        difficulty = fields?.difficulty?.value?.let { try { WorkoutDifficulty.valueOf(it) } catch (_: Exception) { WorkoutDifficulty.BEGINNER } } ?: WorkoutDifficulty.BEGINNER,
         duration = fields?.duration?.value?.toIntOrNull() ?: 12,
-        category = fields?.category?.value?.let { WorkoutCategory.valueOf(it) } ?: WorkoutCategory.STRENGTH,
-        imageUrl = fields?.imageUrl?.value
+        category = fields?.category?.value?.let { try { WorkoutCategory.valueOf(it) } catch (_: Exception) { WorkoutCategory.STRENGTH } } ?: WorkoutCategory.STRENGTH,
+        imageUrl = fields?.imageUrl?.value,
+        clientEmail = fields?.clientEmail?.value ?: ""
     )
 }
 

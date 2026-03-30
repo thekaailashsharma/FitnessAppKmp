@@ -21,10 +21,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.SlideTransition
+import kotlinx.coroutines.launch
 import org.awi.fitness.data.Language
 import org.awi.fitness.data.UserSettings
 import org.awi.fitness.data.createSettings
 import org.awi.fitness.repository.AuthRepository
+import org.awi.fitness.repository.ClientRepository
 import org.awi.fitness.theme.FitnessAppTheme
 import org.awi.fitness.ui.StatusBarPadding
 import org.awi.fitness.ui.components.FitnessSnackbar
@@ -66,6 +68,26 @@ fun App() {
 
     // Snackbar setup
     val scope = rememberCoroutineScope()
+
+    // Sync FCM token, timezone, lastActiveAt to Firestore
+    LaunchedEffect(Unit) {
+        if (userSettings.isLoggedIn) {
+            try {
+                val email = userSettings.userEmail ?: return@LaunchedEffect
+                val repo = ClientRepository()
+                val client = repo.getClientByEmail(email).getOrNull() ?: return@LaunchedEffect
+                val fcmToken = getFcmToken()
+                val timezone = getDeviceTimezone()
+                val lang = currentLanguage.value ?: "en"
+                repo.updateNotificationFields(
+                    clientId = client.id,
+                    fcmToken = fcmToken,
+                    timezone = timezone,
+                    language = lang
+                )
+            } catch (_: Exception) { }
+        }
+    }
     val snackbarManager = rememberSnackbarManager(scope)
     val snackbarHostState = remember { SnackbarHostState() }
 

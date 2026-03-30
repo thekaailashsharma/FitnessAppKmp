@@ -16,7 +16,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
@@ -31,12 +30,17 @@ import kotlin.math.roundToInt
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.todayIn
 import org.awi.fitness.data.StringKey
 import org.awi.fitness.data.UserSettings
-import org.awi.fitness.ui.screens.WorkoutScreen
+import org.awi.fitness.model.Meal
+import org.awi.fitness.model.MealSlot
 import org.awi.fitness.ui.screens.WorkoutSchedulerScreen
 import org.awi.fitness.viewmodel.DailyTip
 import org.awi.fitness.viewmodel.LanguageViewModel
+import org.awi.fitness.viewmodel.LocalHomeViewModel
+import org.awi.fitness.viewmodel.LocalLanguageViewModel
+import org.awi.fitness.viewmodel.LocalMealPlanViewModel
 import org.awi.fitness.viewmodel.TipIcon
 import org.awi.fitness.viewmodel.WorkoutSchedulePreview
 import kotlinx.datetime.Clock
@@ -46,10 +50,33 @@ class HomeScreen : Screen {
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
-        val userSettings = UserSettings.getInstance()
-        val viewModel = remember { HomeViewModel() }
+        val viewModel = LocalHomeViewModel.current
         val state by viewModel.state.collectAsState()
-        val languageViewModel = remember { LanguageViewModel(userSettings.settings) }
+        val languageViewModel = LocalLanguageViewModel.current
+        val mealPlanViewModel = LocalMealPlanViewModel.current
+        val mealState by mealPlanViewModel.state.collectAsState()
+        val userSettings = UserSettings.getInstance()
+        val mealCompletions by userSettings.mealCompletions.collectAsState()
+
+        val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
+        val todayDow = remember { today.dayOfWeek.ordinal + 1 }
+        val todayStr = remember { today.toString() }
+
+        val todayMeals = remember(mealState.activePlan, todayDow) {
+            mealState.activePlan?.meals
+                ?.filter { it.dayOfWeek == todayDow }
+                ?.sortedBy { m -> when (m.mealSlot) { MealSlot.BREAKFAST -> 0; MealSlot.LUNCH -> 1; MealSlot.DINNER -> 2; MealSlot.SNACK -> 3 } }
+                ?: emptyList()
+        }
+        val todayDone = mealCompletions[todayStr] ?: emptySet()
+        val mealsEaten = todayMeals.count { todayDone.contains(it.id) }
+        val caloriesConsumed = todayMeals.filter { todayDone.contains(it.id) }.sumOf { it.calories }
+        val caloriesTarget = mealState.activePlan?.targetCalories ?: 0
+        val hasMealPlan = mealState.activePlan != null
+
+        LaunchedEffect(Unit) {
+            viewModel.loadIfNeeded()
+        }
 
         Scaffold(
             topBar = {
@@ -103,7 +130,6 @@ class HomeScreen : Screen {
                             .padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // Welcome Section
                         item {
                             WelcomeSection(
                                 userName = state.userProfile?.email ?: languageViewModel.getString(StringKey.FITNESS_ENTHUSIAST),
@@ -111,18 +137,16 @@ class HomeScreen : Screen {
                             )
                         }
 
-                        // Quick Stats
                         item {
                             QuickStatsSection(
-                                completedWorkouts = state.completedWorkouts,
-                                totalWorkouts = state.totalWorkouts,
-                                caloriesGoal = state.caloriesGoal,
                                 scheduledToday = state.scheduledWorkoutsToday,
+                                caloriesGoal = state.caloriesGoal,
+                                mealsEaten = mealsEaten,
+                                totalMeals = todayMeals.size,
                                 languageViewModel = languageViewModel
                             )
                         }
 
-                        // Navigation Cards
                         item {
                             Column(
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -142,50 +166,46 @@ class HomeScreen : Screen {
                             }
                         }
 
-                        // Fitness Stats
+                        // Fitness Stats or CTA
                         item {
-                            FitnessStatsSection(
-                                bmr = state.bmr,
-                                tdee = state.tdee,
-                                languageViewModel = languageViewModel
-                            )
+                            if (state.bmr > 0f || state.tdee > 0f) {
+                                FitnessStatsSection(
+                                    bmr = state.bmr,
+                                    tdee = state.tdee,
+                                    languageViewModel = languageViewModel
+                                )
+                            } else {
+                                CalculateNeedsCta(
+                                    languageViewModel = languageViewModel,
+                                    onClick = { navigator.push(CalorieCalculatorScreen()) }
+                                )
+                            }
                         }
 
-                        // Recent Workouts Preview
-                        if (state.workoutPlans.isNotEmpty()) {
+                        if (hasMealPlan && todayMeals.isNotEmpty()) {
                             item {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = languageViewModel.getString(StringKey.RECENT_WORKOUTS),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(top = 8.dp)
-                                    )
-                                    TextButton(
-                                        onClick = { navigator.push(WorkoutScreen()) }
-                                    ) {
-                                        Text(languageViewModel.getString(StringKey.VIEW_ALL))
-                                    }
-                                }
-                            }
-
-                            items(minOf(3, state.workoutPlans.size)) { index ->
-                                val plan = state.workoutPlans[index]
-                                WorkoutPreviewCard(
-                                    name = plan.plan.name,
-                                    description = plan.plan.description,
-                                    completedExercises = plan.exercises.count { it.isCompleted },
-                                    totalExercises = plan.exercises.size,
+                                TodaysMealsCard(
+                                    meals = todayMeals,
+                                    eaten = mealsEaten,
+                                    caloriesConsumed = caloriesConsumed,
+                                    caloriesTarget = caloriesTarget,
                                     languageViewModel = languageViewModel
                                 )
                             }
                         }
 
-                        // Daily Tips Section
+                        // Upcoming workout
+                        if (state.upcomingWorkout != null) {
+                            item {
+                                UpcomingWorkoutCard(
+                                    workout = state.upcomingWorkout!!,
+                                    onClick = { navigator.push(WorkoutSchedulerScreen()) },
+                                    languageViewModel = languageViewModel
+                                )
+                            }
+                        }
+
+                        // Daily Tips
                         if (state.dailyTips.isNotEmpty()) {
                             item {
                                 Row(
@@ -197,14 +217,14 @@ class HomeScreen : Screen {
                                         text = languageViewModel.getString(StringKey.DAILY_WELLNESS_TIPS),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                                        modifier = Modifier.padding(top = 8.dp)
                                     )
                                     IconButton(
                                         onClick = { viewModel.refresh() }
                                     ) {
                                         Icon(
                                             imageVector = TablerIcons.Refresh,
-                                            contentDescription = "Refresh Tips",
+                                            contentDescription = languageViewModel.getString(StringKey.REFRESH_TIPS),
                                             tint = MaterialTheme.colorScheme.primary
                                         )
                                     }
@@ -217,23 +237,12 @@ class HomeScreen : Screen {
                                     contentPadding = PaddingValues(horizontal = 4.dp)
                                 ) {
                                     items(state.dailyTips) { tip ->
-                                        TipCard(
-                                            tip = tip,
-                                            onClick = {
-                                                // Navigate to relevant section based on tip type
-                                                when (tip.icon) {
-                                                    TipIcon.FOOD -> navigator.push(CalorieCalculatorScreen())
-                                                    TipIcon.EXERCISE -> navigator.push(WorkoutScreen())
-                                                    else -> {} // Other tips don't have specific screens yet
-                                                }
-                                            }
-                                        )
+                                        TipCard(tip = tip)
                                     }
                                 }
                             }
                         }
 
-                        // Bottom Spacing
                         item {
                             Spacer(modifier = Modifier.height(16.dp))
                         }
@@ -265,10 +274,10 @@ private fun WelcomeSection(
 
 @Composable
 private fun QuickStatsSection(
-    completedWorkouts: Int,
-    totalWorkouts: Int,
-    caloriesGoal: Int,
     scheduledToday: Int,
+    caloriesGoal: Int,
+    mealsEaten: Int,
+    totalMeals: Int,
     languageViewModel: LanguageViewModel
 ) {
     Row(
@@ -276,9 +285,9 @@ private fun QuickStatsSection(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         StatCard(
-            value = "$completedWorkouts/$totalWorkouts",
-            label = languageViewModel.getString(StringKey.WORKOUTS_COMPLETED),
-            icon = TablerIcons.Walk,
+            value = if (totalMeals > 0) "$mealsEaten/$totalMeals" else "—",
+            label = languageViewModel.getString(StringKey.MEALS_PROGRESS),
+            icon = TablerIcons.Fold,
             modifier = Modifier.weight(1f)
         )
         StatCard(
@@ -288,7 +297,7 @@ private fun QuickStatsSection(
             modifier = Modifier.weight(1f)
         )
         StatCard(
-            value = "$caloriesGoal",
+            value = if (caloriesGoal > 0) "$caloriesGoal" else "—",
             label = languageViewModel.getString(StringKey.CALORIE_GOAL),
             icon = TablerIcons.Flame,
             modifier = Modifier.weight(1f)
@@ -445,72 +454,170 @@ private fun FitnessStatsSection(
 }
 
 @Composable
-private fun WorkoutPreviewCard(
-    name: String,
-    description: String,
-    completedExercises: Int,
-    totalExercises: Int,
+private fun CalculateNeedsCta(
     languageViewModel: LanguageViewModel,
+    onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
-            .fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                modifier = Modifier.size(48.dp)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = TablerIcons.Calculator,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = languageViewModel.getString(StringKey.CALCULATE_YOUR_NEEDS),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = languageViewModel.getString(StringKey.CALCULATE_YOUR_NEEDS_DESC),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
+            Icon(
+                imageVector = TablerIcons.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun TodaysMealsCard(
+    meals: List<Meal>,
+    eaten: Int,
+    caloriesConsumed: Int,
+    caloriesTarget: Int,
+    languageViewModel: LanguageViewModel
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+            modifier = Modifier.padding(16.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = languageViewModel.getString(StringKey.TODAYS_MEALS),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                ) {
                     Text(
-                        text = name,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
+                        text = "$eaten/${meals.size} ${languageViewModel.getString(StringKey.MEALS_EATEN)}",
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            LinearProgressIndicator(
-                progress = if (totalExercises > 0) completedExercises.toFloat() / totalExercises else 0f,
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            if (caloriesTarget > 0) {
+                Spacer(modifier = Modifier.height(12.dp))
+                val progress = (caloriesConsumed.toFloat() / caloriesTarget).coerceIn(0f, 1f)
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp)),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f),
+                )
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "${completedExercises}/${totalExercises} ${languageViewModel.getString(StringKey.EXERCISES)}",
+                    text = "$caloriesConsumed / $caloriesTarget ${languageViewModel.getString(StringKey.KCAL)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            meals.take(4).forEach { meal ->
+                val slotColor = when (meal.mealSlot) {
+                    MealSlot.BREAKFAST -> Color(0xFFFF9800)
+                    MealSlot.LUNCH -> Color(0xFF4CAF50)
+                    MealSlot.DINNER -> Color(0xFF2196F3)
+                    MealSlot.SNACK -> Color(0xFF9C27B0)
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(slotColor)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = meal.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = "${meal.calories} ${languageViewModel.getString(StringKey.KCAL)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                }
+            }
+            if (meals.size > 4) {
                 Text(
-                    text = "${(completedExercises.toFloat() / totalExercises * 100).toInt()}% ${languageViewModel.getString(StringKey.COMPLETED)}",
+                    text = "+${meals.size - 4} ${languageViewModel.getString(StringKey.SHOW_MORE).lowercase()}",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 4.dp)
                 )
             }
         }
@@ -520,7 +627,8 @@ private fun WorkoutPreviewCard(
 @Composable
 private fun UpcomingWorkoutCard(
     workout: WorkoutSchedulePreview,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    languageViewModel: LanguageViewModel,
 ) {
     Card(
         modifier = Modifier
@@ -539,7 +647,7 @@ private fun UpcomingWorkoutCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Upcoming Workout",
+                    text = languageViewModel.getString(StringKey.UPCOMING_WORKOUT),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -593,13 +701,10 @@ private fun UpcomingWorkoutCard(
 
 @Composable
 private fun TipCard(
-    tip: DailyTip,
-    onClick: () -> Unit
+    tip: DailyTip
 ) {
     Card(
-        modifier = Modifier
-            .width(200.dp)
-            .clickable(onClick = onClick),
+        modifier = Modifier.width(200.dp),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = Color(tip.color).copy(alpha = 0.1f)
@@ -636,4 +741,4 @@ private fun formatTime(timestamp: Long): String {
     val dateTime = Instant.fromEpochMilliseconds(timestamp)
         .toLocalDateTime(TimeZone.currentSystemDefault())
     return "${dateTime.hour.toString().padStart(2, '0')}:${dateTime.minute.toString().padStart(2, '0')}"
-} 
+}

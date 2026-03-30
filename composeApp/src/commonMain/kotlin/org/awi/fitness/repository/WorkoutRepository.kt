@@ -12,18 +12,22 @@ class WorkoutRepository : ApiService() {
     }
 
     suspend fun getAllWorkoutPlans(): Result<List<WorkoutPlanWithExercises>> {
+        return getWorkoutPlansForUser(null)
+    }
+
+    suspend fun getWorkoutPlansForUser(email: String?): Result<List<WorkoutPlanWithExercises>> {
         return try {
             val token = userSettings.authToken ?: return Result.failure(Exception("Not authenticated"))
             val url = "https://firestore.googleapis.com/v1/projects/$PROJECT_ID/databases/(default)/documents/workout_plans"
             
             val (plansResponse, plansStatus) = get<FirestoreListResponse<WorkoutPlanFields>>(url, token)
-            println("Plans response: $plansResponse")
 
             if (!plansStatus.isSuccess()) {
                 return Result.failure(Exception("Failed to fetch workout plans"))
             }
 
-            val plans = plansResponse.documents?.map { it.toWorkoutPlan() } ?: emptyList()
+            val allPlans = plansResponse.documents?.map { it.toWorkoutPlan() } ?: emptyList()
+            val plans = if (email != null) allPlans.filter { it.clientEmail == email } else allPlans
             val plansWithExercises = mutableListOf<WorkoutPlanWithExercises>()
 
             // For each plan, fetch its exercises

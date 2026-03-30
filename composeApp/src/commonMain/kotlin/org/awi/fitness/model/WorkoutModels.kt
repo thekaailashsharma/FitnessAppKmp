@@ -11,7 +11,8 @@ data class WorkoutPlan(
     val difficulty: WorkoutDifficulty = WorkoutDifficulty.BEGINNER,
     val duration: Int = 12, // in weeks
     val category: WorkoutCategory = WorkoutCategory.STRENGTH,
-    val imageUrl: String? = null
+    val imageUrl: String? = null,
+    val clientEmail: String = ""
 )
 
 @Serializable
