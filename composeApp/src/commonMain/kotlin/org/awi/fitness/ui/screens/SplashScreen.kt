@@ -20,6 +20,7 @@ import compose.icons.TablerIcons
 import compose.icons.tablericons.Activity
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.awi.fitness.DeepLinkState
 import org.awi.fitness.data.StringKey
 import org.awi.fitness.data.UserSettings
 import org.awi.fitness.repository.AuthRepository
@@ -84,19 +85,16 @@ class SplashScreen(
                                 }
                             },
                             onFailure = {
-                                authViewModel.logout()
-                                snackbarManager.showMessage("Failed to verify account status")
-                                navigator.replace(AuthScreen(authViewModel, languageViewModel))
+                                navigator.replace(MainScreen())
                             }
                         )
                     } catch (e: Exception) {
-                        authViewModel.logout()
-                        snackbarManager.showMessage("Failed to verify account status")
-                        navigator.replace(AuthScreen(authViewModel, languageViewModel))
+                        navigator.replace(MainScreen())
                     }
                 }
             } else {
-                navigator.replace(AuthScreen(authViewModel, languageViewModel))
+                val deepLinkEmail = DeepLinkState.consumeEmail()
+                navigator.replace(AuthScreen(authViewModel, languageViewModel, prefillEmail = deepLinkEmail))
             }
         }
 

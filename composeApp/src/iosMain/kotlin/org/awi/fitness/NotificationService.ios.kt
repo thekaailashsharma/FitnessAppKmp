@@ -11,3 +11,9 @@ actual fun getFcmToken(): String? {
 actual fun getDeviceTimezone(): String {
     return NSTimeZone.defaultTimeZone.name
 }
+
+actual fun getDeviceLanguageCode(): String {
+    val langs = platform.Foundation.NSLocale.preferredLanguages
+    val first = langs.firstOrNull() as? String ?: "en"
+    return first.substringBefore("-").substringBefore("_")
+}

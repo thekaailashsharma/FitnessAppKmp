@@ -4,6 +4,7 @@ import cafe.adriel.voyager.core.model.StateScreenModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.awi.fitness.data.UserSettings
+import org.awi.fitness.model.FirebaseErrorType
 import org.awi.fitness.repository.AuthRepository
 import org.awi.fitness.repository.ClientRepository
 import org.awi.fitness.repository.FirebaseException
@@ -13,6 +14,9 @@ sealed class AuthState {
     data object Loading : AuthState()
     data class Error(val message: String, val code: String = "") : AuthState()
     data class Success(val message: String) : AuthState()
+    data object ClientNotFound : AuthState()
+    data object AccessRequestSent : AuthState()
+    data object PasswordResetSent : AuthState()
 }
 
 class AuthViewModel(
@@ -29,7 +33,6 @@ class AuthViewModel(
 
     fun updateEmail(value: String) {
         _email.value = value
-        // Reset error state when user starts typing
         if (mutableState.value is AuthState.Error) {
             mutableState.value = AuthState.Initial
         }
@@ -37,46 +40,85 @@ class AuthViewModel(
 
     fun updatePassword(value: String) {
         _password.value = value
-        // Reset error state when user starts typing
         if (mutableState.value is AuthState.Error) {
             mutableState.value = AuthState.Initial
         }
     }
 
-    suspend fun signUp() {
+    suspend fun authenticate() {
         if (!validateInput()) return
-        
+
         mutableState.value = AuthState.Loading
-        
-        val result = authRepository.signUp(email.value, password.value)
-        
-        result.fold(
-            onSuccess = { 
-                // After successful signup, verify if client exists
+
+        val signInResult = authRepository.signIn(email.value, password.value)
+
+        signInResult.fold(
+            onSuccess = {
                 verifyClientExists()
             },
-            onFailure = { 
-                handleAuthError(it)
+            onFailure = { signInError ->
+                val errorType = (signInError as? FirebaseException)?.errorType
+
+                if (errorType is FirebaseErrorType.EmailNotFound ||
+                    errorType is FirebaseErrorType.UserNotFound) {
+                    val signUpResult = authRepository.signUp(email.value, password.value)
+                    signUpResult.fold(
+                        onSuccess = { verifyClientExists() },
+                        onFailure = { handleAuthError(it) }
+                    )
+                } else if (errorType is FirebaseErrorType.InvalidCredentials) {
+                    val signUpResult = authRepository.signUp(email.value, password.value)
+                    signUpResult.fold(
+                        onSuccess = { verifyClientExists() },
+                        onFailure = { signUpError ->
+                            val signUpErrorType = (signUpError as? FirebaseException)?.errorType
+                            if (signUpErrorType is FirebaseErrorType.EmailExists) {
+                                mutableState.value = AuthState.Error("INCORRECT_PASSWORD", "INCORRECT_PASSWORD")
+                            } else {
+                                handleAuthError(signUpError)
+                            }
+                        }
+                    )
+                } else {
+                    handleAuthError(signInError)
+                }
             }
         )
     }
 
-    suspend fun signIn() {
-        if (!validateInput()) return
-        
+    suspend fun sendPasswordReset(resetEmail: String): Boolean {
+        if (resetEmail.isBlank() || !resetEmail.contains("@")) return false
+        return authRepository.sendPasswordReset(resetEmail).isSuccess
+    }
+
+    suspend fun requestAccess() {
         mutableState.value = AuthState.Loading
-        
-        val result = authRepository.signIn(email.value, password.value)
-        
+        val result = authRepository.submitAccessRequest(email.value)
         result.fold(
-            onSuccess = { 
-                // After successful signin, verify if client exists
-                verifyClientExists()
+            onSuccess = {
+                authRepository.logout()
+                mutableState.value = AuthState.AccessRequestSent
             },
-            onFailure = { 
-                handleAuthError(it)
+            onFailure = {
+                mutableState.value = AuthState.Error(
+                    it.message ?: "Failed to send request"
+                )
             }
         )
+    }
+
+    fun resetToInitial() {
+        mutableState.value = AuthState.Initial
+    }
+
+    @Deprecated("Use authenticate() instead", ReplaceWith("authenticate()"))
+    suspend fun signUp() {
+        authenticate()
+    }
+
+    @Deprecated("Use authenticate() instead", ReplaceWith("authenticate()"))
+    suspend fun signIn() {
+        authenticate()
     }
 
     private fun handleAuthError(error: Throwable) {
@@ -89,25 +131,19 @@ class AuthViewModel(
 
     private suspend fun verifyClientExists() {
         val result = authRepository.getClientByEmail(email.value)
-        
+
         result.fold(
             onSuccess = { client ->
                 if (client != null) {
                     mutableState.value = AuthState.Success("Successfully authenticated!")
                 } else {
-                    // If client doesn't exist, logout and show error
-                    authRepository.logout()
-                    mutableState.value = AuthState.Error(
-                        "Your email is not registered in the system. Please contact administrator.",
-                        "CLIENT_NOT_FOUND"
-                    )
+                    mutableState.value = AuthState.ClientNotFound
                 }
             },
             onFailure = {
-                // If client verification fails, logout and show error
                 authRepository.logout()
                 mutableState.value = AuthState.Error(
-                    "Email does not exist. Please ask the admin to add your details",
+                    it.message ?: "Failed to verify account",
                     "VERIFICATION_FAILED"
                 )
             }
@@ -143,7 +179,7 @@ class AuthViewModel(
 
     suspend fun deleteAccount(): Result<Unit> {
         mutableState.value = AuthState.Loading
-        
+
         return try {
             val result = authRepository.deleteAccount()
             result.fold(
@@ -165,4 +201,4 @@ class AuthViewModel(
             Result.failure(e)
         }
     }
-} 
+}

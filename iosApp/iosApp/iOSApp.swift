@@ -59,6 +59,18 @@ struct iOSApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onOpenURL { url in
+                    handleDeepLink(url)
+                }
+        }
+    }
+
+    private func handleDeepLink(_ url: URL) {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: true) else { return }
+        let isInvite = components.path == "/invite" || components.host == "invite"
+        guard isInvite else { return }
+        if let email = components.queryItems?.first(where: { $0.name == "email" })?.value, !email.isEmpty {
+            UserDefaults.standard.set(email, forKey: "deep_link_email")
         }
     }
 }

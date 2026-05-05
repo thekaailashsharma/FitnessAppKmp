@@ -33,13 +33,15 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.testNotification = exports.onMealPlanCreated = exports.aiWeeklyMotivation = exports.inactivityNudge = exports.weighInReminder = exports.eveningReflection = exports.workoutReminder = exports.morningMealReminder = void 0;
+exports.onClientCreated = exports.testNotification = exports.onMealPlanCreated = exports.aiWeeklyMotivation = exports.inactivityNudge = exports.weighInReminder = exports.eveningReflection = exports.workoutReminder = exports.morningMealReminder = void 0;
 const admin = __importStar(require("firebase-admin"));
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const firestore_1 = require("firebase-functions/v2/firestore");
 const fcm_1 = require("./fcm");
 const gemini_1 = require("./gemini");
 const timezone_1 = require("./timezone");
+const GMAIL_USER = "info.fitnessbysivv@gmail.com";
+const GMAIL_APP_PASSWORD = "dikc yrvr vufl zzjy";
 admin.initializeApp();
 const db = admin.firestore();
 // ─── Helpers ─────────────────────────────────────────────────────
@@ -314,5 +316,65 @@ exports.testNotification = (0, scheduler_1.onSchedule)({ schedule: "every 24 hou
         }
         await (0, fcm_1.sendPush)(data.fcmToken, "System Check ✅", body);
     }
+});
+// ─── 9. Welcome Email on Client Created (Firestore trigger + Nodemailer) ──
+const INVITE_BASE_URL = "https://fitness-website-ten-gamma.vercel.app/invite";
+exports.onClientCreated = (0, firestore_1.onDocumentCreated)({ document: "clients/{clientId}", region: "europe-west1" }, async (event) => {
+    var _a;
+    const data = (_a = event.data) === null || _a === void 0 ? void 0 : _a.data();
+    if (!(data === null || data === void 0 ? void 0 : data.email))
+        return;
+    const nodemailer = await Promise.resolve().then(() => __importStar(require("nodemailer")));
+    const transporter = nodemailer.createTransport({
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
+        auth: {
+            user: GMAIL_USER,
+            pass: GMAIL_APP_PASSWORD,
+        },
+    });
+    const inviteLink = `${INVITE_BASE_URL}?email=${encodeURIComponent(data.email)}`;
+    const firstName = data.firstName || "there";
+    await transporter.sendMail({
+        from: `TAJLY <${GMAIL_USER}>`,
+        to: data.email,
+        subject: `Welcome to TAJLY, ${firstName}! 🎉`,
+        html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #09090D; color: #F5F0E6;">
+          <div style="text-align: center; margin-bottom: 32px;">
+            <h1 style="color: #D4AF37; font-size: 32px; margin: 0;">TAJLY</h1>
+            <p style="color: #9E9A90; margin-top: 8px;">Your Personal Fitness Companion</p>
+          </div>
+
+          <div style="background-color: #131316; border-radius: 16px; padding: 32px; border: 1px solid #2A2A32;">
+            <h2 style="color: #F5F0E6; margin-top: 0;">Welcome, ${firstName}!</h2>
+            <p style="color: #9E9A90; line-height: 1.6;">
+              Your trainer has set up your TAJLY account. You can now access personalized meal plans,
+              workout schedules, and track your fitness progress.
+            </p>
+
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${inviteLink}"
+                 style="display: inline-block; background-color: #D4AF37; color: #09090D; padding: 14px 32px;
+                        border-radius: 12px; text-decoration: none; font-weight: 600; font-size: 16px;">
+                Open TAJLY App
+              </a>
+            </div>
+
+            <p style="color: #9E9A90; font-size: 14px; line-height: 1.5;">
+              <strong style="color: #F5F0E6;">Getting started:</strong><br/>
+              1. Download the TAJLY app from the App Store or Google Play<br/>
+              2. Tap the button above or use this email (${data.email}) to log in<br/>
+              3. Create a password and you're ready to go!
+            </p>
+          </div>
+
+          <p style="color: #555; font-size: 12px; text-align: center; margin-top: 32px;">
+            This email was sent by TAJLY. If you didn't expect this, you can ignore it.
+          </p>
+        </div>
+      `,
+    });
 });
 //# sourceMappingURL=index.js.map

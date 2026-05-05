@@ -12,3 +12,7 @@ actual fun getFcmToken(): String? {
 actual fun getDeviceTimezone(): String {
     return TimeZone.getDefault().id
 }
+
+actual fun getDeviceLanguageCode(): String {
+    return java.util.Locale.getDefault().language
+}

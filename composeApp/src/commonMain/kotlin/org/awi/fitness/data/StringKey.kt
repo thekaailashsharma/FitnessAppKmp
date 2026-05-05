@@ -285,4 +285,29 @@ enum class StringKey {
     // Misc
     UPCOMING_WORKOUT,
     REFRESH_TIPS,
+
+    // Smart Auth
+    CONTINUE,
+    WELCOME_TO_APP,
+    ENTER_CREDENTIALS,
+    REQUEST_ACCESS,
+    REQUEST_ACCESS_TITLE,
+    REQUEST_ACCESS_DESC,
+    REQUEST_SENT_TITLE,
+    REQUEST_SENT_DESC,
+    INCORRECT_PASSWORD,
+
+    // Forgot Password
+    FORGOT_PASSWORD,
+    FORGOT_PASSWORD_TITLE,
+    FORGOT_PASSWORD_DESC,
+    SEND_RESET_LINK,
+    RESET_LINK_SENT,
+
+    // Language auto-detect
+    LANGUAGE_SET_TO,
+    CHANGE,
+
+    // Navigation labels
+    MEALS,
 } 

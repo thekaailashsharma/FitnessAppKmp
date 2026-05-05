@@ -121,7 +121,7 @@ class AuthRepository : ApiService() {
 
             val url = "https://firestore.googleapis.com/v1/projects/$PROJECT_ID/databases/(default)/documents/clients"
 
-            val (response, status) = unAuthenticatedGet<FirestoreListResponse<ClientFields>>(url, token)
+            val (response, status) = get<FirestoreListResponse<ClientFields>>(url, token)
 
             if (status.isSuccess()) {
                 val clients = response.documents?.map { it.toClient() }?.firstOrNull { it.email == email && DateUtils.isDateValid(it.endDate) }
@@ -129,6 +129,41 @@ class AuthRepository : ApiService() {
             } else {
                 Result.failure(Exception("Failed to fetch client"))
             }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun sendPasswordReset(email: String): Result<Unit> {
+        return try {
+            val request = mapOf(
+                "requestType" to "PASSWORD_RESET",
+                "email" to email
+            )
+            val url = "https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=$API_KEY"
+            val (_, status) = unAuthenticatedPost<Map<String, String>>(url, request)
+            if (status.isSuccess()) Result.success(Unit)
+            else Result.failure(Exception("Failed to send reset email"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun submitAccessRequest(email: String): Result<Unit> {
+        return try {
+            val token = userSettings.authToken ?: return Result.failure(Exception("Not authenticated"))
+            val now = kotlinx.datetime.Clock.System.now().toString()
+            val body = mapOf(
+                "fields" to mapOf(
+                    "email" to mapOf("stringValue" to email),
+                    "requestedAt" to mapOf("stringValue" to now),
+                    "status" to mapOf("stringValue" to "pending")
+                )
+            )
+            val url = "https://firestore.googleapis.com/v1/projects/$PROJECT_ID/databases/(default)/documents/access_requests"
+            val (_, status) = post<Map<String, Any>>(url, body, token)
+            if (status.isSuccess()) Result.success(Unit)
+            else Result.failure(Exception("Failed to submit request"))
         } catch (e: Exception) {
             Result.failure(e)
         }

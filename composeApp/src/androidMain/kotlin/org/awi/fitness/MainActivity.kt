@@ -1,6 +1,7 @@
 package org.awi.fitness
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -14,9 +15,25 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         requestNotificationPermission()
         logFcmToken()
+        handleDeepLink(intent)
 
         setContent {
             App()
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleDeepLink(intent)
+    }
+
+    private fun handleDeepLink(intent: Intent?) {
+        val uri = intent?.data ?: return
+        if (uri.path == "/invite" || uri.host == "invite") {
+            val email = uri.getQueryParameter("email")
+            if (!email.isNullOrBlank()) {
+                DeepLinkState.pendingEmail = email
+            }
         }
     }
 

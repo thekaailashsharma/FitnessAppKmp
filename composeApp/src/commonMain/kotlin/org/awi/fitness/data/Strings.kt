@@ -285,7 +285,32 @@ object Strings {
 
             // Misc
             StringKey.UPCOMING_WORKOUT to "Upcoming Workout",
-            StringKey.REFRESH_TIPS to "Refresh Tips"
+            StringKey.REFRESH_TIPS to "Refresh Tips",
+
+            // Smart Auth
+            StringKey.CONTINUE to "Continue",
+            StringKey.WELCOME_TO_APP to "Welcome to TAJLY",
+            StringKey.ENTER_CREDENTIALS to "Enter your credentials to continue",
+            StringKey.REQUEST_ACCESS to "Request Access",
+            StringKey.REQUEST_ACCESS_TITLE to "Not Registered Yet",
+            StringKey.REQUEST_ACCESS_DESC to "Your account was created but you're not registered as a client yet. Request access and your trainer will approve you.",
+            StringKey.REQUEST_SENT_TITLE to "Request Sent!",
+            StringKey.REQUEST_SENT_DESC to "You'll receive a notification when your trainer approves your access.",
+            StringKey.INCORRECT_PASSWORD to "Incorrect password. Please try again.",
+
+            // Forgot Password
+            StringKey.FORGOT_PASSWORD to "Forgot password?",
+            StringKey.FORGOT_PASSWORD_TITLE to "Reset Password",
+            StringKey.FORGOT_PASSWORD_DESC to "Enter your email and we'll send you a link to reset your password.",
+            StringKey.SEND_RESET_LINK to "Send Reset Link",
+            StringKey.RESET_LINK_SENT to "Password reset link sent to your email.",
+
+            // Language auto-detect
+            StringKey.LANGUAGE_SET_TO to "Language set to",
+            StringKey.CHANGE to "Change",
+
+            // Navigation labels
+            StringKey.MEALS to "Meals"
         ),
         Language.DUTCH to mapOf(
             // Auth
@@ -570,7 +595,32 @@ object Strings {
 
             // Misc
             StringKey.UPCOMING_WORKOUT to "Komende Training",
-            StringKey.REFRESH_TIPS to "Tips Vernieuwen"
+            StringKey.REFRESH_TIPS to "Tips Vernieuwen",
+
+            // Smart Auth
+            StringKey.CONTINUE to "Doorgaan",
+            StringKey.WELCOME_TO_APP to "Welkom bij TAJLY",
+            StringKey.ENTER_CREDENTIALS to "Voer je gegevens in om door te gaan",
+            StringKey.REQUEST_ACCESS to "Toegang Aanvragen",
+            StringKey.REQUEST_ACCESS_TITLE to "Nog Niet Geregistreerd",
+            StringKey.REQUEST_ACCESS_DESC to "Je account is aangemaakt maar je bent nog niet geregistreerd als klant. Vraag toegang aan en je trainer zal je goedkeuren.",
+            StringKey.REQUEST_SENT_TITLE to "Aanvraag Verzonden!",
+            StringKey.REQUEST_SENT_DESC to "Je ontvangt een melding wanneer je trainer je toegang goedkeurt.",
+            StringKey.INCORRECT_PASSWORD to "Onjuist wachtwoord. Probeer het opnieuw.",
+
+            // Forgot Password
+            StringKey.FORGOT_PASSWORD to "Wachtwoord vergeten?",
+            StringKey.FORGOT_PASSWORD_TITLE to "Wachtwoord Resetten",
+            StringKey.FORGOT_PASSWORD_DESC to "Voer je e-mail in en we sturen je een link om je wachtwoord te resetten.",
+            StringKey.SEND_RESET_LINK to "Resetlink Versturen",
+            StringKey.RESET_LINK_SENT to "Wachtwoord reset link verzonden naar je e-mail.",
+
+            // Language auto-detect
+            StringKey.LANGUAGE_SET_TO to "Taal ingesteld op",
+            StringKey.CHANGE to "Wijzig",
+
+            // Navigation labels
+            StringKey.MEALS to "Maaltijden"
         )
     )
 

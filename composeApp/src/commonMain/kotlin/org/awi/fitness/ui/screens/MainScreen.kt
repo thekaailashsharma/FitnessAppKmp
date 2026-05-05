@@ -76,7 +76,15 @@ class MainScreen : Screen {
                                         contentDescription = item.route
                                     )
                                 },
-                                label = { Text(text = item.route.replaceFirstChar { it.uppercase() }) },
+                                label = {
+                                    val langVm = LocalLanguageViewModel.current
+                                    Text(text = when (item) {
+                                        BottomNavItem.Home -> langVm.getString(org.awi.fitness.data.StringKey.HOME)
+                                        BottomNavItem.Workouts -> langVm.getString(org.awi.fitness.data.StringKey.WORKOUTS)
+                                        BottomNavItem.Meals -> langVm.getString(org.awi.fitness.data.StringKey.MEALS)
+                                        BottomNavItem.Discover -> langVm.getString(org.awi.fitness.data.StringKey.DISCOVER)
+                                    })
+                                },
                                 colors = NavigationBarItemDefaults.colors(
                                     selectedIconColor = MaterialTheme.colorScheme.primary,
                                     selectedTextColor = MaterialTheme.colorScheme.primary,
