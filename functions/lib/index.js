@@ -337,41 +337,44 @@ exports.onClientCreated = (0, firestore_1.onDocumentCreated)({ document: "client
     const inviteLink = `${INVITE_BASE_URL}?email=${encodeURIComponent(data.email)}`;
     const firstName = data.firstName || "there";
     await transporter.sendMail({
-        from: `TAJLY <${GMAIL_USER}>`,
+        from: `Fit & Health by Sivv <${GMAIL_USER}>`,
         to: data.email,
-        subject: `Welcome to TAJLY, ${firstName}! 🎉`,
+        subject: `Welcome to Fit & Health by Sivv, ${firstName}! 🎉`,
         html: `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #09090D; color: #F5F0E6;">
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #0A1A14; color: #E8F5E9;">
           <div style="text-align: center; margin-bottom: 32px;">
-            <h1 style="color: #D4AF37; font-size: 32px; margin: 0;">TAJLY</h1>
-            <p style="color: #9E9A90; margin-top: 8px;">Your Personal Fitness Companion</p>
+            <div style="width: 64px; height: 64px; border-radius: 16px; background-color: rgba(0,182,122,0.15); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px;">
+              <span style="font-size: 32px;">💪</span>
+            </div>
+            <h1 style="color: #00B67A; font-size: 28px; margin: 0;">Fit &amp; Health by Sivv</h1>
+            <p style="color: #81C784; margin-top: 8px; font-size: 14px;">Your Personal Fitness Companion</p>
           </div>
 
-          <div style="background-color: #131316; border-radius: 16px; padding: 32px; border: 1px solid #2A2A32;">
-            <h2 style="color: #F5F0E6; margin-top: 0;">Welcome, ${firstName}!</h2>
-            <p style="color: #9E9A90; line-height: 1.6;">
-              Your trainer has set up your TAJLY account. You can now access personalized meal plans,
+          <div style="background-color: #0F2A1F; border-radius: 16px; padding: 32px; border: 1px solid #1B5E3A;">
+            <h2 style="color: #E8F5E9; margin-top: 0;">Welcome, ${firstName}!</h2>
+            <p style="color: #A5D6A7; line-height: 1.6;">
+              Your trainer has set up your account. You can now access personalized meal plans,
               workout schedules, and track your fitness progress.
             </p>
 
             <div style="text-align: center; margin: 32px 0;">
               <a href="${inviteLink}"
-                 style="display: inline-block; background-color: #D4AF37; color: #09090D; padding: 14px 32px;
+                 style="display: inline-block; background-color: #00B67A; color: #FFFFFF; padding: 14px 32px;
                         border-radius: 12px; text-decoration: none; font-weight: 600; font-size: 16px;">
-                Open TAJLY App
+                Open the App
               </a>
             </div>
 
-            <p style="color: #9E9A90; font-size: 14px; line-height: 1.5;">
-              <strong style="color: #F5F0E6;">Getting started:</strong><br/>
-              1. Download the TAJLY app from the App Store or Google Play<br/>
+            <p style="color: #A5D6A7; font-size: 14px; line-height: 1.5;">
+              <strong style="color: #E8F5E9;">Getting started:</strong><br/>
+              1. Download the app from the App Store or Google Play<br/>
               2. Tap the button above or use this email (${data.email}) to log in<br/>
               3. Create a password and you're ready to go!
             </p>
           </div>
 
-          <p style="color: #555; font-size: 12px; text-align: center; margin-top: 32px;">
-            This email was sent by TAJLY. If you didn't expect this, you can ignore it.
+          <p style="color: #4A7A5A; font-size: 12px; text-align: center; margin-top: 32px;">
+            This email was sent by Fit &amp; Health by Sivv. If you didn't expect this, you can ignore it.
           </p>
         </div>
       `,
