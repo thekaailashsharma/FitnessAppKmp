@@ -4,6 +4,7 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.awi.fitness.AppConfig
 import org.awi.fitness.data.ActivityLevel
 import org.awi.fitness.data.Gender
 import org.awi.fitness.data.Goal
@@ -84,7 +85,6 @@ data class MeasurementAnalysis(
 
 class GeminiRepository : ApiService() {
     companion object {
-        private const val GEMINI_API_KEY = "AIzaSyDAAoM5EaGDHMXSqkwgALTJ0hbcnIYbuGc"
         private const val GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
     }
 
@@ -113,7 +113,7 @@ class GeminiRepository : ApiService() {
 
     private suspend fun callGemini(prompt: String): Result<String> {
         return try {
-            val url = "$GEMINI_BASE_URL?key=$GEMINI_API_KEY"
+            val url = "$GEMINI_BASE_URL?key=${AppConfig.geminiApiKey}"
             val (response, status) = post<GeminiResponse>(url = url, body = buildGeminiRequest(prompt))
             if (status.isSuccess()) {
                 val text = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
@@ -338,7 +338,7 @@ Respond with ONLY valid JSON, no markdown fences, no explanation text:
                 )
             )
 
-            val url = "$GEMINI_BASE_URL?key=$GEMINI_API_KEY"
+            val url = "$GEMINI_BASE_URL?key=${AppConfig.geminiApiKey}"
             val (response, status) = post<GeminiResponse>(
                 url = url,
                 body = request
@@ -412,7 +412,7 @@ Respond with ONLY valid JSON, no markdown fences, no explanation text:
                 )
             )
 
-            val url = "$GEMINI_BASE_URL?key=$GEMINI_API_KEY"
+            val url = "$GEMINI_BASE_URL?key=${AppConfig.geminiApiKey}"
             val (response, status) = post<GeminiResponse>(
                 url = url,
                 body = request

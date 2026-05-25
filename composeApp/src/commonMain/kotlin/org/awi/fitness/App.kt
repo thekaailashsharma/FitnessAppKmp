@@ -27,6 +27,7 @@ import org.awi.fitness.data.UserSettings
 import org.awi.fitness.data.createSettings
 import org.awi.fitness.repository.AuthRepository
 import org.awi.fitness.repository.ClientRepository
+import org.awi.fitness.repository.ConfigRepository
 import org.awi.fitness.theme.FitnessAppTheme
 import org.awi.fitness.ui.StatusBarPadding
 import org.awi.fitness.ui.components.FitnessSnackbar
@@ -85,6 +86,11 @@ fun App() {
                     timezone = timezone,
                     language = lang
                 )
+            } catch (_: Exception) { }
+
+            // Fetch remote config (Gemini API key etc.)
+            try {
+                ConfigRepository().fetchAndApplyConfig()
             } catch (_: Exception) { }
         }
     }
