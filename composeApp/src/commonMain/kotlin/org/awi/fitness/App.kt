@@ -72,6 +72,7 @@ fun App() {
 
     // Sync FCM token, timezone, lastActiveAt to Firestore
     LaunchedEffect(Unit) {
+        println("[AppConfig] App LaunchedEffect: isLoggedIn=${userSettings.isLoggedIn}")
         if (userSettings.isLoggedIn) {
             try {
                 val email = userSettings.userEmail ?: return@LaunchedEffect
