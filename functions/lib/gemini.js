@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateMessage = generateMessage;
-const GEMINI_API_KEY = "AIzaSyDAAoM5EaGDHMXSqkwgALTJ0hbcnIYbuGc";
+const GEMINI_API_KEY = "AIzaSyAIrxceccZ5tX880-v9q5rZ5_bMpMsOiYc";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 async function generateMessage(prompt) {
     var _a, _b, _c, _d, _e, _f;

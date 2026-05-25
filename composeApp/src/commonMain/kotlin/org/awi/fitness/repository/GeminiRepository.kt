@@ -113,6 +113,7 @@ class GeminiRepository : ApiService() {
 
     private suspend fun callGemini(prompt: String): Result<String> {
         return try {
+            println("[Gemini] Using key: ${AppConfig.geminiApiKey.take(10)}...")
             val url = "$GEMINI_BASE_URL?key=${AppConfig.geminiApiKey}"
             val (response, status) = post<GeminiResponse>(url = url, body = buildGeminiRequest(prompt))
             if (status.isSuccess()) {
