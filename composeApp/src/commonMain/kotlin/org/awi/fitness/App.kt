@@ -74,6 +74,12 @@ fun App() {
     LaunchedEffect(Unit) {
         println("[AppConfig] App LaunchedEffect: isLoggedIn=${userSettings.isLoggedIn}")
         if (userSettings.isLoggedIn) {
+            // Fetch remote config first — runs independently, not affected by FCM sync
+            try {
+                ConfigRepository().fetchAndApplyConfig()
+            } catch (_: Exception) { }
+
+            // Sync FCM token, timezone to Firestore
             try {
                 val email = userSettings.userEmail ?: return@LaunchedEffect
                 val repo = ClientRepository()
@@ -87,11 +93,6 @@ fun App() {
                     timezone = timezone,
                     language = lang
                 )
-            } catch (_: Exception) { }
-
-            // Fetch remote config (Gemini API key etc.)
-            try {
-                ConfigRepository().fetchAndApplyConfig()
             } catch (_: Exception) { }
         }
     }
