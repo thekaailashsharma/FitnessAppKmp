@@ -12,10 +12,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -56,9 +54,10 @@ fun App() {
         }
     }
 
-    // Use remember for theme state
+    // Observe theme preference — falls back to system setting if user hasn't chosen yet
     val isSystemInDarkTheme = isSystemInDarkTheme()
-    var isDarkTheme by remember { mutableStateOf(isSystemInDarkTheme) }
+    val savedDarkTheme by userSettings.isDarkThemeFlow.collectAsState()
+    val isDarkTheme = savedDarkTheme ?: isSystemInDarkTheme
 
     // Effect to handle language changes
     LaunchedEffect(currentLanguage) {
@@ -70,31 +69,32 @@ fun App() {
     // Snackbar setup
     val scope = rememberCoroutineScope()
 
-    // Sync FCM token, timezone, lastActiveAt to Firestore
-    LaunchedEffect(Unit) {
-        println("[AppConfig] App LaunchedEffect: isLoggedIn=${userSettings.isLoggedIn}")
-        if (userSettings.isLoggedIn) {
-            // Fetch remote config first — runs independently, not affected by FCM sync
-            try {
-                ConfigRepository().fetchAndApplyConfig()
-            } catch (_: Exception) { }
+    // Observe login state — re-run whenever user logs in so config + FCM sync always fire
+    val isLoggedIn by userSettings.isLoggedInFlow.collectAsState()
 
-            // Sync FCM token, timezone to Firestore
-            try {
-                val email = userSettings.userEmail ?: return@LaunchedEffect
-                val repo = ClientRepository()
-                val client = repo.getClientByEmail(email).getOrNull() ?: return@LaunchedEffect
-                val fcmToken = getFcmToken()
-                val timezone = getDeviceTimezone()
-                val lang = currentLanguage.value ?: "en"
-                repo.updateNotificationFields(
-                    clientId = client.id,
-                    fcmToken = fcmToken,
-                    timezone = timezone,
-                    language = lang
-                )
-            } catch (_: Exception) { }
-        }
+    LaunchedEffect(isLoggedIn) {
+        if (!isLoggedIn) return@LaunchedEffect
+
+        // Fetch remote config (Gemini key, etc.) as soon as user is authenticated
+        try {
+            ConfigRepository().fetchAndApplyConfig()
+        } catch (_: Exception) { }
+
+        // Sync FCM token, timezone to Firestore
+        try {
+            val email = userSettings.userEmail ?: return@LaunchedEffect
+            val repo = ClientRepository()
+            val client = repo.getClientByEmail(email).getOrNull() ?: return@LaunchedEffect
+            val fcmToken = getFcmToken()
+            val timezone = getDeviceTimezone()
+            val lang = currentLanguage.value ?: "en"
+            repo.updateNotificationFields(
+                clientId = client.id,
+                fcmToken = fcmToken,
+                timezone = timezone,
+                language = lang
+            )
+        } catch (_: Exception) { }
     }
     val snackbarManager = rememberSnackbarManager(scope)
     val snackbarHostState = remember { SnackbarHostState() }

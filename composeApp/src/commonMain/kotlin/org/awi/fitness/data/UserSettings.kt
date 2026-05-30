@@ -93,6 +93,14 @@ class UserSettings internal constructor(internal val settings: Settings) {
     private val _language = MutableStateFlow(settings[KEY_LANGUAGE, Language.ENGLISH.code])
     val language = _language.asStateFlow()
 
+    private val _isLoggedInFlow = MutableStateFlow(settings[KEY_IS_LOGGED_IN, false])
+    val isLoggedInFlow = _isLoggedInFlow.asStateFlow()
+
+    private val _isDarkThemeFlow = MutableStateFlow(
+        if (settings.hasKey(IS_DARK_THEME)) settings[IS_DARK_THEME, false] else null
+    )
+    val isDarkThemeFlow: StateFlow<Boolean?> = _isDarkThemeFlow.asStateFlow()
+
     fun setLanguage(value: String) {
         settings[KEY_LANGUAGE] = value
         _language.value = value
@@ -120,6 +128,7 @@ class UserSettings internal constructor(internal val settings: Settings) {
         get() = settings[KEY_IS_LOGGED_IN, false]
         set(value) {
             settings[KEY_IS_LOGGED_IN] = value
+            _isLoggedInFlow.value = value
         }
 
     var refreshToken: String?
@@ -166,6 +175,7 @@ class UserSettings internal constructor(internal val settings: Settings) {
             } else {
                 settings[IS_DARK_THEME] = value
             }
+            _isDarkThemeFlow.value = value
         }
 
     var authProvider: String?

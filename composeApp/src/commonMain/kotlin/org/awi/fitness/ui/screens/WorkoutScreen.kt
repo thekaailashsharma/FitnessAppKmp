@@ -117,24 +117,21 @@ class WorkoutScreen : Screen {
                 )
                 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(
-                        onClick = { showListView = !showListView },
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.primary
-                        )
-                    ) {
+                    IconButton(onClick = { showListView = !showListView }) {
                         Icon(
                             imageVector = if (showListView) TablerIcons.LayoutGrid else TablerIcons.LayoutList,
-                            contentDescription = if (showListView) languageViewModel.getString(StringKey.SHOW_GRID) else languageViewModel.getString(StringKey.SHOW_LIST)
+                            contentDescription = if (showListView) languageViewModel.getString(StringKey.SHOW_GRID) else languageViewModel.getString(StringKey.SHOW_LIST),
+                            tint = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(if (showListView) languageViewModel.getString(StringKey.SHOW_GRID) else languageViewModel.getString(StringKey.SHOW_LIST))
                     }
-                    
                     IconButton(
-                        onClick = { showGoalsSheet = !showGoalsSheet }
+                        onClick = {
+                            viewModel.resetPlanSelection()
+                            showGoalsSheet = true
+                        }
                     ) {
                         Icon(
                             imageVector = TablerIcons.Plus,
@@ -657,6 +654,8 @@ private fun WorkoutTipsCard(
                         text = difficulty.name.lowercase().replaceFirstChar { it.uppercase() },
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -758,7 +757,13 @@ private fun EnhancedWorkoutCard(
                 WorkoutStat(
                     icon = TablerIcons.ShieldCheck,
                     label = languageViewModel.getString(StringKey.CATEGORY),
-                    value = workoutPlan.category.name.lowercase().replaceFirstChar { it.uppercase() }
+                    value = languageViewModel.getString(when (workoutPlan.category) {
+                        WorkoutCategory.STRENGTH -> StringKey.STRENGTH
+                        WorkoutCategory.CARDIO -> StringKey.CARDIO
+                        WorkoutCategory.HIIT -> StringKey.HIIT
+                        WorkoutCategory.FLEXIBILITY -> StringKey.FLEXIBILITY
+                        WorkoutCategory.YOGA -> StringKey.YOGA
+                    })
                 )
                 WorkoutStat(
                     icon = TablerIcons.Walk,
@@ -1033,6 +1038,8 @@ private fun WorkoutPlanListCard(
                                     MaterialTheme.colorScheme.onPrimaryContainer
                                 else
                                     MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }

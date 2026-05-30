@@ -7,7 +7,7 @@ import kotlinx.coroutines.launch
 import org.awi.fitness.data.UserSettings
 import org.awi.fitness.model.Client
 import org.awi.fitness.repository.ClientRepository
-import org.awi.fitness.utils.homeFitnessTips
+import org.awi.fitness.utils.getHomeFitnessTips
 import kotlinx.datetime.*
 import kotlin.random.Random
 
@@ -88,7 +88,8 @@ class HomeViewModel {
                     0xFF1976D2, 0xFF388E3C, 0xFFF57C00,
                     0xFF7B1FA2, 0xFFC2185B, 0xFF00796B
                 )
-                val randomTips = homeFitnessTips.shuffled().take(6).map { tip ->
+                val currentLang = userSettings.language.value ?: "en"
+                val randomTips = getHomeFitnessTips(currentLang).shuffled().take(6).map { tip ->
                     DailyTip(
                         tip = tip,
                         icon = TipIcon.random(),

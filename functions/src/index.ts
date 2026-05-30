@@ -400,71 +400,7 @@ export const onMealPlanCreated = onDocumentWritten(
   },
 );
 
-// ─── 8. Test Notification (bypasses all time/day checks) ─────────
-
-export const testNotification = onSchedule(
-  {schedule: "every 24 hours", timeZone: "UTC", region: "europe-west1"},
-  async () => {
-    const snapshot = await db.collection("clients").get();
-
-    for (const doc of snapshot.docs) {
-      const data = doc.data() as ClientDoc;
-      if (!data.fcmToken) continue;
-      if (data.status && data.status !== "Active") continue;
-
-      const email = data.email;
-      if (!email) continue;
-
-      let body = `Hi ${data.firstName || "there"}! This is a test notification.`;
-
-      // Try to include real meal data
-      const plansSnap = await db.collection("user_meal_plans")
-        .where("clientEmail", "==", email)
-        .where("isActive", "==", true)
-        .limit(1)
-        .get();
-
-      if (!plansSnap.empty) {
-        const planDoc = plansSnap.docs[0].data() as MealPlanDoc;
-        const meals = parseMealsJson(planDoc.mealsData);
-        const dayOfWeek = jsToAppDay(
-          getLocalDayOfWeek(data.timezone || "UTC"),
-        );
-        const todayMeals = meals.filter((m) => m.dayOfWeek === dayOfWeek);
-        const totalCal = todayMeals.reduce(
-          (sum, m) => sum + (m.calories || 0), 0,
-        );
-        if (todayMeals.length > 0) {
-          body = t(
-            data.language,
-            `${data.firstName}, you have ${todayMeals.length} meals today (${totalCal} kcal). ` +
-            `Timezone: ${data.timezone || "not set"}. All systems working!`,
-            `${data.firstName}, je hebt ${todayMeals.length} maaltijden vandaag (${totalCal} kcal). ` +
-            `Tijdzone: ${data.timezone || "niet ingesteld"}. Alles werkt!`,
-          );
-        }
-      }
-
-      // Try to include workout data
-      const workoutSnap = await db.collection("workout_plans")
-        .where("clientEmail", "==", email)
-        .limit(1)
-        .get();
-
-      if (!workoutSnap.empty && plansSnap.empty) {
-        body = t(
-          data.language,
-          `${data.firstName}, your workout plan is ready. Timezone: ${data.timezone || "not set"}. All systems working!`,
-          `${data.firstName}, je trainingsplan staat klaar. Tijdzone: ${data.timezone || "niet ingesteld"}. Alles werkt!`,
-        );
-      }
-
-      await sendPush(data.fcmToken, "System Check ✅", body);
-    }
-  },
-);
-
-// ─── 9. Welcome Email on Client Created (Firestore trigger + Nodemailer) ──
+// ─── 8. Welcome Email on Client Created (Firestore trigger + Nodemailer) ──
 
 const INVITE_BASE_URL = "https://fitness-website-ten-gamma.vercel.app/invite";
 

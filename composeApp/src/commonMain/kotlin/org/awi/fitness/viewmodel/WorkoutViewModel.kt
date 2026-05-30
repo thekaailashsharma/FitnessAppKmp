@@ -127,6 +127,10 @@ class WorkoutViewModel {
         }
     }
 
+    fun resetPlanSelection() {
+        _state.update { it.copy(selectedPlanId = null, error = null) }
+    }
+
     suspend fun loadIfNeeded() {
         if (_state.value.workoutPlans.isNotEmpty() || _state.value.isLoading) return
         loadWorkoutPlans()
@@ -140,10 +144,6 @@ class WorkoutViewModel {
             val plansResult = workoutRepository.getWorkoutPlansForUser(email)
             plansResult.fold(
                 onSuccess = { plans ->
-                    println("x ${plans.size} workout plans")
-                    plans.forEach { plan ->
-                        println("Plan: ${plan.plan.name} with ${plan.exercises.size} exercises")
-                    }
                     _state.update { 
                         it.copy(
                             isLoading = false,
@@ -152,7 +152,6 @@ class WorkoutViewModel {
                     }
                 },
                 onFailure = { error ->
-                    println("Failed to load workout plans: ${error.message}")
                     _state.update { 
                         it.copy(
                             isLoading = false,
@@ -162,8 +161,6 @@ class WorkoutViewModel {
                 }
             )
         } catch (e: Exception) {
-            println("Error loading workout plans: ${e.message}")
-            e.printStackTrace()
             _state.update { 
                 it.copy(
                     isLoading = false,

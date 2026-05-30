@@ -57,6 +57,7 @@ class HomeScreen : Screen {
         val mealState by mealPlanViewModel.state.collectAsState()
         val userSettings = UserSettings.getInstance()
         val mealCompletions by userSettings.mealCompletions.collectAsState()
+        val currentLanguage by userSettings.language.collectAsState()
 
         val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
         val todayDow = remember { today.dayOfWeek.ordinal + 1 }
@@ -76,6 +77,11 @@ class HomeScreen : Screen {
 
         LaunchedEffect(Unit) {
             viewModel.loadIfNeeded()
+        }
+
+        // Refresh daily tips whenever language changes
+        LaunchedEffect(currentLanguage) {
+            viewModel.refresh()
         }
 
         Scaffold(

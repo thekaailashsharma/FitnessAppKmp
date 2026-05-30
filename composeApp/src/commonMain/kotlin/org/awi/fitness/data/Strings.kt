@@ -310,7 +310,53 @@ object Strings {
             StringKey.CHANGE to "Change",
 
             // Navigation labels
-            StringKey.MEALS to "Meals"
+            StringKey.MEALS to "Meals",
+
+            // Fitness Goals Bottom Sheet
+            StringKey.FITNESS_GOALS_TITLE to "Set Your Fitness Goals",
+            StringKey.FITNESS_GOALS_SUBTITLE to "Let's create a personalized plan for you",
+            StringKey.FITNESS_GOAL_QUESTION to "What's your primary fitness goal?",
+            StringKey.FITNESS_LEVEL_QUESTION to "What's your current fitness level?",
+            StringKey.START_FITNESS_JOURNEY to "Start My Fitness Journey",
+
+            // Goal names (workout)
+            StringKey.GOAL_WEIGHT_LOSS to "Weight Loss",
+            StringKey.GOAL_MUSCLE_GAIN to "Muscle Gain",
+            StringKey.GOAL_ENDURANCE to "Endurance",
+            StringKey.GOAL_FLEXIBILITY to "Flexibility",
+
+            // Goal descriptions
+            StringKey.GOAL_WEIGHT_LOSS_DESC to "Burn fat and achieve a healthier weight",
+            StringKey.GOAL_MUSCLE_GAIN_DESC to "Build strength and muscle mass",
+            StringKey.GOAL_ENDURANCE_DESC to "Improve stamina and cardiovascular fitness",
+            StringKey.GOAL_FLEXIBILITY_DESC to "Enhance mobility and reduce stiffness",
+
+            // Fitness levels
+            StringKey.LEVEL_BEGINNER to "Beginner",
+            StringKey.LEVEL_INTERMEDIATE to "Intermediate",
+            StringKey.LEVEL_ADVANCED to "Advanced",
+
+            // Gender
+            StringKey.GENDER_MALE to "Male",
+            StringKey.GENDER_FEMALE to "Female",
+            StringKey.GENDER_OTHER to "Other",
+
+            // Activity levels
+            StringKey.ACTIVITY_SEDENTARY to "Sedentary",
+            StringKey.ACTIVITY_LIGHTLY_ACTIVE to "Lightly Active",
+            StringKey.ACTIVITY_MODERATELY_ACTIVE to "Moderately Active",
+            StringKey.ACTIVITY_VERY_ACTIVE to "Very Active",
+            StringKey.ACTIVITY_SUPER_ACTIVE to "Super Active",
+
+            // Calorie goal chips
+            StringKey.GOAL_LOSE_WEIGHT to "Lose Weight",
+            StringKey.GOAL_MAINTAIN to "Maintain",
+            StringKey.GOAL_GAIN_MUSCLE to "Gain Muscle",
+
+            // Calorie screen tabs
+            StringKey.TAB_CALORIES to "Calories",
+            StringKey.TAB_WEIGHT to "Weight",
+            StringKey.TAB_MEASUREMENTS to "Measure"
         ),
         Language.DUTCH to mapOf(
             // Auth
@@ -620,7 +666,53 @@ object Strings {
             StringKey.CHANGE to "Wijzig",
 
             // Navigation labels
-            StringKey.MEALS to "Maaltijden"
+            StringKey.MEALS to "Maaltijden",
+
+            // Fitness Goals Bottom Sheet
+            StringKey.FITNESS_GOALS_TITLE to "Stel je Fitnessdoelen in",
+            StringKey.FITNESS_GOALS_SUBTITLE to "We maken een persoonlijk plan voor jou",
+            StringKey.FITNESS_GOAL_QUESTION to "Wat is je primaire fitnessdoel?",
+            StringKey.FITNESS_LEVEL_QUESTION to "Wat is je huidige fitnessniveau?",
+            StringKey.START_FITNESS_JOURNEY to "Start Mijn Fitnessreis",
+
+            // Goal names (workout)
+            StringKey.GOAL_WEIGHT_LOSS to "Gewichtsverlies",
+            StringKey.GOAL_MUSCLE_GAIN to "Spieropbouw",
+            StringKey.GOAL_ENDURANCE to "Uithoudingsvermogen",
+            StringKey.GOAL_FLEXIBILITY to "Flexibiliteit",
+
+            // Goal descriptions
+            StringKey.GOAL_WEIGHT_LOSS_DESC to "Vet verbranden en een gezonder gewicht bereiken",
+            StringKey.GOAL_MUSCLE_GAIN_DESC to "Kracht en spiermassa opbouwen",
+            StringKey.GOAL_ENDURANCE_DESC to "Uithoudingsvermogen en conditie verbeteren",
+            StringKey.GOAL_FLEXIBILITY_DESC to "Mobiliteit verbeteren en stijfheid verminderen",
+
+            // Fitness levels
+            StringKey.LEVEL_BEGINNER to "Beginner",
+            StringKey.LEVEL_INTERMEDIATE to "Gevorderd",
+            StringKey.LEVEL_ADVANCED to "Geavanceerd",
+
+            // Gender
+            StringKey.GENDER_MALE to "Man",
+            StringKey.GENDER_FEMALE to "Vrouw",
+            StringKey.GENDER_OTHER to "Anders",
+
+            // Activity levels
+            StringKey.ACTIVITY_SEDENTARY to "Inactief",
+            StringKey.ACTIVITY_LIGHTLY_ACTIVE to "Licht Actief",
+            StringKey.ACTIVITY_MODERATELY_ACTIVE to "Matig Actief",
+            StringKey.ACTIVITY_VERY_ACTIVE to "Zeer Actief",
+            StringKey.ACTIVITY_SUPER_ACTIVE to "Super Actief",
+
+            // Calorie goal chips
+            StringKey.GOAL_LOSE_WEIGHT to "Afvallen",
+            StringKey.GOAL_MAINTAIN to "Behouden",
+            StringKey.GOAL_GAIN_MUSCLE to "Spiermassa",
+
+            // Calorie screen tabs
+            StringKey.TAB_CALORIES to "Calorieën",
+            StringKey.TAB_WEIGHT to "Gewicht",
+            StringKey.TAB_MEASUREMENTS to "Maten"
         )
     )
 

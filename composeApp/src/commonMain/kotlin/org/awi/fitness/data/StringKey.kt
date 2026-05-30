@@ -310,4 +310,50 @@ enum class StringKey {
 
     // Navigation labels
     MEALS,
+
+    // Fitness Goals Bottom Sheet
+    FITNESS_GOALS_TITLE,
+    FITNESS_GOALS_SUBTITLE,
+    FITNESS_GOAL_QUESTION,
+    FITNESS_LEVEL_QUESTION,
+    START_FITNESS_JOURNEY,
+
+    // Goal names (workout)
+    GOAL_WEIGHT_LOSS,
+    GOAL_MUSCLE_GAIN,
+    GOAL_ENDURANCE,
+    GOAL_FLEXIBILITY,
+
+    // Goal descriptions
+    GOAL_WEIGHT_LOSS_DESC,
+    GOAL_MUSCLE_GAIN_DESC,
+    GOAL_ENDURANCE_DESC,
+    GOAL_FLEXIBILITY_DESC,
+
+    // Fitness levels
+    LEVEL_BEGINNER,
+    LEVEL_INTERMEDIATE,
+    LEVEL_ADVANCED,
+
+    // Gender
+    GENDER_MALE,
+    GENDER_FEMALE,
+    GENDER_OTHER,
+
+    // Activity levels
+    ACTIVITY_SEDENTARY,
+    ACTIVITY_LIGHTLY_ACTIVE,
+    ACTIVITY_MODERATELY_ACTIVE,
+    ACTIVITY_VERY_ACTIVE,
+    ACTIVITY_SUPER_ACTIVE,
+
+    // Calorie goal
+    GOAL_LOSE_WEIGHT,
+    GOAL_MAINTAIN,
+    GOAL_GAIN_MUSCLE,
+
+    // Calorie screen tabs
+    TAB_CALORIES,
+    TAB_WEIGHT,
+    TAB_MEASUREMENTS,
 } 

@@ -133,7 +133,11 @@ class CalorieCalculatorScreen() : Screen {
         val userSettings = UserSettings.getInstance()
         val languageViewModel = remember { LanguageViewModel(userSettings.settings) }
         var selectedTab by remember { mutableStateOf(0) }
-        val tabs = listOf("Calories", "Weight", "Measure")
+        val tabs = listOf(
+            languageViewModel.getString(StringKey.TAB_CALORIES),
+            languageViewModel.getString(StringKey.TAB_WEIGHT),
+            languageViewModel.getString(StringKey.TAB_MEASUREMENTS)
+        )
         val navigator = LocalNavigator.currentOrThrow
 
         Scaffold(
@@ -1010,7 +1014,8 @@ class CalorieCalculatorScreen() : Screen {
                         GenderChip(
                             gender = gender,
                             selected = gender == uiState.gender,
-                            onSelect = { onGenderSelect(gender) }
+                            onSelect = { onGenderSelect(gender) },
+                            languageViewModel = languageViewModel
                         )
                     }
                 }
@@ -1039,7 +1044,11 @@ class CalorieCalculatorScreen() : Screen {
                             modifier = Modifier.weight(1f),
                             label = {
                                 Text(
-                                    goal.name.replace("_", " "),
+                                    text = when (goal) {
+                                        Goal.LOSE_WEIGHT -> languageViewModel.getString(StringKey.GOAL_LOSE_WEIGHT)
+                                        Goal.MAINTAIN -> languageViewModel.getString(StringKey.GOAL_MAINTAIN)
+                                        Goal.GAIN_MUSCLE -> languageViewModel.getString(StringKey.GOAL_GAIN_MUSCLE)
+                                    },
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             },
@@ -1095,6 +1104,7 @@ class CalorieCalculatorScreen() : Screen {
         level: ActivityLevel,
         selected: Boolean,
         onSelect: () -> Unit,
+        languageViewModel: LanguageViewModel,
         modifier: Modifier = Modifier
     ) {
         FilterChip(
@@ -1131,7 +1141,13 @@ class CalorieCalculatorScreen() : Screen {
             },
             label = {
                 Text(
-                    text = level.name.replace("_", " "),
+                    text = when (level) {
+                        ActivityLevel.SEDENTARY -> languageViewModel.getString(StringKey.ACTIVITY_SEDENTARY)
+                        ActivityLevel.LIGHTLY_ACTIVE -> languageViewModel.getString(StringKey.ACTIVITY_LIGHTLY_ACTIVE)
+                        ActivityLevel.MODERATELY_ACTIVE -> languageViewModel.getString(StringKey.ACTIVITY_MODERATELY_ACTIVE)
+                        ActivityLevel.VERY_ACTIVE -> languageViewModel.getString(StringKey.ACTIVITY_VERY_ACTIVE)
+                        ActivityLevel.SUPER_ACTIVE -> languageViewModel.getString(StringKey.ACTIVITY_SUPER_ACTIVE)
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(horizontal = 4.dp)
                 )
@@ -1143,7 +1159,8 @@ class CalorieCalculatorScreen() : Screen {
     private fun GenderChip(
         gender: Gender,
         selected: Boolean,
-        onSelect: () -> Unit
+        onSelect: () -> Unit,
+        languageViewModel: LanguageViewModel
     ) {
         FilterChip(
             selected = selected,
@@ -1165,7 +1182,11 @@ class CalorieCalculatorScreen() : Screen {
             ),
             label = {
                 Text(
-                    text = gender.name,
+                    text = when (gender) {
+                        Gender.MALE -> languageViewModel.getString(StringKey.GENDER_MALE)
+                        Gender.FEMALE -> languageViewModel.getString(StringKey.GENDER_FEMALE)
+                        Gender.OTHER -> languageViewModel.getString(StringKey.GENDER_OTHER)
+                    },
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -1437,6 +1458,7 @@ class CalorieCalculatorScreen() : Screen {
                         level = level,
                         selected = level == selectedLevel,
                         onSelect = { onLevelSelected(level) },
+                        languageViewModel = languageViewModel,
                         modifier = Modifier.weight(1f, fill = false)
                     )
                 }

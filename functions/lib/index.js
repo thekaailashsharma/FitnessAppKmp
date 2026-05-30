@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onClientCreated = exports.testNotification = exports.onMealPlanCreated = exports.aiWeeklyMotivation = exports.inactivityNudge = exports.weighInReminder = exports.eveningReflection = exports.workoutReminder = exports.morningMealReminder = void 0;
+exports.onClientCreated = exports.onMealPlanCreated = exports.aiWeeklyMotivation = exports.inactivityNudge = exports.weighInReminder = exports.eveningReflection = exports.workoutReminder = exports.morningMealReminder = void 0;
 const admin = __importStar(require("firebase-admin"));
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const firestore_1 = require("firebase-functions/v2/firestore");
@@ -275,49 +275,7 @@ exports.onMealPlanCreated = (0, firestore_1.onDocumentWritten)({ document: "user
     const body = t(client.language, `Your ${days}-day plan with ${totalMeals} meals is set. Check out today's menu!`, `Je ${days}-dagen plan met ${totalMeals} maaltijden staat klaar. Bekijk het menu!`);
     await (0, fcm_1.sendPush)(client.fcmToken, title, body);
 });
-// ─── 8. Test Notification (bypasses all time/day checks) ─────────
-exports.testNotification = (0, scheduler_1.onSchedule)({ schedule: "every 24 hours", timeZone: "UTC", region: "europe-west1" }, async () => {
-    const snapshot = await db.collection("clients").get();
-    for (const doc of snapshot.docs) {
-        const data = doc.data();
-        if (!data.fcmToken)
-            continue;
-        if (data.status && data.status !== "Active")
-            continue;
-        const email = data.email;
-        if (!email)
-            continue;
-        let body = `Hi ${data.firstName || "there"}! This is a test notification.`;
-        // Try to include real meal data
-        const plansSnap = await db.collection("user_meal_plans")
-            .where("clientEmail", "==", email)
-            .where("isActive", "==", true)
-            .limit(1)
-            .get();
-        if (!plansSnap.empty) {
-            const planDoc = plansSnap.docs[0].data();
-            const meals = parseMealsJson(planDoc.mealsData);
-            const dayOfWeek = (0, timezone_1.jsToAppDay)((0, timezone_1.getLocalDayOfWeek)(data.timezone || "UTC"));
-            const todayMeals = meals.filter((m) => m.dayOfWeek === dayOfWeek);
-            const totalCal = todayMeals.reduce((sum, m) => sum + (m.calories || 0), 0);
-            if (todayMeals.length > 0) {
-                body = t(data.language, `${data.firstName}, you have ${todayMeals.length} meals today (${totalCal} kcal). ` +
-                    `Timezone: ${data.timezone || "not set"}. All systems working!`, `${data.firstName}, je hebt ${todayMeals.length} maaltijden vandaag (${totalCal} kcal). ` +
-                    `Tijdzone: ${data.timezone || "niet ingesteld"}. Alles werkt!`);
-            }
-        }
-        // Try to include workout data
-        const workoutSnap = await db.collection("workout_plans")
-            .where("clientEmail", "==", email)
-            .limit(1)
-            .get();
-        if (!workoutSnap.empty && plansSnap.empty) {
-            body = t(data.language, `${data.firstName}, your workout plan is ready. Timezone: ${data.timezone || "not set"}. All systems working!`, `${data.firstName}, je trainingsplan staat klaar. Tijdzone: ${data.timezone || "niet ingesteld"}. Alles werkt!`);
-        }
-        await (0, fcm_1.sendPush)(data.fcmToken, "System Check ✅", body);
-    }
-});
-// ─── 9. Welcome Email on Client Created (Firestore trigger + Nodemailer) ──
+// ─── 8. Welcome Email on Client Created (Firestore trigger + Nodemailer) ──
 const INVITE_BASE_URL = "https://fitness-website-ten-gamma.vercel.app/invite";
 exports.onClientCreated = (0, firestore_1.onDocumentCreated)({ document: "clients/{clientId}", region: "europe-west1" }, async (event) => {
     var _a;

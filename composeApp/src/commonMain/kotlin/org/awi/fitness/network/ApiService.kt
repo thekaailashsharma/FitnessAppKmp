@@ -8,7 +8,6 @@ import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
-import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HeadersBuilder
 import io.ktor.http.HttpHeaders
@@ -130,12 +129,10 @@ abstract class ApiService {
         // Proceed with the request
         val initialResponse = requestCall(token)
 
-        if (initialResponse.second == HttpStatusCode.Unauthorized && token != null) {
-            // Try to refresh the token
+        val status = initialResponse.second
+        if ((status == HttpStatusCode.Unauthorized || status == HttpStatusCode.Forbidden) && token != null) {
             val refreshResult = refreshToken()
-
             if (refreshResult.isSuccess) {
-                // Retry the original request with the new token
                 return requestCall(userSettings.authToken)
             }
         }
@@ -163,7 +160,6 @@ abstract class ApiService {
                     }
                 }
             }.let { response ->
-                println("Original Response is ${response.bodyAsText()}")
                 response.body<T>() to response.status
             }
         }, token)
@@ -220,7 +216,6 @@ abstract class ApiService {
                     }
                 }
             }.let { response ->
-                println("Original Response is ${response.bodyAsText()}")
                 response.body<T>() to response.status
             }
         }, token)
