@@ -1,10 +1,12 @@
 package org.awi.fitness.viewmodel
 
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.TimeZone
@@ -150,6 +152,17 @@ class MealPlanViewModel {
         // Auto-progress MEALS challenges when a meal is marked as eaten (not un-eaten)
         if (!wasCompleted) {
             org.awi.fitness.viewmodel.ViewModelStore.challenges.autoProgressMealChallenges()
+        }
+        // Also persist the isCompleted flag to Firestore for cross-device sync
+        val plan = _state.value.activePlan ?: return
+        val updatedMeals = plan.meals.map { meal ->
+            if (meal.id == mealId) meal.copy(isCompleted = !wasCompleted) else meal
+        }
+        val updatedPlan = plan.copy(meals = updatedMeals)
+        _state.update { it.copy(activePlan = updatedPlan) }
+        // Fire-and-forget — local state already updated above
+        kotlinx.coroutines.MainScope().launch {
+            mealPlanRepository.updatePlan(updatedPlan)
         }
     }
 

@@ -61,7 +61,10 @@ class CommunityProfileScreen(private val userId: String) : Screen {
 
         // Reset success flag
         LaunchedEffect(profileState.saveProfileSuccess) {
-            if (profileState.saveProfileSuccess) showEditSheet = false
+            if (profileState.saveProfileSuccess) {
+                showEditSheet = false
+                viewModel.resetProfileSaveSuccess()
+            }
         }
 
         if (showEditSheet && isOwnProfile) {

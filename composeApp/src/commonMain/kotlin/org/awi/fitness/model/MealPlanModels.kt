@@ -46,7 +46,8 @@ data class Meal(
     val ingredients: List<String> = emptyList(),
     val instructions: List<String> = emptyList(),
     val prepTimeMinutes: Int = 0,
-    val dietaryTags: List<String> = emptyList()
+    val dietaryTags: List<String> = emptyList(),
+    val isCompleted: Boolean = false
 )
 
 @OptIn(ExperimentalUuidApi::class)

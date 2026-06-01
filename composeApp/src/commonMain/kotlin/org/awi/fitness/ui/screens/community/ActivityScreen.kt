@@ -191,8 +191,7 @@ fun NotificationItem(
     onNotificationClick: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    var showButtons by remember { mutableStateOf(false) }
-    
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -352,7 +351,7 @@ fun NotificationItem(
                 )
                 
                 // Challenge buttons
-                if (notification.type == CommunityActivityType.CHALLENGE_INVITE && showButtons) {
+                if (notification.type == CommunityActivityType.CHALLENGE_INVITE && !notification.isRead) {
                     Spacer(modifier = Modifier.height(12.dp))
                     
                     Row(

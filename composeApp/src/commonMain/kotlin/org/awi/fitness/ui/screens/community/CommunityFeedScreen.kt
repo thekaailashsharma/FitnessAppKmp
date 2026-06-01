@@ -154,7 +154,7 @@ class CommunityFeedScreen : Screen {
                             )
                             CommunityFeedTab.FOLLOWING -> Triple(
                                 "No posts from people you follow",
-                                "Find people to follow and their updates will show up here.",
+                                state.emptyMessage ?: "Find people to follow and their updates will show up here.",
                                 "Find people" to { navigator.push(FindFriendsScreen()) }
                             )
                             CommunityFeedTab.YOU -> Triple(

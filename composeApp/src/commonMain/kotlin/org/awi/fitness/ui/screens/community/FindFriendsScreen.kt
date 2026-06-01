@@ -377,8 +377,6 @@ fun UserCard(
     onUserClick: () -> Unit,
     onFollowClick: () -> Unit
 ) {
-    var isFollowing by remember { mutableStateOf(user.isFollowing) }
-    
     FitnessCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -466,12 +464,9 @@ fun UserCard(
                 }
                 
                 // Follow button
-                if (isFollowing) {
+                if (user.isFollowing) {
                     Button(
-                        onClick = { 
-                            isFollowing = false
-                            onFollowClick() 
-                        },
+                        onClick = { onFollowClick() },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.surface,
                             contentColor = MaterialTheme.colorScheme.onSurface
@@ -488,10 +483,7 @@ fun UserCard(
                     }
                 } else {
                     Button(
-                        onClick = { 
-                            isFollowing = true
-                            onFollowClick() 
-                        },
+                        onClick = { onFollowClick() },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = GreenAccent,
                             contentColor = Color.Black

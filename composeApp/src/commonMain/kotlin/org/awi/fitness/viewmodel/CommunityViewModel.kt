@@ -21,7 +21,8 @@ data class CommunityFeedState(
     val error: String? = null,
     val posts: List<CommunityPost> = emptyList(),
     val activeFilter: String = "public", // public, friends, my_posts
-    val likedPostIds: Set<String> = emptySet()
+    val likedPostIds: Set<String> = emptySet(),
+    val emptyMessage: String? = null
 )
 
 data class PostDetailState(
@@ -110,11 +111,15 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
             val result = communityRepository.getCommunityFeed(filter)
             result.fold(
                 onSuccess = { posts ->
+                    val emptyMessage = if (posts.isEmpty() && filter == "friends") {
+                        "Follow people to see their posts here"
+                    } else null
                     mutableState.update {
                         it.copy(
                             isLoading = false,
                             posts = posts,
-                            activeFilter = filter
+                            activeFilter = filter,
+                            emptyMessage = emptyMessage
                         )
                     }
                     // Load liked post IDs for accurate heart state
@@ -165,7 +170,6 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
                     }
                     _postDetailState.update { state ->
                         if (state.post?.id == postId) {
-                            val nowLikedInDetail = state.likedByMe != nowLiked
                             state.copy(
                                 post = state.post.copy(
                                     likes = (state.post.likes + if (nowLiked) 1 else -1).coerceAtLeast(0)
@@ -177,7 +181,9 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
                         }
                     }
                 },
-                onFailure = { /* silently ignore */ }
+                onFailure = { error ->
+                    mutableState.update { it.copy(error = "Failed to update like. Please try again.") }
+                }
             )
         } catch (_: Exception) { }
     }
@@ -264,11 +270,11 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
                     }
                 },
                 onFailure = { error ->
-                    // Handle error
+                    _postDetailState.update { it.copy(error = "Failed to post comment. Please try again.") }
                 }
             )
         } catch (e: Exception) {
-            // Handle exception
+            _postDetailState.update { it.copy(error = "Failed to post comment: ${e.message}") }
         }
     }
     
@@ -458,14 +464,25 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
                     }
                 },
                 onFailure = { error ->
-                    // Handle error
+                    // Revert optimistic update — the backend failed, undo the isFollowing change
+                    _findFriendsState.update { state ->
+                        val revertedUsers = state.suggestedUsers.map { user ->
+                            if (user.id == userId) user.copy(isFollowing = false) else user
+                        }
+                        state.copy(suggestedUsers = revertedUsers, error = "Failed to follow user. Please try again.")
+                    }
                 }
             )
         } catch (e: Exception) {
-            // Handle exception
+            _findFriendsState.update { state ->
+                val revertedUsers = state.suggestedUsers.map { user ->
+                    if (user.id == userId) user.copy(isFollowing = false) else user
+                }
+                state.copy(suggestedUsers = revertedUsers, error = "Failed to follow user: ${e.message}")
+            }
         }
     }
-    
+
     // Activity actions
     suspend fun loadActivityNotifications() {
         _activityState.update { it.copy(isLoading = true, error = null) }
@@ -612,6 +629,10 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
         } catch (e: Exception) {
             _profileState.update { it.copy(isSavingProfile = false, error = e.message) }
         }
+    }
+
+    fun resetProfileSaveSuccess() {
+        _profileState.update { it.copy(saveProfileSuccess = false) }
     }
 
     suspend fun toggleFollowUser(userId: String) {
