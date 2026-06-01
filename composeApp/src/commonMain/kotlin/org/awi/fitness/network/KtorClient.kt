@@ -19,6 +19,7 @@ object KtorClient {
                 isLenient = true
                 ignoreUnknownKeys = true
                 encodeDefaults = true
+                explicitNulls = false
             })
         }
 
@@ -34,7 +35,7 @@ object KtorClient {
                     println("HTTP Client: $message")
                 }
             }
-            level = LogLevel.ALL
+            level = LogLevel.HEADERS
             sanitizeHeader { header -> header == "Authorization" }
         }
     }

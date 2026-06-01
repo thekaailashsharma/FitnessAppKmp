@@ -1,5 +1,6 @@
 package org.awi.fitness.model
 
+import org.awi.fitness.utils.currentTimeMillis
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
@@ -56,7 +57,7 @@ data class AvatarMessage(
     val id: String,
     val content: String,
     val isFromAvatar: Boolean,
-    val timestamp: Instant = Clock.System.now(),
+    val timestamp: Instant = kotlinx.datetime.Instant.fromEpochMilliseconds(currentTimeMillis()),
     val mood: AvatarMood? = null // Only applicable for avatar messages
 )
 

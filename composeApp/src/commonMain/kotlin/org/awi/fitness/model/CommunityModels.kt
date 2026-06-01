@@ -1,7 +1,7 @@
 package org.awi.fitness.model
 
+import org.awi.fitness.utils.currentTimeMillis
 import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -14,7 +14,7 @@ data class CommunityPost(
     val content: String = "",
     val imageUrl: String? = null,
     val workoutCategory: WorkoutCategory? = null,
-    val timestamp: Long = Clock.System.now().toEpochMilliseconds(),
+    val timestamp: Long = currentTimeMillis(),
     val likes: Int = 0,
     val comments: Int = 0,
     val calories: Int? = null,
@@ -33,7 +33,7 @@ data class CommunityComment(
     val userName: String = "",
     val userProfileImage: String? = null,
     val content: String = "",
-    val timestamp: Long = Clock.System.now().toEpochMilliseconds()
+    val timestamp: Long = currentTimeMillis()
 )
 
 @Serializable
@@ -42,6 +42,7 @@ data class CommunityUser(
     val name: String = "",
     val username: String = "",
     val profileImage: String? = null,
+    val bio: String? = null,
     val streakDays: Int = 0,
     val level: Int = 1,
     val badges: List<Badge> = emptyList(),
@@ -58,7 +59,7 @@ data class ActivityNotification(
     val userProfileImage: String? = null,
     val targetId: String = "", // postId or commentId
     val targetContent: String = "",
-    val timestamp: Long = Clock.System.now().toEpochMilliseconds(),
+    val timestamp: Long = currentTimeMillis(),
     val isRead: Boolean = false
 )
 
@@ -100,7 +101,7 @@ data class CommunityPostFirestoreFields(
     @SerialName("workoutCategory")
     val workoutCategory: StringValue? = null,
     @SerialName("timestamp")
-    val timestamp: LongValue? = null,
+    val timestamp: IntegerValue? = null,
     @SerialName("likes")
     val likes: IntegerValue? = null,
     @SerialName("comments")
@@ -113,8 +114,6 @@ data class CommunityPostFirestoreFields(
     val duration: IntegerValue? = null,
     @SerialName("isPersonalBest")
     val isPersonalBest: BooleanValue? = null,
-    @SerialName("badges")
-    val badges: ArrayValue? = null,
     @SerialName("streakDays")
     val streakDays: IntegerValue? = null
 )
@@ -139,7 +138,7 @@ data class CommunityCommentFirestoreFields(
     @SerialName("content")
     val content: StringValue? = null,
     @SerialName("timestamp")
-    val timestamp: LongValue? = null
+    val timestamp: IntegerValue? = null
 )
 
 @Serializable
@@ -164,9 +163,11 @@ data class ActivityNotificationFirestoreFields(
     @SerialName("targetContent")
     val targetContent: StringValue? = null,
     @SerialName("timestamp")
-    val timestamp: LongValue? = null,
+    val timestamp: IntegerValue? = null,
     @SerialName("isRead")
-    val isRead: BooleanValue? = null
+    val isRead: BooleanValue? = null,
+    @SerialName("targetUserId")
+    val targetUserId: StringValue? = null
 )
 
 @Serializable
@@ -185,16 +186,13 @@ fun CommunityPost.toFirestoreRequest(): CommunityPostFirestoreRequest {
             content = StringValue(content),
             imageUrl = imageUrl?.let { StringValue(it) },
             workoutCategory = workoutCategory?.let { StringValue(it.name) },
-            timestamp = LongValue(timestamp),
+            timestamp = IntegerValue(timestamp.toString()),
             likes = IntegerValue(likes.toString()),
             comments = IntegerValue(comments.toString()),
             calories = calories?.let { IntegerValue(it.toString()) },
             steps = steps?.let { IntegerValue(it.toString()) },
             duration = duration?.let { IntegerValue(it.toString()) },
             isPersonalBest = BooleanValue(isPersonalBest),
-            badges = if (badges.isNotEmpty()) {
-                ArrayValue(badges.map { StringValue(it) })
-            } else null,
             streakDays = streakDays?.let { IntegerValue(it.toString()) }
         )
     )
@@ -209,7 +207,7 @@ fun CommunityComment.toFirestoreRequest(): CommunityCommentFirestoreRequest {
             userName = StringValue(userName),
             userProfileImage = userProfileImage?.let { StringValue(it) },
             content = StringValue(content),
-            timestamp = LongValue(timestamp)
+            timestamp = IntegerValue(timestamp.toString())
         )
     )
 }
@@ -224,7 +222,7 @@ fun ActivityNotification.toFirestoreRequest(): ActivityNotificationFirestoreRequ
             userProfileImage = userProfileImage?.let { StringValue(it) },
             targetId = StringValue(targetId),
             targetContent = StringValue(targetContent),
-            timestamp = LongValue(timestamp),
+            timestamp = IntegerValue(timestamp.toString()),
             isRead = BooleanValue(isRead)
         )
     )
@@ -239,16 +237,18 @@ fun FirestoreDocument<CommunityPostFirestoreFields>.toCommunityPost(): Community
         userName = fields?.userName?.value ?: "",
         userProfileImage = fields?.userProfileImage?.value,
         content = fields?.content?.value ?: "",
-        imageUrl = fields?.imageUrl?.value,
-        workoutCategory = fields?.workoutCategory?.value?.let { WorkoutCategory.valueOf(it) },
-        timestamp = fields?.timestamp?.value ?: Clock.System.now().toEpochMilliseconds(),
+        imageUrl = fields?.imageUrl?.value?.takeIf { it.isNotEmpty() },
+        workoutCategory = fields?.workoutCategory?.value?.let {
+            runCatching { WorkoutCategory.valueOf(it) }.getOrNull()
+        },
+        timestamp = fields?.timestamp?.value?.toLongOrNull() ?: currentTimeMillis(),
         likes = fields?.likes?.value?.toIntOrNull() ?: 0,
         comments = fields?.comments?.value?.toIntOrNull() ?: 0,
         calories = fields?.calories?.value?.toIntOrNull(),
         steps = fields?.steps?.value?.toIntOrNull(),
         duration = fields?.duration?.value?.toIntOrNull(),
         isPersonalBest = fields?.isPersonalBest?.value ?: false,
-        badges = fields?.badges?.values?.map { it.value } ?: emptyList(),
+        badges = emptyList(),
         streakDays = fields?.streakDays?.value?.toIntOrNull()
     )
 }
@@ -260,9 +260,9 @@ fun FirestoreDocument<CommunityCommentFirestoreFields>.toCommunityComment(): Com
         postId = fields?.postId?.value ?: "",
         userId = fields?.userId?.value ?: "",
         userName = fields?.userName?.value ?: "",
-        userProfileImage = fields?.userProfileImage?.value,
+        userProfileImage = fields?.userProfileImage?.value?.takeIf { it.isNotEmpty() },
         content = fields?.content?.value ?: "",
-        timestamp = fields?.timestamp?.value ?: Clock.System.now().toEpochMilliseconds()
+        timestamp = fields?.timestamp?.value?.toLongOrNull() ?: currentTimeMillis()
     )
 }
 
@@ -270,13 +270,15 @@ fun FirestoreDocument<ActivityNotificationFirestoreFields>.toActivityNotificatio
     val documentId = name?.split("/")?.last() ?: ""
     return ActivityNotification(
         id = documentId,
-        type = fields?.type?.value?.let { CommunityActivityType.valueOf(it) } ?: CommunityActivityType.LIKE,
+        type = fields?.type?.value?.let {
+            runCatching { CommunityActivityType.valueOf(it) }.getOrNull()
+        } ?: CommunityActivityType.LIKE,
         userId = fields?.userId?.value ?: "",
         userName = fields?.userName?.value ?: "",
-        userProfileImage = fields?.userProfileImage?.value,
+        userProfileImage = fields?.userProfileImage?.value?.takeIf { it.isNotEmpty() },
         targetId = fields?.targetId?.value ?: "",
         targetContent = fields?.targetContent?.value ?: "",
-        timestamp = fields?.timestamp?.value ?: Clock.System.now().toEpochMilliseconds(),
+        timestamp = fields?.timestamp?.value?.toLongOrNull() ?: currentTimeMillis(),
         isRead = fields?.isRead?.value ?: false
     )
 }

@@ -14,9 +14,9 @@ class WorkoutRepository : ApiService() {
     suspend fun getAllWorkoutPlans(): Result<List<WorkoutPlanWithExercises>> {
         return try {
             val token = userSettings.authToken ?: return Result.failure(Exception("Not authenticated"))
-            val url = "https://firestore.googleapis.com/v1/projects/$PROJECT_ID/databases/(default)/documents/workout_plans"
-            
-            val (plansResponse, plansStatus) = get<FirestoreListResponse<WorkoutPlanFields>>(url, token)
+
+            val plansUrl = "https://firestore.googleapis.com/v1/projects/$PROJECT_ID/databases/(default)/documents/workout_plans"
+            val (plansResponse, plansStatus) = get<FirestoreListResponse<WorkoutPlanFields>>(plansUrl, token)
             println("Plans response: $plansResponse")
 
             if (!plansStatus.isSuccess()) {
@@ -24,24 +24,25 @@ class WorkoutRepository : ApiService() {
             }
 
             val plans = plansResponse.documents?.map { it.toWorkoutPlan() } ?: emptyList()
-            val plansWithExercises = mutableListOf<WorkoutPlanWithExercises>()
 
-            // For each plan, fetch its exercises
-            for (plan in plans) {
-                val exercisesUrl = "https://firestore.googleapis.com/v1/projects/$PROJECT_ID/databases/(default)/documents/exercises"
-                val (exercisesResponse, exercisesStatus) = get<FirestoreListResponse<ExerciseFields>>(exercisesUrl, token)
+            // Fetch all exercises once, then group by planId
+            val exercisesUrl = "https://firestore.googleapis.com/v1/projects/$PROJECT_ID/databases/(default)/documents/exercises"
+            val (exercisesResponse, exercisesStatus) = get<FirestoreListResponse<ExerciseFields>>(exercisesUrl, token)
 
-                if (!exercisesStatus.isSuccess()) {
-                    return Result.failure(Exception("Failed to fetch exercises for plan: ${plan.id}"))
-                }
+            if (!exercisesStatus.isSuccess()) {
+                return Result.failure(Exception("Failed to fetch exercises"))
+            }
 
-                val exercises = exercisesResponse.documents
-                    ?.map { it.toExercise() }
-                    ?.filter { it.planId == plan.id }
-                    ?.sortedBy { it.orderInDay }
-                    ?: emptyList()
+            val allExercises = exercisesResponse.documents
+                ?.map { it.toExercise() }
+                ?: emptyList()
 
-                plansWithExercises.add(WorkoutPlanWithExercises(plan, exercises))
+            val exercisesByPlanId = allExercises.groupBy { it.planId }
+
+            val plansWithExercises = plans.map { plan ->
+                val exercises = (exercisesByPlanId[plan.id] ?: emptyList())
+                    .sortedWith(compareBy({ it.dayOfWeek }, { it.orderInDay }))
+                WorkoutPlanWithExercises(plan, exercises)
             }
 
             Result.success(plansWithExercises)
@@ -244,7 +245,8 @@ class WorkoutRepository : ApiService() {
 
     // Helper functions to convert Firestore documents to models
     private fun FirestoreDocument<WorkoutPlanFields>.toWorkoutPlan(): WorkoutPlan {
-        return fields?.toDomainModel() ?: WorkoutPlan()
+        val documentId = name?.split("/")?.last() ?: ""
+        return fields?.toDomainModel(documentId) ?: WorkoutPlan(id = documentId)
     }
 
     private fun FirestoreDocument<ExerciseFields>.toExercise(): Exercise {

@@ -25,25 +25,21 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import org.awi.fitness.model.*
-import org.awi.fitness.viewmodel.WorkoutViewModel
 import kotlinx.coroutines.launch
 import org.awi.fitness.data.StringKey
-import org.awi.fitness.data.UserSettings
 import org.awi.fitness.utils.fitnessTips
 import org.awi.fitness.utils.topFiveTips
 import org.awi.fitness.viewmodel.LanguageViewModel
-import org.awi.fitness.model.ConversationTrigger
+import org.awi.fitness.viewmodel.LocalLanguageViewModel
+import org.awi.fitness.viewmodel.LocalWorkoutViewModel
 import org.awi.fitness.ui.components.CitationSection
-import org.awi.fitness.ui.components.WorkoutCompletionBottomSheet
-import org.awi.fitness.ui.screens.avatar.AvatarScreen
 import org.awi.fitness.utils.Citations
 
 class WorkoutScreen : Screen {
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
-        val userSettings = UserSettings.getInstance()
-        val viewModel = remember { WorkoutViewModel() }
+        val viewModel = LocalWorkoutViewModel.current
         val uiState by viewModel.state.collectAsState()
         val coroutineScope = rememberCoroutineScope()
         var showGoalsSheet by remember { mutableStateOf(false) }
@@ -52,10 +48,10 @@ class WorkoutScreen : Screen {
         var showListView by remember { mutableStateOf(false) }
         var isDeleting by remember { mutableStateOf(false) }
         var showWorkoutCompletionSheet by remember { mutableStateOf(false) }
-        val languageViewModel = remember { LanguageViewModel(userSettings.settings) }
+        val languageViewModel = LocalLanguageViewModel.current
 
         LaunchedEffect(Unit) {
-            viewModel.loadWorkoutPlans()
+            viewModel.loadIfNeeded()
         }
 
         if (showDeleteConfirmation != null) {
@@ -64,7 +60,7 @@ class WorkoutScreen : Screen {
                 title = { Text(languageViewModel.getString(StringKey.DELETE_WORKOUT_PLAN)) },
                 text = { 
                     Column {
-                        Text(languageViewModel.getString(StringKey.ARE_YOU_SURE_DELETE_WORKOUT))
+                        Text(languageViewModel.getString(StringKey.DELETE_WORKOUT_CONFIRM))
                         if (isDeleting) {
                             Spacer(modifier = Modifier.height(16.dp))
                             LinearProgressIndicator(
@@ -122,28 +118,25 @@ class WorkoutScreen : Screen {
                 )
                 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(
-                        onClick = { showListView = !showListView },
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.primary
-                        )
-                    ) {
+                    IconButton(onClick = { showListView = !showListView }) {
                         Icon(
                             imageVector = if (showListView) TablerIcons.LayoutGrid else TablerIcons.LayoutList,
-                            contentDescription = if (showListView) languageViewModel.getString(StringKey.SHOW_GRID) else languageViewModel.getString(StringKey.SHOW_LIST)
+                            contentDescription = if (showListView) languageViewModel.getString(StringKey.SHOW_GRID) else languageViewModel.getString(StringKey.SHOW_LIST),
+                            tint = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(if (showListView) languageViewModel.getString(StringKey.SHOW_GRID) else languageViewModel.getString(StringKey.SHOW_LIST))
                     }
-                    
                     IconButton(
-                        onClick = { showGoalsSheet = !showGoalsSheet }
+                        onClick = {
+                            viewModel.resetPlanSelection()
+                            showGoalsSheet = true
+                        }
                     ) {
                         Icon(
                             imageVector = TablerIcons.Plus,
-                            contentDescription = languageViewModel.getString(StringKey.ADD_NEW_PLAN),
+                            contentDescription = "Add New Plan",
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -227,34 +220,81 @@ class WorkoutScreen : Screen {
                         // Selected Plan Content
                         if (selectedPlanIndex < sortedPlans.size) {
                             val selectedPlan = sortedPlans[selectedPlanIndex]
-                            val exercisesForDay = selectedPlan.exercises.sortedBy { it.orderInDay }
-                            
+                            val availableDays = selectedPlan.exercises
+                                .map { it.dayOfWeek }
+                                .distinct()
+                                .sorted()
+                            var selectedDay by remember(selectedPlan.plan.id) {
+                                mutableStateOf(availableDays.firstOrNull() ?: 1)
+                            }
+                            val dayNames = listOf("", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+                            val exercisesForDay = selectedPlan.exercises
+                                .filter { it.dayOfWeek == selectedDay }
+                                .sortedWith(compareBy({ it.isCompleted }, { it.orderInDay }))
+
                             LazyColumn(
                                 verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
+                                if (availableDays.size > 1) {
+                                    item {
+                                        LazyRow(
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 2.dp)
+                                        ) {
+                                            items(availableDays) { day ->
+                                                val dayLabel = if (day in 1..7) dayNames[day] else "Day $day"
+                                                val dayExercises = selectedPlan.exercises.filter { it.dayOfWeek == day }
+                                                val allDone = dayExercises.isNotEmpty() && dayExercises.all { it.isCompleted }
+                                                FilterChip(
+                                                    selected = selectedDay == day,
+                                                    onClick = { selectedDay = day },
+                                                    label = {
+                                                        Text(
+                                                            text = if (allDone) "✓ $dayLabel" else dayLabel,
+                                                            style = MaterialTheme.typography.labelMedium
+                                                        )
+                                                    },
+                                                    colors = FilterChipDefaults.filterChipColors(
+                                                        selectedContainerColor = if (allDone)
+                                                            org.awi.fitness.theme.GreenAccent.copy(alpha = 0.18f)
+                                                        else
+                                                            MaterialTheme.colorScheme.primaryContainer,
+                                                        selectedLabelColor = if (allDone)
+                                                            org.awi.fitness.theme.GreenAccent
+                                                        else
+                                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                                    )
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
                                 if (exercisesForDay.isNotEmpty()) {
                                     item {
                                         EnhancedWorkoutCard(
                                             workoutPlan = selectedPlan.plan,
-                                            exercises = exercisesForDay.sortedWith(
-                                                compareBy({ it.isCompleted }, { it.orderInDay })
-                                            ),
-                                            onExerciseClick = { 
-                                                // Navigate to progress screen
-                                            },
+                                            exercises = exercisesForDay,
+                                            onExerciseClick = { },
                                             onCompleteClick = { exercise, completed ->
                                                 coroutineScope.launch {
                                                     viewModel.setExerciseCompleted(exercise, completed)
-                                                    // Wait a bit for state to update, then check if all exercises completed
+                                                    // Check if all exercises in this day are done
                                                     kotlinx.coroutines.delay(300)
-                                                    val updatedState = viewModel.state.value
-                                                    val updatedPlan = updatedState.workoutPlans.firstOrNull { 
-                                                        it.plan.id == selectedPlan.plan.id 
-                                                    }
-                                                    if (updatedPlan != null && completed && updatedPlan.exercises.isNotEmpty()) {
-                                                        val allCompleted = updatedPlan.exercises.all { it.isCompleted }
-                                                        if (allCompleted) {
+                                                    val updated = viewModel.state.value.workoutPlans
+                                                        .firstOrNull { it.plan.id == selectedPlan.plan.id }
+                                                    if (updated != null && completed) {
+                                                        val dayDone = updated.exercises
+                                                            .filter { it.dayOfWeek == selectedDay }
+                                                            .all { it.isCompleted }
+                                                        if (dayDone) {
                                                             showWorkoutCompletionSheet = true
+                                                            // Record workout completion for streak and XP
+                                                            org.awi.fitness.data.UserSettings.getInstance()
+                                                                .recordWorkoutCompleted()
+                                                            // Auto-progress WORKOUTS-type active challenges
+                                                            org.awi.fitness.viewmodel.ViewModelStore.challenges
+                                                                .autoProgressWorkoutChallenges()
                                                         }
                                                     }
                                                 }
@@ -265,9 +305,7 @@ class WorkoutScreen : Screen {
 
                                     item {
                                         ExerciseDetailsCard(
-                                            exercises = exercisesForDay.sortedWith(
-                                                compareBy({ it.isCompleted }, { it.orderInDay })
-                                            ),
+                                            exercises = exercisesForDay,
                                             languageViewModel = languageViewModel
                                         )
                                     }
@@ -277,6 +315,12 @@ class WorkoutScreen : Screen {
                                             tips = fitnessTips.topFiveTips(),
                                             difficulty = selectedPlan.plan.difficulty,
                                             languageViewModel = languageViewModel
+                                        )
+                                    }
+                                } else {
+                                    item {
+                                        RestDayCard(
+                                            activeChallenges = org.awi.fitness.viewmodel.ViewModelStore.challenges.state.value.activeChallenges
                                         )
                                     }
                                 }
@@ -301,11 +345,11 @@ class WorkoutScreen : Screen {
         }
 
         if (showWorkoutCompletionSheet) {
-            WorkoutCompletionBottomSheet(
+            org.awi.fitness.ui.components.WorkoutCompletionBottomSheet(
                 onChatWithBuddy = {
                     showWorkoutCompletionSheet = false
                     coroutineScope.launch {
-                        navigator.push(AvatarScreen(ConversationTrigger.WORKOUT_COMPLETED))
+                        navigator.push(org.awi.fitness.ui.screens.avatar.AvatarScreen(org.awi.fitness.model.ConversationTrigger.WORKOUT_COMPLETED))
                     }
                 },
                 onDismiss = { showWorkoutCompletionSheet = false }
@@ -367,7 +411,7 @@ private fun WorkoutPlanCard(
                 ) {
                     Icon(
                         imageVector = TablerIcons.Trash,
-                        contentDescription = languageViewModel.getString(StringKey.DELETE_PLAN),
+                        contentDescription = "Delete Plan",
                         tint = if (isSelected)
                             MaterialTheme.colorScheme.error
                         else
@@ -418,7 +462,7 @@ private fun WorkoutPlanCard(
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
-                        text = "${plan.duration} weeks",
+                        text = "${plan.duration} ${languageViewModel.getString(StringKey.WEEKS)}",
                         style = MaterialTheme.typography.labelSmall,
                         color = if (isSelected)
                             MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
@@ -460,13 +504,13 @@ private fun EmptyWorkoutState(
         Spacer(modifier = Modifier.height(16.dp))
         
         Text(
-            text = languageViewModel.getString(StringKey.NO_WORKOUT_PLAN_YET),
+            text = languageViewModel.getString(StringKey.NO_WORKOUT_PLAN),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onBackground
         )
         
         Text(
-            text = languageViewModel.getString(StringKey.SET_UP_FITNESS_GOALS_PLAN),
+            text = languageViewModel.getString(StringKey.NO_WORKOUT_PLAN_DESC),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
         )
@@ -686,6 +730,8 @@ private fun WorkoutTipsCard(
                         text = difficulty.name.lowercase().replaceFirstChar { it.uppercase() },
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -765,7 +811,7 @@ private fun EnhancedWorkoutCard(
                 IconButton(onClick = onExerciseClick) {
                     Icon(
                         imageVector = TablerIcons.PlayerPlay,
-                        contentDescription = languageViewModel.getString(StringKey.START_WORKOUT),
+                        contentDescription = "Start Workout",
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(32.dp)
                     )
@@ -787,7 +833,13 @@ private fun EnhancedWorkoutCard(
                 WorkoutStat(
                     icon = TablerIcons.ShieldCheck,
                     label = languageViewModel.getString(StringKey.CATEGORY),
-                    value = workoutPlan.category.name.lowercase().replaceFirstChar { it.uppercase() }
+                    value = languageViewModel.getString(when (workoutPlan.category) {
+                        WorkoutCategory.STRENGTH -> StringKey.STRENGTH
+                        WorkoutCategory.CARDIO -> StringKey.CARDIO
+                        WorkoutCategory.HIIT -> StringKey.HIIT
+                        WorkoutCategory.FLEXIBILITY -> StringKey.FLEXIBILITY
+                        WorkoutCategory.YOGA -> StringKey.YOGA
+                    })
                 )
                 WorkoutStat(
                     icon = TablerIcons.Walk,
@@ -1038,7 +1090,7 @@ private fun WorkoutPlanListCard(
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
-                                text = "${plan.duration} weeks",
+                                text = "${plan.duration} ${languageViewModel.getString(StringKey.WEEKS)}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (isSelected)
                                     MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
@@ -1062,6 +1114,8 @@ private fun WorkoutPlanListCard(
                                     MaterialTheme.colorScheme.onPrimaryContainer
                                 else
                                     MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }
@@ -1076,7 +1130,7 @@ private fun WorkoutPlanListCard(
             ) {
                 Icon(
                     imageVector = TablerIcons.Trash,
-                    contentDescription = languageViewModel.getString(StringKey.DELETE_PLAN),
+                    contentDescription = "Delete Plan",
                     tint = if (isSelected)
                         MaterialTheme.colorScheme.error
                     else
@@ -1086,4 +1140,92 @@ private fun WorkoutPlanListCard(
             }
         }
     }
-} 
+}
+
+@Composable
+private fun RestDayCard(activeChallenges: List<org.awi.fitness.model.Challenge>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "🧘",
+            style = MaterialTheme.typography.displayMedium
+        )
+        Text(
+            text = "Rest Day",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Text(
+            text = "Recovery is part of the process.\nYour muscles grow when you rest.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+
+        if (activeChallenges.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        "Active Challenges",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                    )
+                    activeChallenges.take(2).forEach { challenge ->
+                        val progress = if (challenge.target > 0)
+                            challenge.progress.toFloat() / challenge.target.toFloat()
+                        else 0f
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                challenge.iconName.takeIf { it.isNotBlank() } ?: "🏆",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    challenge.title,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                LinearProgressIndicator(
+                                    progress = { progress.coerceIn(0f, 1f) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(4.dp)
+                                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp)),
+                                    color = org.awi.fitness.theme.GreenAccent,
+                                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            }
+                            Text(
+                                "${challenge.progress}/${challenge.target}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

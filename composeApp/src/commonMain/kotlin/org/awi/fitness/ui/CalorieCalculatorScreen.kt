@@ -1,5 +1,6 @@
 package org.awi.fitness.ui
 
+import org.awi.fitness.utils.currentTimeMillis
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
@@ -412,7 +413,7 @@ class CalorieCalculatorScreen() : Screen {
                                         settings.addWeighIn(
                                             WeighInEntry(
                                                 weight = weightValue,
-                                                date = Clock.System.now().epochSeconds,
+                                                date = currentTimeMillis() / 1000L,
                                                 note = note
                                             )
                                         )
@@ -740,7 +741,7 @@ class CalorieCalculatorScreen() : Screen {
                                                 waist = waistValue,
                                                 hips = hipsValue,
                                                 arms = armsValue,
-                                                date = Clock.System.now().epochSeconds,
+                                                date = currentTimeMillis() / 1000L,
                                                 note = note
                                             )
                                         )

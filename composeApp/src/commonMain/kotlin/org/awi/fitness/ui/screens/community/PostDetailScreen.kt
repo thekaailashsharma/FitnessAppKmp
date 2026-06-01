@@ -155,37 +155,20 @@ class PostDetailScreen(private val postId: String) : Screen {
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             // Profile image
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(48.dp)
-                                                    .clip(CircleShape)
-                                                    .clickable {
-                                                        navigator.push(CommunityProfileScreen(post.userId))
-                                                    }
-                                            ) {
-                                                if (post.userProfileImage != null) {
-                                                    ImagePlaceholder(
-                                                        url = post.userProfileImage,
-                                                        contentDescription = "Profile Image",
-                                                        contentScale = ContentScale.Crop,
-                                                        modifier = Modifier.fillMaxSize(),
-                                                        showInitial = true,
-                                                        initial = post.userName
-                                                    )
-                                                } else {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .fillMaxSize()
-                                                            .background(MaterialTheme.colorScheme.primary),
-                                                        contentAlignment = Alignment.Center
-                                                    ) {
-                                                        Text(
-                                                            text = post.userName.first().toString(),
-                                                            color = MaterialTheme.colorScheme.onPrimary
-                                                        )
-                                                    }
+                                        Box(
+                                            modifier = Modifier
+                                                .size(48.dp)
+                                                .clip(CircleShape)
+                                                .clickable {
+                                                    navigator.push(CommunityProfileScreen(post.userId))
                                                 }
-                                            }
+                                        ) {
+                                            CommunityAvatar(
+                                                name = post.userName.ifBlank { post.userId },
+                                                imageUrl = post.userProfileImage,
+                                                size = 48.dp
+                                            )
+                                        }
                                             
                                             Spacer(modifier = Modifier.width(12.dp))
                                             
@@ -269,28 +252,27 @@ class PostDetailScreen(private val postId: String) : Screen {
                                         Spacer(modifier = Modifier.height(12.dp))
                                         
                                         // Action buttons
-                                        var liked by remember { mutableStateOf(false) }
-                                        
+                                        val likedByMe = postDetailState.likedByMe
+
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.SpaceEvenly
                                         ) {
                                             ActionButton(
                                                 icon = TablerIcons.Heart,
-                                                text = "${post.likes} Cheers",
+                                                text = if (post.likes > 0) "${post.likes} Cheers" else "Cheer",
                                                 onClick = {
-                                                    liked = !liked
                                                     coroutineScope.launch {
                                                         viewModel.likePost(post.id)
                                                     }
                                                 },
-                                                tint = if (liked) GreenAccent else MaterialTheme.colorScheme.onSurface
+                                                tint = if (likedByMe) GreenAccent else MaterialTheme.colorScheme.onSurface
                                             )
-                                            
+
                                             ActionButton(
                                                 icon = TablerIcons.Share,
                                                 text = "Share",
-                                                onClick = { /* Handle share click */ }
+                                                onClick = { /* Share not yet implemented */ }
                                             )
                                         }
                                     }
@@ -411,28 +393,11 @@ fun CommentItem(
                 .clip(CircleShape)
                 .clickable { onUserClick() }
         ) {
-            if (comment.userProfileImage != null) {
-                ImagePlaceholder(
-                    url = comment.userProfileImage,
-                    contentDescription = "Profile Image",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                    showInitial = true,
-                    initial = comment.userName
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.primary),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = comment.userName.first().toString(),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
-            }
+            CommunityAvatar(
+                name = comment.userName,
+                imageUrl = comment.userProfileImage,
+                size = 40.dp
+            )
         }
         
         Spacer(modifier = Modifier.width(12.dp))

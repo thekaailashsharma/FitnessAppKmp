@@ -19,6 +19,7 @@ import org.awi.fitness.viewmodel.WorkoutViewModel
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import kotlinx.coroutines.launch
 import org.awi.fitness.data.StringKey
 import org.awi.fitness.viewmodel.LanguageViewModel
@@ -29,7 +30,7 @@ fun UserFitnessGoalsBottomSheet(
     languageViewModel: LanguageViewModel,
     viewModel: WorkoutViewModel,
     onGoalsSet: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     var selectedGoal by remember { mutableStateOf<FitnessGoal?>(null) }
     var fitnessLevel by remember { mutableStateOf<FitnessLevel?>(null) }
@@ -75,25 +76,25 @@ fun UserFitnessGoalsBottomSheet(
                 ) {
                     Column {
                         Text(
-                            "Set Your Fitness Goals",
+                            languageViewModel.getString(StringKey.FITNESS_GOALS_TITLE),
                             style = MaterialTheme.typography.headlineMedium,
                             color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
-                            "Let's create a personalized plan for you",
+                            languageViewModel.getString(StringKey.FITNESS_GOALS_SUBTITLE),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                         )
                     }
                 }
 
-                GoalSelectionSection(selectedGoal, onGoalSelected = { selectedGoal = it })
+                GoalSelectionSection(selectedGoal, onGoalSelected = { selectedGoal = it }, languageViewModel = languageViewModel)
                 
                 AnimatedVisibility(
                     visible = selectedGoal != null,
                     enter = fadeIn() + slideInHorizontally()
                 ) {
-                    FitnessLevelSection(fitnessLevel, onLevelSelected = { fitnessLevel = it })
+                    FitnessLevelSection(fitnessLevel, onLevelSelected = { fitnessLevel = it }, languageViewModel = languageViewModel)
                 }
 
                 AnimatedVisibility(
@@ -134,7 +135,7 @@ fun UserFitnessGoalsBottomSheet(
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Text("Start My Fitness Journey")
+                        Text(languageViewModel.getString(StringKey.START_FITNESS_JOURNEY))
                     }
                 }
             }
@@ -186,11 +187,12 @@ fun UserFitnessGoalsBottomSheet(
 @Composable
 private fun GoalSelectionSection(
     selectedGoal: FitnessGoal?,
-    onGoalSelected: (FitnessGoal) -> Unit
+    onGoalSelected: (FitnessGoal) -> Unit,
+    languageViewModel: LanguageViewModel
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(
-            "What's your primary fitness goal?",
+            languageViewModel.getString(StringKey.FITNESS_GOAL_QUESTION),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground
         )
@@ -200,7 +202,8 @@ private fun GoalSelectionSection(
                 GoalCard(
                     goal = goal,
                     isSelected = goal == selectedGoal,
-                    onClick = { onGoalSelected(goal) }
+                    onClick = { onGoalSelected(goal) },
+                    languageViewModel = languageViewModel
                 )
             }
         }
@@ -211,16 +214,17 @@ private fun GoalSelectionSection(
 private fun GoalCard(
     goal: FitnessGoal,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    languageViewModel: LanguageViewModel
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) 
-                MaterialTheme.colorScheme.primaryContainer 
-            else 
+            containerColor = if (isSelected)
+                MaterialTheme.colorScheme.primaryContainer
+            else
                 MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
@@ -239,26 +243,36 @@ private fun GoalCard(
                     FitnessGoal.FLEXIBILITY -> TablerIcons.BallVolleyball
                 },
                 contentDescription = null,
-                tint = if (isSelected) 
-                    MaterialTheme.colorScheme.onPrimaryContainer 
-                else 
+                tint = if (isSelected)
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                else
                     MaterialTheme.colorScheme.onSurfaceVariant
             )
             Column {
                 Text(
-                    text = goal.name.replace("_", " "),
+                    text = when (goal) {
+                        FitnessGoal.WEIGHT_LOSS -> languageViewModel.getString(StringKey.GOAL_WEIGHT_LOSS)
+                        FitnessGoal.MUSCLE_GAIN -> languageViewModel.getString(StringKey.GOAL_MUSCLE_GAIN)
+                        FitnessGoal.ENDURANCE -> languageViewModel.getString(StringKey.GOAL_ENDURANCE)
+                        FitnessGoal.FLEXIBILITY -> languageViewModel.getString(StringKey.GOAL_FLEXIBILITY)
+                    },
                     style = MaterialTheme.typography.titleMedium,
-                    color = if (isSelected) 
-                        MaterialTheme.colorScheme.onPrimaryContainer 
-                    else 
+                    color = if (isSelected)
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    else
                         MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = getGoalDescription(goal),
+                    text = when (goal) {
+                        FitnessGoal.WEIGHT_LOSS -> languageViewModel.getString(StringKey.GOAL_WEIGHT_LOSS_DESC)
+                        FitnessGoal.MUSCLE_GAIN -> languageViewModel.getString(StringKey.GOAL_MUSCLE_GAIN_DESC)
+                        FitnessGoal.ENDURANCE -> languageViewModel.getString(StringKey.GOAL_ENDURANCE_DESC)
+                        FitnessGoal.FLEXIBILITY -> languageViewModel.getString(StringKey.GOAL_FLEXIBILITY_DESC)
+                    },
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (isSelected) 
-                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f) 
-                    else 
+                    color = if (isSelected)
+                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    else
                         MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
             }
@@ -269,11 +283,12 @@ private fun GoalCard(
 @Composable
 private fun FitnessLevelSection(
     selectedLevel: FitnessLevel?,
-    onLevelSelected: (FitnessLevel) -> Unit
+    onLevelSelected: (FitnessLevel) -> Unit,
+    languageViewModel: LanguageViewModel
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(
-            "What's your current fitness level?",
+            languageViewModel.getString(StringKey.FITNESS_LEVEL_QUESTION),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground
         )
@@ -287,7 +302,8 @@ private fun FitnessLevelSection(
                     level = level,
                     isSelected = level == selectedLevel,
                     onClick = { onLevelSelected(level) },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    languageViewModel = languageViewModel
                 )
             }
         }
@@ -299,31 +315,38 @@ private fun LevelCard(
     level: FitnessLevel,
     isSelected: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    languageViewModel: LanguageViewModel
 ) {
     Card(
         modifier = modifier.clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) 
-                MaterialTheme.colorScheme.primaryContainer 
-            else 
+            containerColor = if (isSelected)
+                MaterialTheme.colorScheme.primaryContainer
+            else
                 MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
-        Column(
+        Box(
             modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxWidth()
+                .padding(vertical = 12.dp, horizontal = 4.dp),
+            contentAlignment = Alignment.Center
         ) {
             Text(
-                text = level.name.lowercase().replaceFirstChar { it.uppercase() },
-                style = MaterialTheme.typography.titleMedium,
-                color = if (isSelected) 
-                    MaterialTheme.colorScheme.onPrimaryContainer 
-                else 
+                text = when (level) {
+                    FitnessLevel.BEGINNER -> languageViewModel.getString(StringKey.LEVEL_BEGINNER)
+                    FitnessLevel.INTERMEDIATE -> languageViewModel.getString(StringKey.LEVEL_INTERMEDIATE)
+                    FitnessLevel.ADVANCED -> languageViewModel.getString(StringKey.LEVEL_ADVANCED)
+                },
+                style = MaterialTheme.typography.labelLarge,
+                color = if (isSelected)
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                else
                     MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -415,12 +438,3 @@ private fun SpecificRequirementsSection(
         )
     }
 }
-
-private fun getGoalDescription(goal: FitnessGoal): String {
-    return when (goal) {
-        FitnessGoal.WEIGHT_LOSS -> "Burn fat and achieve a healthier weight"
-        FitnessGoal.MUSCLE_GAIN -> "Build strength and muscle mass"
-        FitnessGoal.ENDURANCE -> "Improve stamina and cardiovascular fitness"
-        FitnessGoal.FLEXIBILITY -> "Enhance mobility and reduce stiffness"
-    }
-} 

@@ -6,10 +6,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.awi.fitness.data.UserSettings
 import org.awi.fitness.model.Client
-import org.awi.fitness.model.WorkoutPlanWithExercises
 import org.awi.fitness.repository.ClientRepository
-import org.awi.fitness.repository.WorkoutRepository
-import org.awi.fitness.utils.homeFitnessTips
+import org.awi.fitness.utils.getHomeFitnessTips
 import kotlinx.datetime.*
 import kotlin.random.Random
 
@@ -17,18 +15,12 @@ data class HomeScreenState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val userProfile: Client? = null,
-    val workoutPlans: List<WorkoutPlanWithExercises> = emptyList(),
-    val totalWorkouts: Int = 0,
-    val completedWorkouts: Int = 0,
     val caloriesGoal: Int = 0,
     val bmr: Float = 0f,
     val tdee: Float = 0f,
     val scheduledWorkoutsToday: Int = 0,
-    val totalScheduledWorkouts: Int = 0,
     val upcomingWorkout: WorkoutSchedulePreview? = null,
-    val dailyTips: List<DailyTip> = emptyList(),
-    val showInactivityMotivation: Boolean = false,
-    val daysSinceLastWorkout: Int = 0
+    val dailyTips: List<DailyTip> = emptyList()
 )
 
 data class WorkoutSchedulePreview(
@@ -48,19 +40,20 @@ enum class TipIcon {
     WATER, FOOD, SLEEP, EXERCISE, MINDFULNESS, HEALTH;
     
     companion object {
-        fun random(): TipIcon = values()[Random.nextInt(values().size)]
+        fun random(): TipIcon = entries[Random.nextInt(entries.size)]
     }
 }
 
 class HomeViewModel {
     private val userSettings = UserSettings.getInstance()
     private val clientRepository = ClientRepository()
-    private val workoutRepository = WorkoutRepository()
 
     private val _state = MutableStateFlow(HomeScreenState())
     val state: StateFlow<HomeScreenState> = _state.asStateFlow()
 
-    init {
+    fun loadIfNeeded() {
+        if (!_state.value.isLoading && _state.value.userProfile != null) return
+        if (_state.value.isLoading && _state.value.userProfile != null) return
         loadDashboardData()
     }
 
@@ -69,7 +62,6 @@ class HomeViewModel {
 
         kotlinx.coroutines.MainScope().launch {
             try {
-                // Load user profile
                 val userEmail = userSettings.userEmail
                 if (userEmail != null) {
                     val profileResult = clientRepository.getClientByEmail(userEmail)
@@ -78,71 +70,26 @@ class HomeViewModel {
                     }
                 }
 
-                // Load workout plans
-                val workoutPlansResult = workoutRepository.getAllWorkoutPlans()
-                workoutPlansResult.onSuccess { plans ->
-                    val completedWorkouts = plans.sumOf { plan ->
-                        plan.exercises.count { it.isCompleted }
-                    }
-                    val totalWorkouts = plans.sumOf { it.exercises.size }
-
-                    // Check for inactivity (last workout completion or check-in)
-                    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-                    
-                    // Check last check-in date first (more reliable)
-                    val lastCheckIn = userSettings.lastCheckInDate
-                    val daysSinceLastActivity = if (lastCheckIn > 0) {
-                        val lastCheckInDate = Instant.fromEpochMilliseconds(lastCheckIn)
-                            .toLocalDateTime(TimeZone.currentSystemDefault()).date
-                        (today.toEpochDays() - lastCheckInDate.toEpochDays()).toInt()
-                    } else {
-                        // If no check-in, check if any workouts completed
-                        val hasCompletedWorkouts = completedWorkouts > 0
-                        if (hasCompletedWorkouts) {
-                            0 // Assume recent if workouts completed
-                        } else {
-                            999 // Very high number to trigger motivation for new users
-                        }
-                    }
-
-                    val showInactivityMotivation = daysSinceLastActivity >= 3
-
-                    _state.value = _state.value.copy(
-                        workoutPlans = plans,
-                        completedWorkouts = completedWorkouts,
-                        totalWorkouts = totalWorkouts,
-                        showInactivityMotivation = showInactivityMotivation,
-                        daysSinceLastWorkout = daysSinceLastActivity
-                    )
-                }
-
-                // Load workout schedules
                 val schedules = userSettings.workoutSchedules.value
-                val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                val today = org.awi.fitness.utils.todayLocalDate()
                 val scheduledToday = schedules.count { schedule ->
                     val scheduleDate = Instant.fromEpochMilliseconds(schedule.startTime)
                         .toLocalDateTime(TimeZone.currentSystemDefault()).date
                     scheduleDate == today
                 }
 
-                // Find next upcoming workout
-                val currentTime = Clock.System.now().toEpochMilliseconds()
+                val currentTime = org.awi.fitness.utils.currentTimeMillis()
                 val upcomingWorkout = schedules
                     .filter { it.startTime > currentTime }
                     .minByOrNull { it.startTime }
                     ?.let { WorkoutSchedulePreview(it.title, it.startTime, it.endTime, it.color) }
 
-                // Generate random tips
                 val tipColors = listOf(
-                    0xFF1976D2, // Blue
-                    0xFF388E3C, // Green
-                    0xFFF57C00, // Orange
-                    0xFF7B1FA2, // Purple
-                    0xFFC2185B, // Pink
-                    0xFF00796B  // Teal
+                    0xFF1976D2, 0xFF388E3C, 0xFFF57C00,
+                    0xFF7B1FA2, 0xFFC2185B, 0xFF00796B
                 )
-
-                val randomTips = homeFitnessTips.shuffled().take(6).map { tip ->
+                val currentLang = userSettings.language.value ?: "en"
+                val randomTips = getHomeFitnessTips(currentLang).shuffled().take(6).map { tip ->
                     DailyTip(
                         tip = tip,
                         icon = TipIcon.random(),
@@ -152,13 +99,8 @@ class HomeViewModel {
 
                 _state.value = _state.value.copy(
                     scheduledWorkoutsToday = scheduledToday,
-                    totalScheduledWorkouts = schedules.size,
                     upcomingWorkout = upcomingWorkout,
-                    dailyTips = randomTips
-                )
-
-                // Load calorie and fitness stats
-                _state.value = _state.value.copy(
+                    dailyTips = randomTips,
                     caloriesGoal = userSettings.calculatedCalories,
                     bmr = userSettings.bmr,
                     tdee = userSettings.tdee,
@@ -174,6 +116,7 @@ class HomeViewModel {
     }
 
     fun refresh() {
+        _state.value = _state.value.copy(isLoading = false)
         loadDashboardData()
     }
-} 
+}

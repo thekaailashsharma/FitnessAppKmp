@@ -146,9 +146,9 @@ fun FirestoreResponse<ClientFields>.toClient(): Client {
 }
 
 // Extension functions to convert Firestore fields to domain models
-fun WorkoutPlanFields.toDomainModel(): WorkoutPlan {
+fun WorkoutPlanFields.toDomainModel(documentId: String = ""): WorkoutPlan {
     return WorkoutPlan(
-        id = id?.value ?: "",
+        id = documentId.ifBlank { id?.value ?: "" },
         name = name?.value ?: "",
         description = description?.value ?: "",
         difficulty = WorkoutDifficulty.valueOf(difficulty?.value ?: "BEGINNER"),

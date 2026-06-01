@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.datetime.Clock
+import org.awi.fitness.data.UserSettings
 import org.awi.fitness.model.*
 import org.awi.fitness.repository.GeminiRepository
 import org.awi.fitness.repository.WorkoutRepository
@@ -33,6 +34,7 @@ data class ProgressUiState(
 class WorkoutViewModel {
     private val workoutRepository = WorkoutRepository()
     private val geminiRepository = GeminiRepository()
+    private val userSettings = UserSettings.getInstance()
     
     private val _state = MutableStateFlow(WorkoutUIState())
     val state: StateFlow<WorkoutUIState> = _state.asStateFlow()
@@ -54,10 +56,10 @@ class WorkoutViewModel {
                 goal = goal.name,
                 fitnessLevel = level.name,
                 workoutDays = workoutDays,
-                specificRequirements = specificRequirements
+                specificRequirements = specificRequirements,
+                language = userSettings.language.value
             ).getOrThrow()
 
-            // Create workout plan
             val workoutPlan = WorkoutPlan(
                 name = generatedPlan.workoutName,
                 description = generatedPlan.description,
@@ -68,8 +70,10 @@ class WorkoutViewModel {
 
             val planId = workoutRepository.insertWorkoutPlan(workoutPlan).getOrThrow()
 
-            // Create exercises
+            val exercisesPerDay = if (workoutDays > 0) generatedPlan.exercises.size / workoutDays else generatedPlan.exercises.size
             generatedPlan.exercises.forEachIndexed { index, exercise ->
+                val day = if (exercisesPerDay > 0) (index / exercisesPerDay) + 1 else 1
+                val orderInDay = if (exercisesPerDay > 0) (index % exercisesPerDay) + 1 else index + 1
                 val newExercise = Exercise(
                     planId = planId,
                     name = exercise.name,
@@ -78,8 +82,8 @@ class WorkoutViewModel {
                     reps = exercise.reps,
                     restTime = exercise.restTime,
                     isCompleted = false,
-                    dayOfWeek = (index % workoutDays) + 1,
-                    orderInDay = (index / workoutDays) + 1
+                    dayOfWeek = day.coerceIn(1, workoutDays),
+                    orderInDay = orderInDay
                 )
                 workoutRepository.insertExercise(newExercise).getOrThrow()
             }
@@ -122,27 +126,31 @@ class WorkoutViewModel {
         }
     }
 
+    fun resetPlanSelection() {
+        _state.update { it.copy(selectedPlanId = null, error = null) }
+    }
+
+    suspend fun loadIfNeeded() {
+        if (_state.value.workoutPlans.isNotEmpty() || _state.value.isLoading) return
+        loadWorkoutPlans()
+    }
+
     suspend fun loadWorkoutPlans() {
         try {
             _state.update { it.copy(isLoading = true, error = null) }
-            
+
             val plansResult = workoutRepository.getAllWorkoutPlans()
             plansResult.fold(
                 onSuccess = { plans ->
-                    println("x ${plans.size} workout plans")
-                    plans.forEach { plan ->
-                        println("Plan: ${plan.plan.name} with ${plan.exercises.size} exercises")
-                    }
-                    _state.update { 
+                    _state.update {
                         it.copy(
                             isLoading = false,
-                            workoutPlans = plans.filter { plan -> plan.exercises.isNotEmpty() }
+                            workoutPlans = plans
                         )
                     }
                 },
                 onFailure = { error ->
-                    println("Failed to load workout plans: ${error.message}")
-                    _state.update { 
+                    _state.update {
                         it.copy(
                             isLoading = false,
                             error = "Failed to load workout plans: ${error.message}"
@@ -151,9 +159,7 @@ class WorkoutViewModel {
                 }
             )
         } catch (e: Exception) {
-            println("Error loading workout plans: ${e.message}")
-            e.printStackTrace()
-            _state.update { 
+            _state.update {
                 it.copy(
                     isLoading = false,
                     error = "Failed to load workout plans: ${e.message}"
@@ -215,7 +221,7 @@ class WorkoutViewModel {
         }
 
         // Load completion rate
-        val currentTime = Clock.System.now().toEpochMilliseconds()
+        val currentTime = org.awi.fitness.utils.currentTimeMillis()
         workoutRepository.getCompletionCountForDay(planId, currentTime).collect { completedToday ->
             val warnings = mutableListOf<String>()
             if (completedToday == 0) {
@@ -230,7 +236,7 @@ class WorkoutViewModel {
 
         // Generate sample progress data for the graph
         val weeklyProgress = (0..6).map { daysAgo ->
-            val timestamp = Clock.System.now().toEpochMilliseconds() - (daysAgo * 24 * 60 * 60 * 1000L)
+            val timestamp = org.awi.fitness.utils.currentTimeMillis() - (daysAgo * 24 * 60 * 60 * 1000L)
             timestamp to (0.3f + kotlin.random.Random.nextFloat() * 0.5f)
         }.reversed()
 

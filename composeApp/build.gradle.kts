@@ -29,6 +29,13 @@ kotlin {
         }
     }
 
+    // Required for RevenueCat KMP 3.0.0 iOS bindings
+    sourceSets.named { it.lowercase().startsWith("ios") }.configureEach {
+        languageSettings {
+            optIn("kotlinx.cinterop.ExperimentalForeignApi")
+        }
+    }
+
     sourceSets {
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -74,6 +81,12 @@ kotlin {
 
             // Settings
             implementation(libs.multiplatform.settings)
+
+            // RevenueCat
+            implementation(libs.purchases.kmp.core)
+
+            // RSS Parser (Discover tab)
+            implementation("com.prof18.rssparser:rssparser:6.0.6")
         }
 
         iosMain.dependencies {
@@ -106,6 +119,10 @@ kotlin {
 android {
     namespace = "org.awi.fitness"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
+
+    buildFeatures {
+        buildConfig = true
+    }
 
     defaultConfig {
         applicationId = "org.awi.fitness"

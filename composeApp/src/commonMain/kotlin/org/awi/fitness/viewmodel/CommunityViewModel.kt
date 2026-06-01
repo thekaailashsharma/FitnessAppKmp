@@ -1,22 +1,27 @@
 package org.awi.fitness.viewmodel
 
+import org.awi.fitness.utils.currentTimeMillis
 import cafe.adriel.voyager.core.model.StateScreenModel
+import cafe.adriel.voyager.core.model.screenModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import org.awi.fitness.model.ActivityNotification
 import org.awi.fitness.model.CommunityComment
 import org.awi.fitness.model.CommunityPost
 import org.awi.fitness.model.CommunityUser
 import org.awi.fitness.model.WorkoutCategory
 import org.awi.fitness.repository.CommunityRepository
+import org.awi.fitness.utils.CommunityEvents
 
 data class CommunityFeedState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val posts: List<CommunityPost> = emptyList(),
-    val activeFilter: String = "public" // public, friends, my_posts
+    val activeFilter: String = "public", // public, friends, my_posts
+    val likedPostIds: Set<String> = emptySet()
 )
 
 data class PostDetailState(
@@ -24,7 +29,8 @@ data class PostDetailState(
     val error: String? = null,
     val post: CommunityPost? = null,
     val comments: List<CommunityComment> = emptyList(),
-    val newCommentText: String = ""
+    val newCommentText: String = "",
+    val likedByMe: Boolean = false
 )
 
 data class CreatePostState(
@@ -59,12 +65,20 @@ data class CommunityProfileState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val user: CommunityUser? = null,
-    val userPosts: List<CommunityPost> = emptyList()
+    val userPosts: List<CommunityPost> = emptyList(),
+    val isSavingProfile: Boolean = false,
+    val saveProfileSuccess: Boolean = false
 )
 
 class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedState()) {
-    // Repository reference
     val communityRepository = CommunityRepository()
+
+    init {
+        // Ensure the current user's profile exists in Firestore so they appear in friend suggestions.
+        screenModelScope.launch {
+            communityRepository.ensureUserProfileExists()
+        }
+    }
     
     // Post detail state
     private val _postDetailState = MutableStateFlow(PostDetailState())
@@ -96,16 +110,22 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
             val result = communityRepository.getCommunityFeed(filter)
             result.fold(
                 onSuccess = { posts ->
-                    mutableState.update { 
+                    mutableState.update {
                         it.copy(
                             isLoading = false,
                             posts = posts,
                             activeFilter = filter
                         )
                     }
+                    // Load liked post IDs for accurate heart state
+                    val postIds = posts.map { it.id }
+                    if (postIds.isNotEmpty()) {
+                        val likedIds = communityRepository.getLikedPostIds(postIds)
+                        mutableState.update { it.copy(likedPostIds = it.likedPostIds + likedIds) }
+                    }
                 },
                 onFailure = { error ->
-                    mutableState.update { 
+                    mutableState.update {
                         it.copy(
                             isLoading = false,
                             error = "Failed to load feed: ${error.message}"
@@ -127,63 +147,62 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
         try {
             val result = communityRepository.likePost(postId)
             result.fold(
-                onSuccess = { success ->
-                    if (success) {
-                        // Update the post in the feed
-                        mutableState.update { state ->
-                            val updatedPosts = state.posts.map { post ->
-                                if (post.id == postId) {
-                                    post.copy(likes = post.likes + 1)
-                                } else {
-                                    post
-                                }
-                            }
-                            state.copy(posts = updatedPosts)
+                onSuccess = { nowLiked ->
+                    mutableState.update { state ->
+                        val newLikedIds = if (nowLiked) {
+                            state.likedPostIds + postId
+                        } else {
+                            state.likedPostIds - postId
                         }
-                        
-                        // Also update in post detail if loaded
-                        _postDetailState.update { state ->
-                            if (state.post?.id == postId) {
-                                state.copy(post = state.post.copy(likes = state.post.likes + 1))
+                        val updatedPosts = state.posts.map { post ->
+                            if (post.id == postId) {
+                                post.copy(likes = (post.likes + if (nowLiked) 1 else -1).coerceAtLeast(0))
                             } else {
-                                state
+                                post
                             }
+                        }
+                        state.copy(posts = updatedPosts, likedPostIds = newLikedIds)
+                    }
+                    _postDetailState.update { state ->
+                        if (state.post?.id == postId) {
+                            val nowLikedInDetail = state.likedByMe != nowLiked
+                            state.copy(
+                                post = state.post.copy(
+                                    likes = (state.post.likes + if (nowLiked) 1 else -1).coerceAtLeast(0)
+                                ),
+                                likedByMe = nowLiked
+                            )
+                        } else {
+                            state
                         }
                     }
                 },
-                onFailure = { error ->
-                    // Handle error (could show a toast or snackbar)
-                }
+                onFailure = { /* silently ignore */ }
             )
-        } catch (e: Exception) {
-            // Handle exception
-        }
+        } catch (_: Exception) { }
     }
     
     // Post detail actions
     suspend fun loadPostDetail(postId: String) {
         _postDetailState.update { it.copy(isLoading = true, error = null) }
-        
+
         try {
-            // First find the post in the feed
+            // Try the in-memory feed first; fall back to a Firestore fetch if not found.
             val post = state.value.posts.find { it.id == postId }
-            
+                ?: communityRepository.getPost(postId).getOrNull()
+
             if (post != null) {
                 _postDetailState.update { it.copy(post = post) }
-                
-                // Then load comments
+
                 val commentsResult = communityRepository.getPostComments(postId)
                 commentsResult.fold(
                     onSuccess = { comments ->
-                        _postDetailState.update { 
-                            it.copy(
-                                isLoading = false,
-                                comments = comments
-                            )
+                        _postDetailState.update {
+                            it.copy(isLoading = false, comments = comments)
                         }
                     },
                     onFailure = { error ->
-                        _postDetailState.update { 
+                        _postDetailState.update {
                             it.copy(
                                 isLoading = false,
                                 error = "Failed to load comments: ${error.message}"
@@ -192,19 +211,13 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
                     }
                 )
             } else {
-                _postDetailState.update { 
-                    it.copy(
-                        isLoading = false,
-                        error = "Post not found"
-                    )
+                _postDetailState.update {
+                    it.copy(isLoading = false, error = "Post not found")
                 }
             }
         } catch (e: Exception) {
-            _postDetailState.update { 
-                it.copy(
-                    isLoading = false,
-                    error = "Failed to load post: ${e.message}"
-                )
+            _postDetailState.update {
+                it.copy(isLoading = false, error = "Failed to load post: ${e.message}")
             }
         }
     }
@@ -259,13 +272,27 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
         }
     }
     
+    // Holds raw image bytes selected by the native picker; not stored in the immutable state.
+    private var pendingImageBytes: ByteArray? = null
+
     // Create post actions
     fun updateCreatePostContent(content: String) {
-        _createPostState.update { it.copy(content = content) }
+        _createPostState.update { it.copy(content = content, error = null) }
+    }
+
+    fun resetCreatePostState() {
+        pendingImageBytes = null
+        _createPostState.value = CreatePostState()
     }
     
     fun updateCreatePostImage(imageUrl: String?) {
         _createPostState.update { it.copy(imageUrl = imageUrl) }
+    }
+
+    fun updateCreatePostImageBytes(bytes: ByteArray?) {
+        pendingImageBytes = bytes
+        // Clear any previously set URL so only one source is active at a time.
+        _createPostState.update { it.copy(imageUrl = if (bytes != null) null else it.imageUrl) }
     }
     
     fun updateCreatePostWorkoutCategory(category: WorkoutCategory?) {
@@ -290,11 +317,27 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
         if (state.content.isBlank()) return
         
         _createPostState.update { it.copy(isLoading = true, error = null) }
+
+        // If the user selected an image via the native picker, upload it first.
+        val resolvedImageUrl: String? = pendingImageBytes?.let { bytes ->
+            val fileName = "${currentTimeMillis()}.jpg"
+            communityRepository.uploadImageToStorage(bytes, fileName)
+        } ?: state.imageUrl
+
+        if (pendingImageBytes != null && resolvedImageUrl == null) {
+            _createPostState.update {
+                it.copy(
+                    isLoading = false,
+                    error = "Failed to upload photo. Try again or post without a photo."
+                )
+            }
+            return
+        }
         
         try {
             val result = communityRepository.createPost(
                 content = state.content,
-                imageUrl = state.imageUrl,
+                imageUrl = resolvedImageUrl,
                 workoutCategory = state.workoutCategory,
                 calories = state.calories,
                 steps = state.steps,
@@ -303,7 +346,13 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
             
             result.fold(
                 onSuccess = { post ->
-                    _createPostState.update { 
+                    pendingImageBytes = null
+                    // Auto-progress POSTS-type challenges
+                    org.awi.fitness.viewmodel.ViewModelStore.challenges.autoProgressPostChallenges()
+                    // Signal success ONLY — do NOT update feed state here.
+                    // The UI reads isSuccess, pops the screen, THEN we refresh the feed
+                    // via CommunityEvents so no state update fires on a dead screen.
+                    _createPostState.update {
                         it.copy(
                             isLoading = false,
                             isSuccess = true,
@@ -315,14 +364,9 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
                             duration = null
                         )
                     }
-                    
-                    // Add the new post to the feed
-                    mutableState.update { feedState ->
-                        feedState.copy(posts = listOf(post) + feedState.posts)
-                    }
                 },
                 onFailure = { error ->
-                    _createPostState.update { 
+                    _createPostState.update {
                         it.copy(
                             isLoading = false,
                             error = "Failed to create post: ${error.message}"
@@ -425,12 +469,12 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
     // Activity actions
     suspend fun loadActivityNotifications() {
         _activityState.update { it.copy(isLoading = true, error = null) }
-        
+
         try {
             val result = communityRepository.getActivityNotifications()
             result.fold(
                 onSuccess = { notifications ->
-                    _activityState.update { 
+                    _activityState.update {
                         it.copy(
                             isLoading = false,
                             notifications = notifications,
@@ -439,7 +483,7 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
                     }
                 },
                 onFailure = { error ->
-                    _activityState.update { 
+                    _activityState.update {
                         it.copy(
                             isLoading = false,
                             error = "Failed to load notifications: ${error.message}"
@@ -448,7 +492,7 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
                 }
             )
         } catch (e: Exception) {
-            _activityState.update { 
+            _activityState.update {
                 it.copy(
                     isLoading = false,
                     error = "Failed to load notifications: ${e.message}"
@@ -490,48 +534,105 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
     
     // Profile actions
     suspend fun loadUserProfile(userId: String) {
-        _profileState.update { it.copy(isLoading = true, error = null) }
-        
+        _profileState.update { it.copy(isLoading = true, error = null, userPosts = emptyList()) }
+
         try {
             val userResult = communityRepository.getUserProfile(userId)
             userResult.fold(
                 onSuccess = { user ->
-                    _profileState.update { 
-                        it.copy(
-                            isLoading = false,
-                            user = user
-                        )
-                    }
-                    
-                    // Load user posts
-                    val postsResult = communityRepository.getCommunityFeed("public")
+                    _profileState.update { it.copy(isLoading = false, user = user) }
+                    val postsResult = communityRepository.getUserPosts(userId)
                     postsResult.fold(
-                        onSuccess = { allPosts ->
-                            val userPosts = allPosts.filter { it.userId == userId }
-                            _profileState.update { 
-                                it.copy(userPosts = userPosts)
-                            }
+                        onSuccess = { posts ->
+                            _profileState.update { it.copy(userPosts = posts) }
                         },
-                        onFailure = { error ->
-                            // Just log the error, we already have the user profile
-                        }
+                        onFailure = { /* posts optional */ }
                     )
                 },
                 onFailure = { error ->
-                    _profileState.update { 
-                        it.copy(
-                            isLoading = false,
-                            error = "Failed to load profile: ${error.message}"
-                        )
+                    _profileState.update {
+                        it.copy(isLoading = false, error = "Failed to load profile: ${error.message}")
                     }
                 }
             )
         } catch (e: Exception) {
-            _profileState.update { 
-                it.copy(
-                    isLoading = false,
-                    error = "Failed to load profile: ${e.message}"
+            _profileState.update {
+                it.copy(isLoading = false, error = "Failed to load profile: ${e.message}")
+            }
+        }
+    }
+
+    suspend fun updateUserProfile(displayName: String, bio: String, profileImageUrl: String?) {
+        _profileState.update { it.copy(isSavingProfile = true, saveProfileSuccess = false) }
+        try {
+            val result = communityRepository.updateUserProfile(displayName, bio, profileImageUrl)
+            result.fold(
+                onSuccess = {
+                    _profileState.update { state ->
+                        state.copy(
+                            isSavingProfile = false,
+                            saveProfileSuccess = true,
+                            user = state.user?.copy(
+                                name = displayName.ifBlank { state.user.name },
+                                bio = bio.ifBlank { null },
+                                profileImage = profileImageUrl ?: state.user.profileImage
+                            )
+                        )
+                    }
+                    val settings = org.awi.fitness.data.UserSettings.getInstance()
+                    if (displayName.isNotBlank()) settings.userName = displayName
+                    if (bio.isNotBlank()) settings.userBio = bio
+                    profileImageUrl?.let { settings.profilePhotoUrl = it }
+                },
+                onFailure = { e ->
+                    _profileState.update { it.copy(isSavingProfile = false, error = e.message) }
+                }
+            )
+        } catch (e: Exception) {
+            _profileState.update { it.copy(isSavingProfile = false, error = e.message) }
+        }
+    }
+
+    suspend fun updateUserProfileWithPhoto(
+        displayName: String,
+        bio: String,
+        existingPhotoUrl: String?,
+        imageBytes: ByteArray?
+    ) {
+        _profileState.update { it.copy(isSavingProfile = true, saveProfileSuccess = false) }
+        try {
+            // Upload new photo if bytes provided
+            val resolvedPhotoUrl: String? = if (imageBytes != null) {
+                val fileName = "${org.awi.fitness.utils.currentTimeMillis()}_profile.jpg"
+                communityRepository.uploadImageToStorage(imageBytes, fileName)
+            } else {
+                existingPhotoUrl
+            }
+            updateUserProfile(displayName, bio, resolvedPhotoUrl)
+        } catch (e: Exception) {
+            _profileState.update { it.copy(isSavingProfile = false, error = e.message) }
+        }
+    }
+
+    suspend fun toggleFollowUser(userId: String) {
+        val currentlyFollowing = _profileState.value.user?.isFollowing == true
+        if (currentlyFollowing) {
+            // Optimistic UI update first, then call backend
+            _profileState.update { state ->
+                state.copy(user = state.user?.copy(isFollowing = false))
+            }
+            _findFriendsState.update { state ->
+                state.copy(
+                    suggestedUsers = state.suggestedUsers.map { u ->
+                        if (u.id == userId) u.copy(isFollowing = false) else u
+                    }
                 )
+            }
+            communityRepository.unfollowUser(userId)
+        } else {
+            followUser(userId)
+            _profileState.update { state ->
+                state.copy(user = state.user?.copy(isFollowing = true))
             }
         }
     }

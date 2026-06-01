@@ -22,8 +22,35 @@ data class Challenge(
     val endDate: String = "",
     val imageUrl: String? = null,
     val iconName: String = "",
-    val color: Long = 0xFF123456
+    val color: Long = 0xFF123456,
+    // New fields for Firestore / real backend integration
+    val targetType: ChallengeTargetType = ChallengeTargetType.WORKOUTS,
+    val xpReward: Int = 0,
+    val badgeIcon: String = "",
+    val startDateLong: Long = 0L,
+    val endDateLong: Long = 0L,
+    val createdBy: String = "system",
+    val isPublic: Boolean = true,
+    val participantIds: List<String> = emptyList(),
+    val isJoined: Boolean = false,
+    val targetValue: Int = 0
 )
+
+@Serializable
+enum class ChallengeTargetType {
+    @SerialName("WORKOUTS")
+    WORKOUTS,
+    @SerialName("CALORIES")
+    CALORIES,
+    @SerialName("STREAK")
+    STREAK,
+    @SerialName("STEPS")
+    STEPS,
+    @SerialName("POSTS")
+    POSTS,
+    @SerialName("MEALS")
+    MEALS
+}
 
 @Serializable
 enum class ChallengeType {
@@ -122,9 +149,9 @@ data class LeaderboardEntry(
 data class ChallengeProgress(
     val challengeId: String = "",
     val userId: String = "",
-    val currentProgress: Int = 0,
-    val targetProgress: Int = 0,
-    val isCompleted: Boolean = false,
-    val completedAt: String? = null,
-    val lastUpdated: String = ""
+    val currentValue: Int = 0,
+    val targetValue: Int = 0,
+    val joinedAt: Long = 0L,
+    val completedAt: Long? = null,
+    val displayName: String = ""
 )

@@ -57,8 +57,10 @@ import compose.icons.tablericons.ArrowLeft
 import compose.icons.tablericons.Flame
 import compose.icons.tablericons.Language
 import compose.icons.tablericons.Logout
+import compose.icons.tablericons.Star
 import compose.icons.tablericons.Target
 import compose.icons.tablericons.Trash
+import compose.icons.tablericons.Trophy
 import compose.icons.tablericons.User
 import compose.icons.tablericons.ChevronRight
 import compose.icons.tablericons.ChevronUp
@@ -70,6 +72,8 @@ import kotlinx.coroutines.launch
 import org.awi.fitness.data.Language
 import org.awi.fitness.data.StringKey
 import org.awi.fitness.data.UserSettings
+import org.awi.fitness.navigation.LocalAppNavigation
+import org.awi.fitness.navigation.RootRoute
 import org.awi.fitness.repository.AuthRepository
 import org.awi.fitness.ui.components.AvatarImage
 import org.awi.fitness.ui.screens.avatar.AvatarSelectionScreen
@@ -86,6 +90,7 @@ class ProfileScreen(private val languageViewModel: LanguageViewModel) : Screen {
         val currentLanguage by userSettings.language.collectAsState()
         val scope = rememberCoroutineScope()
         val navigator = LocalNavigator.currentOrThrow
+        val appNavigation = LocalAppNavigation.current
         var showDeleteConfirmation by remember { mutableStateOf(false) }
         val authViewModel = remember { AuthViewModel(AuthRepository()) }
 
@@ -109,7 +114,7 @@ class ProfileScreen(private val languageViewModel: LanguageViewModel) : Screen {
                         onClick = {
                             scope.launch {
                                 authViewModel.deleteAccount().onSuccess {
-                                    navigator.replace(AuthScreen(authViewModel, languageViewModel))
+                                    appNavigation.navigateTo(RootRoute.Auth)
                                 }
                             }
                         },
@@ -176,6 +181,15 @@ class ProfileScreen(private val languageViewModel: LanguageViewModel) : Screen {
                     )
                 }
 
+                // Gamification Section
+                item {
+                    GamificationSection(
+                        xp = userSettings.totalXp,
+                        streak = userSettings.currentStreak,
+                        level = userSettings.userLevel
+                    )
+                }
+
                 // Settings Section
                 item {
                     SettingsSection(
@@ -222,7 +236,8 @@ class ProfileScreen(private val languageViewModel: LanguageViewModel) : Screen {
                     Button(
                         onClick = {
                             userSettings.clearUserData()
-                            navigator.replace(AuthScreen(authViewModel, languageViewModel))
+                            authViewModel.logout()
+                            appNavigation.navigateTo(RootRoute.Auth)
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(
@@ -313,17 +328,17 @@ private fun StatsSection(
             ) {
                 StatItem(
                     label = languageViewModel.getString(StringKey.BMR),
-                    value = bmr.roundToInt().toString(),
+                    value = if (bmr > 100f) bmr.roundToInt().toString() else "--",
                     icon = TablerIcons.Activity
                 )
                 StatItem(
                     label = languageViewModel.getString(StringKey.TDEE),
-                    value = tdee.roundToInt().toString(),
+                    value = if (tdee > 100f) tdee.roundToInt().toString() else "--",
                     icon = TablerIcons.Flame
                 )
                 StatItem(
                     label = languageViewModel.getString(StringKey.GOAL),
-                    value = caloriesGoal.toString(),
+                    value = if (caloriesGoal > 100) caloriesGoal.toString() else "--",
                     icon = TablerIcons.Target
                 )
             }
@@ -356,6 +371,45 @@ private fun StatItem(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
         )
+    }
+}
+
+@Composable
+private fun GamificationSection(xp: Int, streak: Int, level: Int) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Progress",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                StatItem(
+                    label = "XP",
+                    value = xp.toString(),
+                    icon = TablerIcons.Star
+                )
+                StatItem(
+                    label = "Streak",
+                    value = if (streak > 0) "${streak}d" else "0",
+                    icon = TablerIcons.Flame
+                )
+                StatItem(
+                    label = "Level",
+                    value = "Lv.$level",
+                    icon = TablerIcons.Trophy
+                )
+            }
+        }
     }
 }
 

@@ -12,8 +12,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,14 +21,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import compose.icons.SimpleIcons
-import compose.icons.TablerIcons
 import compose.icons.simpleicons.Googlecalendar
 import compose.icons.tablericons.ArrowLeft
 import compose.icons.tablericons.Calendar
@@ -51,7 +49,7 @@ class WorkoutSchedulerScreen : Screen {
         val navigator = LocalNavigator.currentOrThrow
         val workoutSchedules by userSettings.workoutSchedules.collectAsState()
         
-        var selectedDate by remember { mutableStateOf(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date) }
+        var selectedDate by remember { mutableStateOf(org.awi.fitness.utils.todayLocalDate()) }
         var showAddDialog by remember { mutableStateOf(false) }
         var selectedSchedule by remember { mutableStateOf<WorkoutSchedule?>(null) }
         var viewMode by remember { mutableStateOf(ViewMode.WEEK) }
@@ -69,10 +67,9 @@ class WorkoutSchedulerScreen : Screen {
                         }
                     },
                     actions = {
-                        // Go to Today Button
                         TextButton(
                             onClick = { 
-                                selectedDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date 
+                                selectedDate = org.awi.fitness.utils.todayLocalDate() 
                             },
                             colors = ButtonDefaults.textButtonColors(
                                 contentColor = MaterialTheme.colorScheme.primary
@@ -94,7 +91,7 @@ class WorkoutSchedulerScreen : Screen {
                             )
                         }
                         IconButton(onClick = { showAddDialog = true }) {
-                            Icon(Icons.Default.Add, contentDescription = "Add Workout")
+                            Icon(TablerIcons.Plus, contentDescription = "Add Workout")
                         }
                     }
                 )
@@ -105,14 +102,12 @@ class WorkoutSchedulerScreen : Screen {
                     .fillMaxSize()
                     .padding(padding)
             ) {
-                // Calendar Header
                 CalendarHeader(
                     selectedDate = selectedDate,
                     onDateSelected = { selectedDate = it },
                     viewMode = viewMode
                 )
 
-                // Workout List
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -137,10 +132,10 @@ class WorkoutSchedulerScreen : Screen {
             }
         }
 
-        // Add/Edit Dialog
         if (showAddDialog || selectedSchedule != null) {
             WorkoutScheduleDialog(
                 schedule = selectedSchedule,
+                selectedDate = selectedDate,
                 onDismiss = {
                     showAddDialog = false
                     selectedSchedule = null
@@ -166,7 +161,7 @@ private fun CalendarHeader(
     onDateSelected: (LocalDate) -> Unit,
     viewMode: ViewMode
 ) {
-    val today = remember { Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date }
+    val today = remember { org.awi.fitness.utils.todayLocalDate() }
     
     Column(
         modifier = Modifier
@@ -215,6 +210,16 @@ private fun CalendarHeader(
     }
 }
 
+private val DAY_LABELS_SHORT = mapOf(
+    DayOfWeek.MONDAY to "Mo",
+    DayOfWeek.TUESDAY to "Tu",
+    DayOfWeek.WEDNESDAY to "We",
+    DayOfWeek.THURSDAY to "Th",
+    DayOfWeek.FRIDAY to "Fr",
+    DayOfWeek.SATURDAY to "Sa",
+    DayOfWeek.SUNDAY to "Su"
+)
+
 @Composable
 private fun DateCell(
     date: LocalDate,
@@ -224,7 +229,7 @@ private fun DateCell(
 ) {
     Box(
         modifier = Modifier
-            .size(40.dp)
+            .size(44.dp)
             .clip(CircleShape)
             .background(
                 when {
@@ -238,8 +243,9 @@ private fun DateCell(
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = date.dayOfWeek.name.take(1),
+                text = DAY_LABELS_SHORT[date.dayOfWeek] ?: "",
                 style = MaterialTheme.typography.labelSmall,
+                fontSize = 9.sp,
                 color = when {
                     isSelected -> MaterialTheme.colorScheme.onPrimary
                     isToday -> MaterialTheme.colorScheme.onTertiaryContainer
@@ -313,10 +319,10 @@ private fun WorkoutCard(
             
             Row {
                 IconButton(onClick = onEdit) {
-                    Icon(Icons.Default.Edit, contentDescription = "Edit")
+                    Icon(TablerIcons.Edit, contentDescription = "Edit")
                 }
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete")
+                    Icon(TablerIcons.Trash, contentDescription = "Delete")
                 }
             }
         }
@@ -327,6 +333,7 @@ private fun WorkoutCard(
 @Composable
 private fun WorkoutScheduleDialog(
     schedule: WorkoutSchedule?,
+    selectedDate: LocalDate,
     onDismiss: () -> Unit,
     onSave: (WorkoutSchedule) -> Unit,
     languageViewModel: LanguageViewModel
@@ -335,9 +342,14 @@ private fun WorkoutScheduleDialog(
     var description by remember { mutableStateOf(schedule?.description ?: "") }
     var workoutType by remember { mutableStateOf(schedule?.workoutType ?: WorkoutType.CARDIO) }
     var recurringType by remember { mutableStateOf(schedule?.recurringType ?: RecurringType.NONE) }
+    var workoutTypeExpanded by remember { mutableStateOf(false) }
+    var recurringTypeExpanded by remember { mutableStateOf(false) }
     
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        titleContentColor = MaterialTheme.colorScheme.onSurface,
+        textContentColor = MaterialTheme.colorScheme.onSurface,
         title = { Text(if (schedule == null) languageViewModel.getString(StringKey.ADD) else languageViewModel.getString(StringKey.SAVE)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -356,8 +368,8 @@ private fun WorkoutScheduleDialog(
                 )
                 
                 ExposedDropdownMenuBox(
-                    expanded = false,
-                    onExpandedChange = {},
+                    expanded = workoutTypeExpanded,
+                    onExpandedChange = { workoutTypeExpanded = it },
                 ) {
                     OutlinedTextField(
                         value = languageViewModel.getString(when (workoutType) {
@@ -371,14 +383,37 @@ private fun WorkoutScheduleDialog(
                         onValueChange = {},
                         readOnly = true,
                         label = { Text(languageViewModel.getString(StringKey.WORKOUT_TYPE)) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = false) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = workoutTypeExpanded) },
                         modifier = Modifier.menuAnchor()
                     )
+                    ExposedDropdownMenu(
+                        expanded = workoutTypeExpanded,
+                        onDismissRequest = { workoutTypeExpanded = false }
+                    ) {
+                        WorkoutType.entries.forEach { type ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(languageViewModel.getString(when (type) {
+                                        WorkoutType.CARDIO -> StringKey.CARDIO
+                                        WorkoutType.STRENGTH -> StringKey.STRENGTH
+                                        WorkoutType.FLEXIBILITY -> StringKey.FLEXIBILITY
+                                        WorkoutType.HIIT -> StringKey.HIIT
+                                        WorkoutType.YOGA -> StringKey.YOGA
+                                        WorkoutType.OTHER -> StringKey.OTHER
+                                    }))
+                                },
+                                onClick = {
+                                    workoutType = type
+                                    workoutTypeExpanded = false
+                                }
+                            )
+                        }
+                    }
                 }
 
                 ExposedDropdownMenuBox(
-                    expanded = false,
-                    onExpandedChange = {},
+                    expanded = recurringTypeExpanded,
+                    onExpandedChange = { recurringTypeExpanded = it },
                 ) {
                     OutlinedTextField(
                         value = languageViewModel.getString(when (recurringType) {
@@ -390,21 +425,52 @@ private fun WorkoutScheduleDialog(
                         onValueChange = {},
                         readOnly = true,
                         label = { Text(languageViewModel.getString(StringKey.RECURRING)) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = false) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = recurringTypeExpanded) },
                         modifier = Modifier.menuAnchor()
                     )
+                    ExposedDropdownMenu(
+                        expanded = recurringTypeExpanded,
+                        onDismissRequest = { recurringTypeExpanded = false }
+                    ) {
+                        RecurringType.entries.forEach { type ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(languageViewModel.getString(when (type) {
+                                        RecurringType.NONE -> StringKey.NONE
+                                        RecurringType.DAILY -> StringKey.DAILY
+                                        RecurringType.WEEKLY -> StringKey.WEEKLY
+                                        RecurringType.MONTHLY -> StringKey.MONTHLY
+                                    }))
+                                },
+                                onClick = {
+                                    recurringType = type
+                                    recurringTypeExpanded = false
+                                }
+                            )
+                        }
+                    }
                 }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
+                    val now = org.awi.fitness.utils.currentInstant().toLocalDateTime(TimeZone.currentSystemDefault())
+                    val scheduledDateTime = LocalDateTime(
+                        selectedDate.year, selectedDate.monthNumber, selectedDate.dayOfMonth,
+                        now.hour, now.minute, now.second
+                    )
+                    val scheduledInstant = scheduledDateTime.toInstant(TimeZone.currentSystemDefault())
+
+                    val startMs = if (schedule != null) schedule.startTime else scheduledInstant.toEpochMilliseconds()
+                    val endMs = if (schedule != null) schedule.endTime else scheduledInstant.plus(1.hours).toEpochMilliseconds()
+
                     val newSchedule = WorkoutSchedule(
                         id = schedule?.id ?: Uuid.random().toString(),
                         title = title,
                         description = description,
-                        startTime = Clock.System.now().toEpochMilliseconds(),
-                        endTime = Clock.System.now().plus(1.hours).toEpochMilliseconds(),
+                        startTime = startMs,
+                        endTime = endMs,
                         workoutType = workoutType,
                         recurringType = recurringType,
                         color = schedule?.color ?: generateRandomColor(),
@@ -436,15 +502,13 @@ private fun formatTime(timestamp: Long): String {
 
 private fun generateRandomColor(): Long {
     val colors = listOf(
-        0xFF1976D2, // Blue
-        0xFF388E3C, // Green
-        0xFFF57C00, // Orange
-        0xFF7B1FA2, // Purple
-        0xFFC2185B, // Pink
-        0xFF00796B, // Teal
-        0xFF303F9F  // Indigo
+        0xFF1976D2,
+        0xFF388E3C,
+        0xFFF57C00,
+        0xFF7B1FA2,
+        0xFFC2185B,
+        0xFF00796B,
+        0xFF303F9F
     )
     return colors[Random.nextInt(colors.size)]
 }
-
-private fun String.capitalize() = replaceFirstChar { if (it.isLowerCase()) it.uppercase() else it.toString() } 

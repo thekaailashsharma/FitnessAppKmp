@@ -17,12 +17,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import compose.icons.TablerIcons
+import compose.icons.tablericons.CircleCheck
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -106,7 +106,7 @@ fun VideoList(
                             }
                         ) {
                             Icon(
-                                imageVector = Icons.Default.CheckCircle,
+                                imageVector = TablerIcons.CircleCheck,
                                 contentDescription = "Video ${index + 1}",
                                 tint = if (index == currentVideoIndex) 
                                     MaterialTheme.colorScheme.primary 

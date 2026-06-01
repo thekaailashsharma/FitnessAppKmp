@@ -8,8 +8,8 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
+import compose.icons.TablerIcons
+import compose.icons.tablericons.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -141,7 +141,29 @@ fun ChallengeCard(
                     target = challenge.target,
                     unit = challenge.unit
                 )
-                
+
+                val daysLeft = if (challenge.endDateLong > 0L) {
+                    val msLeft = challenge.endDateLong - org.awi.fitness.utils.currentTimeMillis()
+                    (msLeft / (1000L * 60 * 60 * 24)).toInt().coerceAtLeast(0)
+                } else -1
+
+                if (daysLeft >= 0) {
+                    Text(
+                        text = when (daysLeft) {
+                            0 -> "Ends today!"
+                            1 -> "1 day left"
+                            else -> "$daysLeft days left"
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = when {
+                            daysLeft <= 1 -> Color(0xFFFF5722)
+                            daysLeft <= 3 -> Color(0xFFFF9800)
+                            else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        },
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(12.dp))
                 
                 // Reward info
@@ -149,7 +171,7 @@ fun ChallengeCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Star,
+                        imageVector = TablerIcons.Star,
                         contentDescription = null,
                         tint = Color(0xFFFFD700),
                         modifier = Modifier.size(16.dp)

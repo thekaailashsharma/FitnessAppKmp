@@ -107,15 +107,7 @@ fun WorkoutActivity.toFirestoreRequest(): WorkoutActivityFirestoreRequest {
 // Extension functions for converting Firestore documents to models
 fun FirestoreDocument<WorkoutPlanFields>.toWorkoutPlan(): WorkoutPlan {
     val documentId = name?.split("/")?.last() ?: ""
-    return WorkoutPlan(
-        id = documentId,
-        name = fields?.name?.value ?: "",
-        description = fields?.description?.value ?: "",
-        difficulty = fields?.difficulty?.value?.let { WorkoutDifficulty.valueOf(it) } ?: WorkoutDifficulty.BEGINNER,
-        duration = fields?.duration?.value?.toIntOrNull() ?: 12,
-        category = fields?.category?.value?.let { WorkoutCategory.valueOf(it) } ?: WorkoutCategory.STRENGTH,
-        imageUrl = fields?.imageUrl?.value
-    )
+    return fields?.toDomainModel(documentId) ?: WorkoutPlan(id = documentId)
 }
 
 fun FirestoreDocument<ExerciseFields>.toExercise(): Exercise {

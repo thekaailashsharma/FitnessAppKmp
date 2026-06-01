@@ -40,6 +40,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -71,6 +73,7 @@ import org.awi.fitness.ui.components.statusBarPadding
 import org.awi.fitness.ui.components.ImagePlaceholder
 import org.awi.fitness.utils.DateUtils
 import org.awi.fitness.viewmodel.CommunityViewModel
+import org.awi.fitness.viewmodel.ViewModelStore
 
 class ActivityScreen : Screen {
     @OptIn(ExperimentalMaterial3Api::class)
@@ -79,7 +82,8 @@ class ActivityScreen : Screen {
         val navigator = LocalNavigator.currentOrThrow
         val viewModel = rememberScreenModel { CommunityViewModel() }
         val activityState by viewModel.activityState.collectAsState()
-        
+        val scope = rememberCoroutineScope()
+
         LaunchedEffect(Unit) {
             viewModel.loadActivityNotifications()
         }
@@ -152,27 +156,24 @@ class ActivityScreen : Screen {
                         items(activityState.notifications) { notification ->
                             NotificationItem(
                                 notification = notification,
+                                viewModel = viewModel,
                                 onNotificationClick = {
-                                    // Mark as read
-//                                    viewModel.markNotificationAsRead(notification.id)
-                                    
-                                    // Navigate based on notification type
-                            when (notification.type) {
-                                CommunityActivityType.LIKE, CommunityActivityType.COMMENT -> {
-                                    // Navigate to post detail
-                                    navigator.push(PostDetailScreen(notification.targetId))
-                                }
-                                CommunityActivityType.FOLLOW -> {
-                                    // Navigate to user profile
-                                    navigator.push(CommunityProfileScreen(notification.userId))
-                                }
-                                CommunityActivityType.CHALLENGE_INVITE -> {
-                                    // In a real app, navigate to challenge detail
-                                }
-                                else -> {
-                                    // Other notifications don't need navigation
-                                }
-                            }
+                                    scope.launch {
+                                        viewModel.markNotificationAsRead(notification.id)
+                                    }
+                                    when (notification.type) {
+                                        CommunityActivityType.LIKE, CommunityActivityType.COMMENT -> {
+                                            if (notification.targetId.isNotBlank()) {
+                                                navigator.push(PostDetailScreen(notification.targetId))
+                                            }
+                                        }
+                                        CommunityActivityType.FOLLOW -> {
+                                            if (notification.userId.isNotBlank()) {
+                                                navigator.push(CommunityProfileScreen(notification.userId))
+                                            }
+                                        }
+                                        else -> { /* badge/streak/challenge — no nav needed */ }
+                                    }
                                 }
                             )
                         }
@@ -186,8 +187,10 @@ class ActivityScreen : Screen {
 @Composable
 fun NotificationItem(
     notification: ActivityNotification,
+    viewModel: CommunityViewModel,
     onNotificationClick: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
     var showButtons by remember { mutableStateOf(false) }
     
     Box(
@@ -258,16 +261,19 @@ fun NotificationItem(
                 when (notification.type) {
                     CommunityActivityType.LIKE -> {
                         Text(
-                            text = "${notification.userName} liked your...",
+                            text = "${notification.userName} cheered your post",
                             style = MaterialTheme.typography.bodyLarge.copy(
                                 fontWeight = FontWeight.SemiBold
                             )
                         )
-                        Text(
-                            text = "\"${notification.targetContent}\"",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                        )
+                        if (notification.targetContent.isNotBlank()) {
+                            Text(
+                                text = "\"${notification.targetContent}\"",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                maxLines = 2
+                            )
+                        }
                     }
                     CommunityActivityType.COMMENT -> {
                         Text(
@@ -276,37 +282,37 @@ fun NotificationItem(
                                 fontWeight = FontWeight.SemiBold
                             )
                         )
-                        Text(
-                            text = "\"${notification.targetContent}\"",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                        )
+                        if (notification.targetContent.isNotBlank()) {
+                            Text(
+                                text = "\"${notification.targetContent}\"",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                maxLines = 2
+                            )
+                        }
                     }
                     CommunityActivityType.FOLLOW -> {
                         Text(
-                            text = "${notification.userName} started...",
+                            text = "${notification.userName} started following you",
                             style = MaterialTheme.typography.bodyLarge.copy(
                                 fontWeight = FontWeight.SemiBold
                             )
-                        )
-                        Text(
-                            text = "You have a new follower!",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
                     }
                     CommunityActivityType.CHALLENGE_INVITE -> {
                         Text(
-                            text = "You're invited to the '${notification.targetContent}' challenge!",
+                            text = "You're invited to a challenge",
                             style = MaterialTheme.typography.bodyLarge.copy(
                                 fontWeight = FontWeight.SemiBold
                             )
                         )
-                        Text(
-                            text = "This challenge starts on Saturday and ends on Sunday.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                        )
+                        if (notification.targetContent.isNotBlank()) {
+                            Text(
+                                text = notification.targetContent,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            )
+                        }
                     }
                     CommunityActivityType.BADGE_EARNED -> {
                         Text(
@@ -353,7 +359,11 @@ fun NotificationItem(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Button(
-                            onClick = { /* Decline */ },
+                            onClick = {
+                                scope.launch {
+                                    viewModel.markNotificationAsRead(notification.id)
+                                }
+                            },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.surface,
                                 contentColor = MaterialTheme.colorScheme.onSurface
@@ -363,9 +373,16 @@ fun NotificationItem(
                         ) {
                             Text("Decline")
                         }
-                        
+
                         Button(
-                            onClick = { /* Accept */ },
+                            onClick = {
+                                scope.launch {
+                                    notification.targetId.takeIf { it.isNotBlank() }?.let { challengeId ->
+                                        ViewModelStore.challenges.joinChallenge(challengeId)
+                                    }
+                                    viewModel.markNotificationAsRead(notification.id)
+                                }
+                            },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = Color.Black

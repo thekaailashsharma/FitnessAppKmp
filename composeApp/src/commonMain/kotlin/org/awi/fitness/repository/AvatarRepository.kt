@@ -1,5 +1,6 @@
 package org.awi.fitness.repository
 
+import org.awi.fitness.utils.currentTimeMillis
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -290,7 +291,7 @@ class AvatarRepository {
     }
 
     private suspend fun handleDailyCheckInResponse(response: String) {
-        val today = Clock.System.now()
+        val today = kotlinx.datetime.Instant.fromEpochMilliseconds(currentTimeMillis())
             .toLocalDateTime(TimeZone.currentSystemDefault())
             .date
         // Convert date to start of day timestamp (midnight) - consistent with UserSettings

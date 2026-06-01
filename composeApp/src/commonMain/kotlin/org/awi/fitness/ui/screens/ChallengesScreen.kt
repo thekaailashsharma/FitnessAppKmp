@@ -6,16 +6,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -24,109 +20,216 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import compose.icons.TablerIcons
+import compose.icons.tablericons.Check
+import compose.icons.tablericons.Star
+import compose.icons.tablericons.Trophy
+import compose.icons.tablericons.User
 import org.awi.fitness.model.*
 import org.awi.fitness.theme.GreenAccent
 import org.awi.fitness.ui.components.*
+import org.awi.fitness.viewmodel.ViewModelStore
 
 @Composable
 fun ChallengesScreen() {
     val navigator = LocalNavigator.currentOrThrow
-    val scrollState = rememberScrollState()
-    
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
-    ) {
-        item {
-            // Hero Section
-            HeroSection()
-        }
-        
-        item {
-            // Quick Stats
-            QuickStatsSection()
-        }
-        
-        item {
-            // Active Challenges
-            SectionHeader(
-                title = "Active Challenges",
-                subtitle = "Keep the momentum going!"
-            )
-        }
-        
-        item {
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(horizontal = 4.dp)
-            ) {
-                items(getActiveChallenges()) { challenge ->
-                    ChallengeCard(
+    val viewModel = ViewModelStore.challenges
+    val state by viewModel.state.collectAsState()
+    val userSettings = org.awi.fitness.data.UserSettings.getInstance()
+    val currentEmail = userSettings.userEmail.orEmpty()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadChallenges()
+    }
+
+    // Derive user's rank from the first active challenge's leaderboard
+    val userRank = remember(state.leaderboard, currentEmail) {
+        val idx = state.leaderboard.indexOfFirst { it.userId == currentEmail || it.username == currentEmail.substringBefore("@") }
+        if (idx >= 0) "#${idx + 1}" else if (state.leaderboard.isNotEmpty()) "#${state.leaderboard.size + 1}" else "—"
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            item {
+                HeroSection(firstActiveChallenge = state.activeChallenges.firstOrNull())
+            }
+
+            item {
+                QuickStatsSection(
+                    activeChallengesCount = state.activeChallenges.size,
+                    completedCount = state.activeChallenges.count {
+                        it.progress >= it.target && it.target > 0
+                    },
+                    rank = userRank
+                )
+            }
+
+            // ---- My Active Challenges ----
+            item {
+                SectionHeader(
+                    title = "Active Challenges",         // TODO: Add to StringKey.kt
+                    subtitle = "Keep the momentum going!"
+                )
+            }
+
+            if (state.activeChallenges.isEmpty() && !state.isLoading) {
+                item {
+                    ChallengesEmptyState(
+                        message = "No active challenges yet.\nJoin one below to get started!",
+                        icon = "🏁"
+                    )
+                }
+            } else {
+                item {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp)
+                    ) {
+                        items(state.activeChallenges) { challenge ->
+                            ChallengeCard(
+                                challenge = challenge,
+                                onClick = {
+                                    viewModel.selectChallenge(challenge)
+                                    navigator.push(ChallengeDetailScreen(challenge))
+                                },
+                                modifier = Modifier.width(280.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // ---- Available Challenges ----
+            item {
+                SectionHeader(
+                    title = "Available Challenges",     // TODO: Add to StringKey.kt
+                    subtitle = "Start a new journey"
+                )
+            }
+
+            if (state.availableChallenges.isEmpty() && !state.isLoading) {
+                item {
+                    ChallengesEmptyState(
+                        message = "No available challenges right now.\nCheck back soon!",
+                        icon = "✨"
+                    )
+                }
+            } else {
+                items(state.availableChallenges) { challenge ->
+                    AvailableChallengeRow(
                         challenge = challenge,
-                        onClick = { navigator.push(ChallengeDetailScreen(challenge)) },
-                        modifier = Modifier.width(280.dp)
+                        isJoining = challenge.id in state.joiningChallengeIds,
+                        isJoined = challenge.id in state.joinedChallengeIds,
+                        onTap = {
+                            viewModel.selectChallenge(challenge)
+                            navigator.push(ChallengeDetailScreen(challenge))
+                        },
+                        onJoin = { viewModel.joinChallenge(challenge.id) }
                     )
                 }
             }
+
+            // ---- Recent Achievements (static badges — achievements not in this sprint's scope) ----
+            item {
+                SectionHeader(
+                    title = "Recent Achievements",
+                    subtitle = "Celebrate your wins!"
+                )
+            }
+
+            item {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp)
+                ) {
+                    items(staticBadges()) { badge ->
+                        val isUnlocked = when (badge.id) {
+                            "1" -> state.activeChallenges.isNotEmpty() || state.joinedChallengeIds.isNotEmpty()
+                            "2" -> state.activeChallenges.count { it.progress >= it.target && it.target > 0 } >= 1
+                            "3" -> state.activeChallenges.size >= 2
+                            else -> false
+                        }
+                        BadgeCard(
+                            badge = badge,
+                            isUnlocked = isUnlocked,
+                            modifier = Modifier.width(120.dp)
+                        )
+                    }
+                }
+            }
+
+            // ---- Leaderboard (for first active challenge) ----
+            item {
+                SectionHeader(
+                    title = "Leaderboard",
+                    subtitle = if (state.activeChallenges.isNotEmpty())
+                        "Challenge: ${state.activeChallenges.first().title}"
+                    else
+                        "See how you rank"
+                )
+            }
+
+            if (state.leaderboard.isEmpty() && !state.isLoading) {
+                item {
+                    ChallengesEmptyState(
+                        message = if (state.activeChallenges.isEmpty())
+                            "Join a challenge to appear on the leaderboard!"
+                        else
+                            "No entries yet. Be the first!",
+                        icon = "🏅"
+                    )
+                }
+            } else {
+                items(state.leaderboard) { entry ->
+                    LeaderboardCard(entry = entry)
+                }
+            }
+
+            item { Spacer(modifier = Modifier.height(80.dp)) }
         }
-        
-        item {
-            // Available Challenges
-            SectionHeader(
-                title = "Available Challenges",
-                subtitle = "Start a new journey"
-            )
-        }
-        
-        items(getAvailableChallenges()) { challenge ->
-            ChallengeCard(
-                challenge = challenge,
-                onClick = { navigator.push(ChallengeDetailScreen(challenge)) }
-            )
-        }
-        
-        item {
-            // Achievements Section
-            SectionHeader(
-                title = "Recent Achievements",
-                subtitle = "Celebrate your wins!"
-            )
-        }
-        
-        item {
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(horizontal = 4.dp)
+
+        // Loading overlay
+        if (state.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.6f)),
+                contentAlignment = Alignment.Center
             ) {
-                items(getRecentBadges()) { badge ->
-                    BadgeCard(
-                        badge = badge,
-                        isUnlocked = true,
-                        modifier = Modifier.width(120.dp)
-                    )
-                }
+                CircularProgressIndicator(color = GreenAccent)
             }
         }
-        
-        item {
-            // Leaderboard Section
-            SectionHeader(
-                title = "Leaderboard",
-                subtitle = "See how you rank"
-            )
-        }
-        
-        items(getLeaderboardEntries()) { entry ->
-            LeaderboardCard(entry = entry)
+
+        // Error snackbar
+        state.error?.let { errorMsg ->
+            Snackbar(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp),
+                action = {
+                    TextButton(onClick = { viewModel.clearError() }) {
+                        Text("Dismiss", color = GreenAccent)
+                    }
+                }
+            ) {
+                Text(errorMsg)
+            }
         }
     }
 }
 
+// ---------------------------------------------------------------------------
+// Private composables
+// ---------------------------------------------------------------------------
+
 @Composable
-private fun HeroSection() {
+private fun HeroSection(firstActiveChallenge: Challenge?) {
     val pulseAnimation by animateFloatAsState(
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
@@ -135,12 +238,19 @@ private fun HeroSection() {
         ),
         label = "pulse"
     )
-    
+
+    val title = firstActiveChallenge?.title ?: "Daily Challenge"
+    val subtitle = firstActiveChallenge?.description ?: "Join a challenge to get started"
+    val progressText = if (firstActiveChallenge != null && firstActiveChallenge.target > 0) {
+        "${firstActiveChallenge.progress}/${firstActiveChallenge.target} ${firstActiveChallenge.unit}"
+    } else {
+        "Start your journey!"
+    }
+    val accentColor = if (firstActiveChallenge != null) Color(firstActiveChallenge.color) else GreenAccent
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(20.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
@@ -150,8 +260,8 @@ private fun HeroSection() {
                 .background(
                     brush = Brush.linearGradient(
                         colors = listOf(
-                            GreenAccent.copy(alpha = 0.1f),
-                            GreenAccent.copy(alpha = 0.05f)
+                            accentColor.copy(alpha = 0.12f),
+                            accentColor.copy(alpha = 0.04f)
                         )
                     )
                 )
@@ -162,61 +272,40 @@ private fun HeroSection() {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Daily Challenge",
+                        text = title,
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 2
                     )
-                    
                     Spacer(modifier = Modifier.height(8.dp))
-                    
                     Text(
-                        text = "Complete 30 squats today",
+                        text = subtitle,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                        maxLines = 2
                     )
-                    
                     Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Progress
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "15/30",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = GreenAccent
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "squats",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                        )
-                    }
+                    Text(
+                        text = progressText,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = accentColor
+                    )
                 }
-                
-                // Animated icon
+
                 Box(
                     modifier = Modifier
                         .size(80.dp)
                         .scale(pulseAnimation)
-                        .background(
-                            color = GreenAccent.copy(alpha = 0.2f),
-                            shape = CircleShape
-                        ),
+                        .background(color = accentColor.copy(alpha = 0.2f), shape = CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Favorite,
-                        contentDescription = null,
-                        tint = GreenAccent,
-                        modifier = Modifier.size(40.dp)
+                    Text(
+                        text = firstActiveChallenge?.iconName?.takeIf { it.isNotBlank() } ?: "🏆",
+                        fontSize = 36.sp
                     )
                 }
             }
@@ -225,32 +314,30 @@ private fun HeroSection() {
 }
 
 @Composable
-private fun QuickStatsSection() {
+private fun QuickStatsSection(activeChallengesCount: Int, completedCount: Int, rank: String = "—") {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         StatCard(
-            title = "XP",
-            value = "2,450",
-            icon = Icons.Default.Star,
-            color = Color(0xFFFFD700),
-            modifier = Modifier.weight(1f)
-        )
-        
-        StatCard(
-            title = "Level",
-            value = "12",
-            icon = Icons.Default.Face,
+            title = "Active",
+            value = activeChallengesCount.toString(),
+            icon = TablerIcons.Trophy,
             color = GreenAccent,
             modifier = Modifier.weight(1f)
         )
-        
         StatCard(
-            title = "Streak",
-            value = "7 days",
-            icon = Icons.Default.Star,
-            color = Color(0xFFFF5722),
+            title = "Completed",
+            value = completedCount.toString(),
+            icon = TablerIcons.Check,
+            color = Color(0xFF2196F3),
+            modifier = Modifier.weight(1f)
+        )
+        StatCard(
+            title = "Rank",
+            value = rank,
+            icon = TablerIcons.Star,
+            color = Color(0xFFFFD700),
             modifier = Modifier.weight(1f)
         )
     }
@@ -266,9 +353,7 @@ private fun StatCard(
 ) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -284,16 +369,13 @@ private fun StatCard(
                 tint = color,
                 modifier = Modifier.size(24.dp)
             )
-            
             Spacer(modifier = Modifier.height(8.dp))
-            
             Text(
                 text = value,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodySmall,
@@ -304,11 +386,7 @@ private fun StatCard(
 }
 
 @Composable
-private fun SectionHeader(
-    title: String,
-    subtitle: String,
-    modifier: Modifier = Modifier
-) {
+private fun SectionHeader(title: String, subtitle: String, modifier: Modifier = Modifier) {
     Column(modifier = modifier) {
         Text(
             text = title,
@@ -316,7 +394,6 @@ private fun SectionHeader(
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
         )
-        
         Text(
             text = subtitle,
             style = MaterialTheme.typography.bodyMedium,
@@ -325,140 +402,162 @@ private fun SectionHeader(
     }
 }
 
-// Mock data functions
-private fun getActiveChallenges(): List<Challenge> {
-    return listOf(
-        Challenge(
-            id = "1",
-            title = "30-Day Squat Challenge",
-            description = "Build lower body strength with daily squats",
-            type = ChallengeType.DAILY,
-            category = ChallengeCategory.EXERCISE,
-            difficulty = ChallengeDifficulty.BEGINNER,
-            duration = 30,
-            target = 30,
-            unit = "squats",
-            reward = Reward(xp = 100, title = "Squat Master"),
-            isActive = true,
-            progress = 15,
-            iconName = "🏋️",
-            color = 0xFF00B67A
-        ),
-        Challenge(
-            id = "2",
-            title = "10K Steps Daily",
-            description = "Walk your way to better health",
-            type = ChallengeType.DAILY,
-            category = ChallengeCategory.STEPS,
-            difficulty = ChallengeDifficulty.INTERMEDIATE,
-            duration = 7,
-            target = 10000,
-            unit = "steps",
-            reward = Reward(xp = 150, title = "Walker"),
-            isActive = true,
-            progress = 7500,
-            iconName = "🚶",
-            color = 0xFF2196F3
-        )
-    )
+@Composable
+private fun AvailableChallengeRow(
+    challenge: Challenge,
+    isJoining: Boolean,
+    isJoined: Boolean,
+    onTap: () -> Unit,
+    onJoin: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        onClick = onTap
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color(challenge.color).copy(alpha = 0.08f),
+                            Color(challenge.color).copy(alpha = 0.02f)
+                        )
+                    )
+                )
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(Color(challenge.color).copy(alpha = 0.15f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = challenge.iconName.takeIf { it.isNotBlank() } ?: "🏆",
+                        fontSize = 22.sp
+                    )
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = challenge.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1
+                    )
+                    Text(
+                        text = challenge.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        maxLines = 2
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        TypeBadge(type = challenge.type)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = "⭐", fontSize = 12.sp)
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Text(
+                            text = "+${challenge.reward.xp} XP",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+
+                Button(
+                    onClick = { if (!isJoining && !isJoined) onJoin() },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isJoined) Color(0xFF4CAF50) else GreenAccent,
+                        disabledContainerColor = if (isJoined) Color(0xFF4CAF50) else GreenAccent.copy(alpha = 0.5f)
+                    ),
+                    enabled = !isJoining && !isJoined,
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    when {
+                        isJoining -> CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = Color.White
+                        )
+                        isJoined -> Icon(
+                            TablerIcons.Check,
+                            contentDescription = "Joined",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        else -> Text("Join", color = Color.White, style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+            }
+        }
+    }
 }
 
-private fun getAvailableChallenges(): List<Challenge> {
-    return listOf(
-        Challenge(
-            id = "3",
-            title = "Plank Challenge",
-            description = "Core strength building challenge",
-            type = ChallengeType.WEEKLY,
-            category = ChallengeCategory.STRENGTH,
-            difficulty = ChallengeDifficulty.INTERMEDIATE,
-            duration = 7,
-            target = 60,
-            unit = "seconds",
-            reward = Reward(xp = 200, title = "Plank Pro"),
-            isActive = false,
-            progress = 0,
-            iconName = "💪",
-            color = 0xFFFF9800
-        ),
-        Challenge(
-            id = "4",
-            title = "Meditation Streak",
-            description = "Find your inner peace daily",
-            type = ChallengeType.MONTHLY,
-            category = ChallengeCategory.CONSISTENCY,
-            difficulty = ChallengeDifficulty.BEGINNER,
-            duration = 30,
-            target = 30,
-            unit = "sessions",
-            reward = Reward(xp = 300, title = "Zen Master"),
-            isActive = false,
-            progress = 0,
-            iconName = "🧘",
-            color = 0xFF9C27B0
+@Composable
+private fun TypeBadge(type: ChallengeType) {
+    val (color, label) = when (type) {
+        ChallengeType.DAILY -> Color(0xFF4CAF50) to "Daily"
+        ChallengeType.WEEKLY -> Color(0xFF2196F3) to "Weekly"
+        ChallengeType.MONTHLY -> Color(0xFF9C27B0) to "Monthly"
+        ChallengeType.CUSTOM -> Color(0xFFFF9800) to "Custom"
+    }
+    Box(
+        modifier = Modifier
+            .background(color.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = color,
+            fontWeight = FontWeight.Medium
         )
-    )
+    }
 }
 
-private fun getRecentBadges(): List<Badge> {
-    return listOf(
-        Badge(
-            id = "1",
-            name = "First Steps",
-            description = "Complete your first challenge",
-            iconName = "👟",
-            rarity = BadgeRarity.COMMON
-        ),
-        Badge(
-            id = "2",
-            name = "Week Warrior",
-            description = "Complete 7 challenges in a week",
-            iconName = "⚔️",
-            rarity = BadgeRarity.RARE
-        ),
-        Badge(
-            id = "3",
-            name = "Consistency King",
-            description = "30-day streak",
-            iconName = "👑",
-            rarity = BadgeRarity.EPIC
-        )
-    )
+@Composable
+private fun ChallengesEmptyState(message: String, icon: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(text = icon, fontSize = 40.sp)
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+        }
+    }
 }
 
-private fun getLeaderboardEntries(): List<LeaderboardEntry> {
-    return listOf(
-        LeaderboardEntry(
-            userId = "1",
-            username = "FitnessPro",
-            xp = 5420,
-            level = 15,
-            rank = 1,
-            streak = 45
-        ),
-        LeaderboardEntry(
-            userId = "2",
-            username = "You",
-            xp = 2450,
-            level = 12,
-            rank = 2,
-            streak = 7
-        ),
-        LeaderboardEntry(
-            userId = "3",
-            username = "GymBuddy",
-            xp = 2100,
-            level = 11,
-            rank = 3,
-            streak = 12
-        ),
-        LeaderboardEntry(
-            userId = "4",
-            username = "HealthyLife",
-            xp = 1800,
-            level = 10,
-            rank = 4,
-            streak = 5
-        )
-    )
-}
+// ---------------------------------------------------------------------------
+// Static badges (achievements not in this sprint's Firestore scope)
+// ---------------------------------------------------------------------------
+
+private fun staticBadges(): List<Badge> = listOf(
+    Badge(id = "1", name = "First Steps", description = "Complete your first challenge", iconName = "👟", rarity = BadgeRarity.COMMON),
+    Badge(id = "2", name = "Week Warrior", description = "Complete 7 challenges in a week", iconName = "⚔️", rarity = BadgeRarity.RARE),
+    Badge(id = "3", name = "Consistency King", description = "30-day streak", iconName = "👑", rarity = BadgeRarity.EPIC)
+)

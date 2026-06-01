@@ -77,7 +77,10 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalFocusManager
 import compose.icons.tablericons.Send
+import compose.icons.tablericons.ChevronDown
 import org.awi.fitness.data.UserSettings
 import org.awi.fitness.data.StringKey
 import org.awi.fitness.viewmodel.LanguageViewModel
@@ -99,6 +102,8 @@ class AvatarScreen(
         
         var isAvatarAnimating by remember { mutableStateOf(false) }
         var userInputValue by remember { mutableStateOf("") }
+        val keyboardController = LocalSoftwareKeyboardController.current
+        val focusManager = LocalFocusManager.current
 
         
         // Show error in snackbar if present
@@ -136,6 +141,7 @@ class AvatarScreen(
         }
 
         Scaffold(
+            modifier = Modifier.imePadding(),
             topBar = {
                 TopAppBar(
                     title = {
@@ -186,7 +192,7 @@ class AvatarScreen(
                         .navigationBarsPadding()
                         .background(MaterialTheme.colorScheme.background)
                 ) {
-                    // Quick reply chips - prominent display
+                    // Quick reply chips
                     if (state.conversationState.suggestedResponses.isNotEmpty()) {
                         LazyRow(
                             modifier = Modifier
@@ -200,6 +206,8 @@ class AvatarScreen(
                                     text = response,
                                     onClick = {
                                         viewModel.sendUserMessage(response)
+                                        keyboardController?.hide()
+                                        focusManager.clearFocus()
                                     },
                                     enabled = !state.conversationState.isTyping && !state.isLoading
                                 )
@@ -207,13 +215,27 @@ class AvatarScreen(
                         }
                     }
 
-                    // Text Input Field
+                    // Text Input Row
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(8.dp),
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // Keyboard dismiss button — always visible, especially useful on iOS
+                        IconButton(
+                            onClick = {
+                                keyboardController?.hide()
+                                focusManager.clearFocus()
+                            }
+                        ) {
+                            Icon(
+                                imageVector = TablerIcons.ChevronDown,
+                                contentDescription = "Dismiss keyboard",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
                         TextField(
                             value = userInputValue,
                             onValueChange = { userInputValue = it },
@@ -230,16 +252,21 @@ class AvatarScreen(
                                     if (userInputValue.isNotBlank()) {
                                         viewModel.sendUserMessage(userInputValue)
                                         userInputValue = ""
+                                        keyboardController?.hide()
+                                        focusManager.clearFocus()
                                     }
                                 }
-                            )
+                            ),
+                            maxLines = 4
                         )
-                        
+
                         IconButton(
                             onClick = {
                                 if (userInputValue.isNotBlank()) {
                                     viewModel.sendUserMessage(userInputValue)
                                     userInputValue = ""
+                                    keyboardController?.hide()
+                                    focusManager.clearFocus()
                                 }
                             },
                             enabled = userInputValue.isNotBlank() && !state.isLoading
@@ -247,7 +274,8 @@ class AvatarScreen(
                             Icon(
                                 imageVector = TablerIcons.Send,
                                 contentDescription = languageViewModel.getString(StringKey.SEND),
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = if (userInputValue.isNotBlank()) MaterialTheme.colorScheme.primary
+                                       else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                             )
                         }
                     }

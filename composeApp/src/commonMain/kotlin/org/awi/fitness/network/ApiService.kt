@@ -1,5 +1,6 @@
 package org.awi.fitness.network
 
+import org.awi.fitness.utils.currentTimeMillis
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
@@ -109,7 +110,7 @@ abstract class ApiService {
             authToken = response.idToken
             refreshToken = response.refreshToken
             userId = response.userId
-            tokenExpiryTime = (Clock.System.now().toEpochMilliseconds() +
+            tokenExpiryTime = (currentTimeMillis() +
                     (response.expiresIn?.toLong() ?: 0) * 1000).toString()
             isLoggedIn = true
         }
@@ -163,7 +164,6 @@ abstract class ApiService {
                     }
                 }
             }.let { response ->
-                println("Original Response is ${response.bodyAsText()}")
                 response.body<T>() to response.status
             }
         }, token)
@@ -220,7 +220,6 @@ abstract class ApiService {
                     }
                 }
             }.let { response ->
-                println("Original Response is ${response.bodyAsText()}")
                 response.body<T>() to response.status
             }
         }, token)
@@ -270,6 +269,29 @@ abstract class ApiService {
                 }
             }.let { response ->
                 response.body<T>() to response.status
+            }
+        }, token)
+    }
+
+    /**
+     * POST raw bytes (e.g. for Firebase Storage multipart/media uploads).
+     * The response body is deserialized as plain text via [bodyAsText].
+     */
+    protected suspend fun postBytesRaw(
+        url: String,
+        bytes: ByteArray,
+        contentType: String,
+        token: String? = null
+    ): Pair<String, HttpStatusCode> {
+        return handleRequest({ currentToken ->
+            KtorClient.httpClient.post(url) {
+                headers {
+                    append("Content-Type", contentType)
+                    currentToken?.let { append(HttpHeaders.Authorization, "Bearer $it") }
+                }
+                setBody(bytes)
+            }.let { response ->
+                response.bodyAsText() to response.status
             }
         }, token)
     }

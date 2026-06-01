@@ -103,7 +103,7 @@ class ClientRepository : ApiService() {
             val (response, status) = get<FirestoreListResponse<ClientFields>>(url, token)
 
             if (status.isSuccess()) {
-                val clients = response.documents?.map { it.toClient() }?.first { it.email == email }
+                val clients = response.documents?.map { it.toClient() }?.firstOrNull { it.email == email }
                 Result.success(clients)
             } else {
                 Result.failure(Exception("Failed to fetch client"))
