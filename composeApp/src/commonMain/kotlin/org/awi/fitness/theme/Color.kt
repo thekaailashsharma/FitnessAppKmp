@@ -1,6 +1,7 @@
 package org.awi.fitness.theme
 
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
@@ -81,24 +82,24 @@ val DarkColorScheme = darkColorScheme(
     outline = TextGray
 )
 
-val LightColorScheme = darkColorScheme(
+val LightColorScheme = lightColorScheme(
     primary = GreenAccent,
     onPrimary = TextWhite,
     primaryContainer = GreenCard,
     onPrimaryContainer = TextWhite,
-    secondary = DarkGray,
-    onSecondary = TextWhite,
-    secondaryContainer = DarkCard,
-    onSecondaryContainer = TextWhite,
-    tertiary = ButtonDark,
-    onTertiary = TextWhite,
-    tertiaryContainer = ButtonDark,
-    onTertiaryContainer = TextWhite,
-    background = BackgroundDark,
-    onBackground = TextWhite,
-    surface = DarkCard,
-    onSurface = TextWhite,
-    surfaceVariant = DarkGray,
-    onSurfaceVariant = TextGray,
-    outline = TextGray
-)
+    secondary = Color(0xFFE0E0E0),
+    onSecondary = Color(0xFF000000),
+    secondaryContainer = Color(0xFFF5F5F5),
+    onSecondaryContainer = Color(0xFF000000),
+    tertiary = Color(0xFFE8E8E8),
+    onTertiary = Color(0xFF000000),
+    tertiaryContainer = Color(0xFFF0F0F0),
+    onTertiaryContainer = Color(0xFF000000),
+    background = Color(0xFFFFFFFF),
+    onBackground = Color(0xFF000000),
+    surface = Color(0xFFFAFAFA),
+    onSurface = Color(0xFF000000),
+    surfaceVariant = Color(0xFFF0F0F0),
+    onSurfaceVariant = Color(0xFF424242),
+    outline = Color(0xFF757575)
+) 

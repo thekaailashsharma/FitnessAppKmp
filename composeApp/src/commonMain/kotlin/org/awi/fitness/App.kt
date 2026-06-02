@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.SlideTransition
@@ -26,7 +27,10 @@ import org.awi.fitness.data.createSettings
 import org.awi.fitness.repository.AuthRepository
 import org.awi.fitness.repository.ClientRepository
 import org.awi.fitness.repository.ConfigRepository
+import org.awi.fitness.theme.DarkColorScheme
 import org.awi.fitness.theme.FitnessAppTheme
+import org.awi.fitness.theme.LightColorScheme
+import org.awi.fitness.theme.LocalThemeProgress
 import org.awi.fitness.ui.StatusBarPadding
 import org.awi.fitness.ui.components.FitnessSnackbar
 import org.awi.fitness.ui.components.SnackbarManager
@@ -48,39 +52,30 @@ fun App() {
     val authViewModel = remember { initAuth() }
     val userSettings = remember { UserSettings.getInstance() }
     val currentLanguage = userSettings.language.collectAsState()
-    val languageViewModel = remember { 
+    val languageViewModel = remember {
         LanguageViewModel(createSettings()).apply {
             setLanguage(Language.entries.find { it.code == currentLanguage.value } ?: Language.ENGLISH)
         }
     }
 
-    // Observe theme preference — falls back to system setting if user hasn't chosen yet
     val isSystemInDarkTheme = isSystemInDarkTheme()
     val savedDarkTheme by userSettings.isDarkThemeFlow.collectAsState()
     val isDarkTheme = savedDarkTheme ?: isSystemInDarkTheme
 
-    // Effect to handle language changes
     LaunchedEffect(currentLanguage) {
         languageViewModel.setLanguage(
             Language.entries.find { it.code == currentLanguage.value } ?: Language.ENGLISH
         )
     }
 
-    // Snackbar setup
     val scope = rememberCoroutineScope()
-
-    // Observe login state — re-run whenever user logs in so config + FCM sync always fire
     val isLoggedIn by userSettings.isLoggedInFlow.collectAsState()
 
     LaunchedEffect(isLoggedIn) {
         if (!isLoggedIn) return@LaunchedEffect
-
-        // Fetch remote config (Gemini key, etc.) as soon as user is authenticated
         try {
             ConfigRepository().fetchAndApplyConfig()
         } catch (_: Exception) { }
-
-        // Sync FCM token, timezone to Firestore
         try {
             val email = userSettings.userEmail ?: return@LaunchedEffect
             val repo = ClientRepository()
@@ -96,13 +91,19 @@ fun App() {
             )
         } catch (_: Exception) { }
     }
+
     val snackbarManager = rememberSnackbarManager(scope)
     val snackbarHostState = remember { SnackbarHostState() }
 
     FitnessAppTheme(useDarkTheme = isDarkTheme) {
+        // Single animated progress from Theme.kt drives status bar color in lockstep
+        val progress = LocalThemeProgress.current
+        val statusBarBg = lerp(LightColorScheme.background, DarkColorScheme.background, progress)
+        val darkIcons = progress < 0.5f
+
         StatusBarPadding(
-            color = MaterialTheme.colorScheme.background,
-            darkIcons = !isDarkTheme
+            color = statusBarBg,
+            darkIcons = darkIcons
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 Surface(

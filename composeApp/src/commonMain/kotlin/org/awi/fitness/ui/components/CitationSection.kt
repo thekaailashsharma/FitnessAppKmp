@@ -34,10 +34,7 @@ import androidx.compose.ui.unit.dp
 import compose.icons.TablerIcons
 import compose.icons.tablericons.ExternalLink
 import org.awi.fitness.data.StringKey
-import org.awi.fitness.theme.DarkCard
 import org.awi.fitness.theme.GreenAccent
-import org.awi.fitness.theme.TextGray
-import org.awi.fitness.theme.TextWhite
 import org.awi.fitness.utils.Citation
 import org.awi.fitness.utils.Citations
 import org.awi.fitness.viewmodel.LanguageViewModel
@@ -73,7 +70,7 @@ fun CitationSection(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = DarkCard
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
                 )
             ) {
                 Column(
@@ -83,7 +80,7 @@ fun CitationSection(
                     Text(
                         text = languageViewModel.getString(StringKey.MEDICAL_CITATIONS),
                         style = MaterialTheme.typography.titleMedium,
-                        color = TextWhite
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     citations.forEach { citation ->
@@ -91,7 +88,7 @@ fun CitationSection(
                             Text(
                                 text = citation.text,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = TextGray
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             
                             Row(
@@ -133,7 +130,7 @@ fun CitationSection(
                             Text(
                                 text = Citations.MEDICAL_DISCLAIMER.text,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = TextGray
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             
                             Row(

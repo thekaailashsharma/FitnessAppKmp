@@ -1,5 +1,9 @@
 package org.awi.fitness.ui.screens
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,6 +48,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
@@ -372,6 +378,34 @@ private fun SettingsSection(
             
             // Theme Switch
             var isDarkTheme by remember { mutableStateOf(UserSettings.getInstance().isDarkTheme ?: false) }
+
+            // Icon: full 360° spin + overshoot scale on every toggle
+            val iconRotation by animateFloatAsState(
+                targetValue = if (isDarkTheme) 360f else 0f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),
+                label = "iconRotation"
+            )
+            val iconScale by animateFloatAsState(
+                targetValue = if (isDarkTheme) 1.3f else 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = Spring.StiffnessMedium
+                ),
+                label = "iconScale"
+            )
+            // Switch thumb: punchy spring scale on toggle
+            val switchScale by animateFloatAsState(
+                targetValue = if (isDarkTheme) 1.15f else 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                ),
+                label = "switchScale"
+            )
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -384,17 +418,23 @@ private fun SettingsSection(
                     Icon(
                         imageVector = if (isDarkTheme) TablerIcons.Moon else TablerIcons.Sun,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .size(24.dp)
+                            .rotate(iconRotation)
+                            .scale(iconScale)
                     )
                     Text(languageViewModel.getString(StringKey.DARK_THEME))
                 }
-                Switch(
-                    checked = isDarkTheme,
-                    onCheckedChange = {
-                        isDarkTheme = it
-                        UserSettings.getInstance().isDarkTheme = it
-                    }
-                )
+                Box(modifier = Modifier.scale(switchScale)) {
+                    Switch(
+                        checked = isDarkTheme,
+                        onCheckedChange = {
+                            isDarkTheme = it
+                            UserSettings.getInstance().isDarkTheme = it
+                        }
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
