@@ -9,6 +9,7 @@ val LocalWorkoutViewModel = compositionLocalOf<WorkoutViewModel> { error("No Wor
 val LocalMealPlanViewModel = compositionLocalOf<MealPlanViewModel> { error("No MealPlanViewModel provided") }
 val LocalLanguageViewModel = compositionLocalOf<LanguageViewModel> { error("No LanguageViewModel provided") }
 val LocalArticleViewModel = compositionLocalOf<ArticleViewModel> { error("No ArticleViewModel provided") }
+val LocalBackdropViewModel = compositionLocalOf<BackdropViewModel> { error("No BackdropViewModel provided") }
 
 object ViewModelStore {
     val home: HomeViewModel by lazy { HomeViewModel() }
@@ -18,4 +19,5 @@ object ViewModelStore {
     val language: LanguageViewModel by lazy { LanguageViewModel(createSettings()) }
     val challenges: ChallengesViewModel by lazy { ChallengesViewModel() }
     val community: CommunityViewModel by lazy { CommunityViewModel() }
+    val backdrop: BackdropViewModel by lazy { BackdropViewModel() }
 }

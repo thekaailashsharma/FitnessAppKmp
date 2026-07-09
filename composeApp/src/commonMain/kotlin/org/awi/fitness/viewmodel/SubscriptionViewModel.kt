@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 import org.awi.fitness.repository.SubscriptionOffering
 import org.awi.fitness.repository.SubscriptionPlan
 import org.awi.fitness.repository.SubscriptionRepository
+import org.awi.fitness.repository.SubscriptionSyncRepository
 
 data class SubscriptionUiState(
     val isLoading: Boolean = false,
@@ -24,7 +25,14 @@ data class SubscriptionUiState(
 
 class SubscriptionViewModel {
     private val repository = SubscriptionRepository()
+    private val subscriptionSync = SubscriptionSyncRepository()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+    /** Mirror the current store subscription into Firestore so the founder can see who's subscribed. */
+    private suspend fun mirrorSubscriptionToFirestore() {
+        val status = runCatching { repository.getSubscriptionStatus() }.getOrNull() ?: return
+        subscriptionSync.writeSnapshot(status)
+    }
 
     private val _state = MutableStateFlow(SubscriptionUiState())
     val state: StateFlow<SubscriptionUiState> = _state.asStateFlow()
@@ -46,11 +54,10 @@ class SubscriptionViewModel {
                         selectedPlan = defaultSelected
                     )
                 },
-                onFailure = { error ->
-                    _state.value = _state.value.copy(
-                        isLoading = false,
-                        errorMessage = error.message
-                    )
+                onFailure = { _ ->
+                    // Leave offering null so the paywall shows its neutral "prices unavailable"
+                    //    state instead of a misleading error — no fabricated plans anymore.
+                    _state.value = _state.value.copy(isLoading = false)
                 }
             )
         }
@@ -72,6 +79,7 @@ class SubscriptionViewModel {
                         isPremium = hasPremium,
                         successMessage = if (hasPremium) "PURCHASE_SUCCESS" else null
                     )
+                    if (hasPremium) mirrorSubscriptionToFirestore()
                 },
                 onFailure = { error ->
                     val msg = if (error.message == "cancelled") "CANCELLED" else "PURCHASE_FAILED"
@@ -95,6 +103,7 @@ class SubscriptionViewModel {
                         isPremium = hasPremium,
                         successMessage = if (hasPremium) "RESTORE_SUCCESS" else "RESTORE_FAILED"
                     )
+                    if (hasPremium) mirrorSubscriptionToFirestore()
                 },
                 onFailure = { error ->
                     _state.value = _state.value.copy(

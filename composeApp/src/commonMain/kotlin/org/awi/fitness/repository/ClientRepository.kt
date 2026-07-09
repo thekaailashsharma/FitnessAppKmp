@@ -13,7 +13,7 @@ import org.awi.fitness.utils.DateUtils
 
 class ClientRepository : ApiService() {
     companion object {
-        internal const val PROJECT_ID = "fitness-admin-73a72" // Replace with your Firebase project ID
+        internal const val PROJECT_ID = "awi-fitness-app" // Replace with your Firebase project ID
     }
 
     suspend fun createClient(client: Client): Result<Client> {

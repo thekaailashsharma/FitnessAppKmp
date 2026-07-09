@@ -9,9 +9,13 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import kotlinx.datetime.todayIn
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import org.awi.fitness.data.UserSettings
 import org.awi.fitness.model.DietaryType
 import org.awi.fitness.model.Meal
@@ -52,9 +56,25 @@ class MealPlanViewModel {
     private val _state = MutableStateFlow(MealPlanUiState())
     val state: StateFlow<MealPlanUiState> = _state.asStateFlow()
 
+    private val json = Json { ignoreUnknownKeys = true; isLenient = true }
+
     init {
         updateTodayInfo()
     }
+
+    /** Reads AI meal-scan journal entries (UserSettings.scanLog) recorded on the given date. */
+    fun getScannedMealsForDate(dateString: String): List<ScannedMealEntry> {
+        val all = try {
+            json.decodeFromString<List<ScannedMealEntry>>(userSettings.scanLog)
+        } catch (_: Exception) {
+            emptyList()
+        }
+        return all.filter { scanDate(it.timestamp) == dateString }
+    }
+
+    private fun scanDate(timestamp: Long): String =
+        Instant.fromEpochMilliseconds(timestamp)
+            .toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
 
     private fun updateTodayInfo() {
         val today = org.awi.fitness.utils.todayLocalDate()
@@ -125,10 +145,17 @@ class MealPlanViewModel {
             ?: userSettings.calculatedCalories.takeIf { it > 100 }
             ?: 2000
 
-        val consumedCal = dayMeals.filter { completions.contains(it.id) }.sumOf { it.calories }
-        val consumedP = dayMeals.filter { completions.contains(it.id) }.sumOf { it.protein }
-        val consumedC = dayMeals.filter { completions.contains(it.id) }.sumOf { it.carbs }
-        val consumedF = dayMeals.filter { completions.contains(it.id) }.sumOf { it.fat }
+        // Scanned meals logged on this date also count toward the day's consumed totals.
+        val scans = getScannedMealsForDate(dateString)
+
+        val consumedCal = dayMeals.filter { completions.contains(it.id) }.sumOf { it.calories } +
+            scans.sumOf { it.calories }
+        val consumedP = dayMeals.filter { completions.contains(it.id) }.sumOf { it.protein } +
+            scans.sumOf { it.protein }
+        val consumedC = dayMeals.filter { completions.contains(it.id) }.sumOf { it.carbs } +
+            scans.sumOf { it.carbs }
+        val consumedF = dayMeals.filter { completions.contains(it.id) }.sumOf { it.fat } +
+            scans.sumOf { it.fat }
 
         return DailyMacros(
             targetCalories = effectiveTarget,
@@ -149,9 +176,10 @@ class MealPlanViewModel {
     fun toggleMealCompletion(mealId: String, dateString: String) {
         val wasCompleted = userSettings.isMealCompleted(dateString, mealId)
         userSettings.toggleMealCompletion(dateString, mealId)
-        // Auto-progress MEALS challenges when a meal is marked as eaten (not un-eaten)
+        // Auto-progress MEALS challenges and award XP when a meal is marked as eaten (not un-eaten)
         if (!wasCompleted) {
             org.awi.fitness.viewmodel.ViewModelStore.challenges.autoProgressMealChallenges()
+            userSettings.recordXpEarned(20)
         }
         // Also persist the isCompleted flag to Firestore for cross-device sync
         val plan = _state.value.activePlan ?: return
@@ -344,6 +372,17 @@ class MealPlanViewModel {
         _state.update { it.copy(error = null) }
     }
 }
+
+/** One AI meal-scan journal entry (mirrors the JSON written by MealScanScreen into scanLog). */
+@Serializable
+data class ScannedMealEntry(
+    val name: String = "",
+    val calories: Int = 0,
+    val protein: Int = 0,
+    val carbs: Int = 0,
+    val fat: Int = 0,
+    val timestamp: Long = 0
+)
 
 data class DailyMacros(
     val targetCalories: Int = 0,

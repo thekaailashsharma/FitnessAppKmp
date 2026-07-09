@@ -45,7 +45,9 @@ data class WorkoutPlanFields(
     @SerialName("category")
     val category: StringValue? = null,
     @SerialName("imageUrl")
-    val imageUrl: StringValue? = null
+    val imageUrl: StringValue? = null,
+    @SerialName("ownerId")
+    val ownerId: StringValue? = null
 )
 
 @Serializable
@@ -154,7 +156,8 @@ fun WorkoutPlanFields.toDomainModel(documentId: String = ""): WorkoutPlan {
         difficulty = WorkoutDifficulty.valueOf(difficulty?.value ?: "BEGINNER"),
         duration = duration?.value?.toIntOrNull() ?: 45,
         category = WorkoutCategory.valueOf(category?.value ?: "STRENGTH"),
-        imageUrl = imageUrl?.value
+        imageUrl = imageUrl?.value,
+        ownerId = ownerId?.value ?: ""
     )
 }
 

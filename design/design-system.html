@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Tajly — Premium Design System v3</title>
+<style>
+@property --p{syntax:'<number>';inherits:false;initial-value:0}
+:root{
+  --bg:#080706; --s0:#100E0C; --s1:#171411; --s2:#201C17; --s3:#2A251F; --s4:#342E27;
+  --hair:rgba(255,255,255,.07); --hair-strong:rgba(255,255,255,.15);
+  --tx:#F6F1E9; --tx2:#A9A294; --tx3:#6E685C;
+  --gold:#C9A84C; --gold-bright:#E8C06A; --gold-deep:#A8873A; --champ:#F4E3B0;
+  --gold-grad:linear-gradient(135deg,#F4E3B0,#E8C06A 30%,#C9A84C 62%,#9A7C32);
+  --gold-glow:0 8px 30px rgba(0,0,0,.55),0 0 22px rgba(201,168,76,.28),0 0 55px rgba(201,168,76,.12);
+  --violet:#7C5CFF; --teal:#2BD9C4; --coral:#FF6B5E; --blue:#3B9EFF; --green:#46D17F; --pink:#FF5CA8;
+  --r-md:22px; --r-sm:14px; --ease:cubic-bezier(.2,0,0,1); --spring:cubic-bezier(.2,.8,.2,1.05);
+  --font:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter','Segoe UI',Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--tx);-webkit-font-smoothing:antialiased;line-height:1.45;overflow-x:hidden}
+.aurora{position:fixed;inset:-20%;z-index:0;pointer-events:none;opacity:.85}
+.aurora i{position:absolute;border-radius:50%;filter:blur(60px)}
+.aurora .a1{width:46vw;height:46vw;left:56%;top:-8%;background:radial-gradient(circle,rgba(201,168,76,.26),transparent 65%);animation:d1 24s ease-in-out infinite}
+.aurora .a2{width:40vw;height:40vw;left:-8%;top:10%;background:radial-gradient(circle,rgba(124,92,255,.14),transparent 65%);animation:d2 30s ease-in-out infinite}
+@keyframes d1{0%,100%{transform:translate(0,0)}50%{transform:translate(-7vw,6vh) scale(1.12)}}
+@keyframes d2{0%,100%{transform:translate(0,0)}50%{transform:translate(6vw,-5vh) scale(1.16)}}
+.grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.04;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='150' height='150'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>")}
+.wrap{position:relative;z-index:3;max-width:1180px;margin:0 auto;padding:0 24px}
+section{padding:74px 0;border-bottom:1px solid var(--hair)}
+.eyebrow{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:12px}
+h1{font-size:clamp(42px,7.5vw,82px);font-weight:800;letter-spacing:-.035em;line-height:1}
+h2{font-size:clamp(26px,4vw,42px);font-weight:700;letter-spacing:-.02em;margin-bottom:8px}
+h3{font-size:15px;font-weight:600}
+p.lead{font-size:18px;color:var(--tx2);max-width:700px;margin-top:16px}
+.muted{color:var(--tx2);font-size:14px;max-width:780px}
+.mini{font-size:11px;color:var(--tx3)}
+.gold-text{background:var(--gold-grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+@keyframes rise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+.rev{animation:rise .7s var(--ease) both}
+@media (prefers-reduced-motion:reduce){.rev,*{animation-duration:.001s!important}}
+/* ===== liquid glass (no moving shimmer) ===== */
+.lg{position:relative;border-radius:var(--r-md);overflow:hidden;isolation:isolate;
+  background:linear-gradient(155deg,rgba(255,255,255,.11),rgba(255,255,255,.025));
+  backdrop-filter:blur(18px) saturate(180%) brightness(1.06);-webkit-backdrop-filter:blur(18px) saturate(180%) brightness(1.06);
+  box-shadow:inset 1.4px 1.4px 0 rgba(255,255,255,.34),inset 0 -16px 30px rgba(0,0,0,.22),0 16px 48px rgba(0,0,0,.5)}
+.lg::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;backdrop-filter:blur(2px);filter:url(#liquid);opacity:.5}
+.rim::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;z-index:3;
+  background:linear-gradient(140deg,rgba(255,255,255,.65),rgba(255,255,255,.04) 38%,transparent 60%,rgba(255,255,255,.16));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.card{background:var(--s1);border:1px solid var(--hair);border-radius:var(--r-md);padding:20px}
+.princ{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.princ .lg{padding:18px}.princ b{color:var(--gold);display:block;margin-bottom:6px;font-size:14px}.princ p{font-size:13px;color:var(--tx2)}
+nav.top{position:sticky;top:0;z-index:40;background:rgba(8,7,6,.55);backdrop-filter:blur(20px) saturate(160%);border-bottom:1px solid var(--hair)}
+nav.top .row{display:flex;gap:6px;align-items:center;max-width:1180px;margin:0 auto;padding:12px 24px;flex-wrap:wrap}
+nav.top a{font-size:13px;color:var(--tx2);text-decoration:none;padding:7px 12px;border-radius:999px;transition:.2s}
+nav.top a:hover{color:var(--tx);background:rgba(255,255,255,.06)}
+nav.top .brand{font-weight:800;margin-right:8px}nav.top .brand b{color:var(--gold)}
+.tag{display:inline-flex;gap:8px;align-items:center;font-size:12px;color:var(--tx2);border:1px solid var(--hair-strong);padding:8px 15px;border-radius:999px;background:rgba(255,255,255,.04);backdrop-filter:blur(10px)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 12px var(--gold);animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.7)}}
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.sw{border-radius:var(--r-sm);border:1px solid var(--hair);overflow:hidden}.sw .chip{height:72px}.sw .meta{padding:10px 12px;background:var(--s1);font-size:12px}.sw .meta b{display:block;font-size:13px}.sw .meta span{color:var(--tx3)}
+.ladder{display:flex;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--hair)}.ladder div{flex:1;height:62px;display:flex;align-items:flex-end;justify-content:center;font-size:10px;color:var(--tx3);padding-bottom:6px}
+.num{font-variant-numeric:tabular-nums lining-nums;font-weight:800;letter-spacing:-.02em}
+.btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:15px;padding:15px 24px;border-radius:16px;color:#211803;background:var(--gold-grad);box-shadow:var(--gold-glow);transition:transform .14s var(--ease),filter .14s}
+.btn:hover{filter:brightness(1.06)}.btn:active{transform:scale(.96)}
+.btn.ghost{background:rgba(255,255,255,.06);color:var(--tx);box-shadow:none;border:1px solid var(--hair-strong);backdrop-filter:blur(14px)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip-pill{font-size:13px;color:var(--tx2);padding:9px 15px;border-radius:999px;border:1px solid var(--hair-strong);background:rgba(255,255,255,.04);backdrop-filter:blur(10px)}
+.chip-pill.on{color:#211803;background:var(--gold-grad);border-color:transparent;font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:14px}td,th{text-align:left;padding:11px 12px;border-bottom:1px solid var(--hair)}th{color:var(--gold);font-size:12px;text-transform:uppercase;letter-spacing:.08em}td code{background:var(--s2);padding:2px 7px;border-radius:6px;color:var(--champ);font-size:12px}
+.demo-track{height:64px;border-radius:var(--r-sm);border:1px solid var(--hair);background:var(--s1);position:relative;overflow:hidden;margin-top:6px}
+.ball{position:absolute;top:50%;left:8px;width:34px;height:34px;border-radius:12px;transform:translateY(-50%);background:var(--gold-grad);box-shadow:var(--gold-glow)}
+@keyframes lin{0%,12%{left:8px}88%,100%{left:calc(100% - 42px)}}
+@keyframes eo{0%,12%{left:8px;border-radius:12px}88%,100%{left:calc(100% - 42px);border-radius:50%}}
+@keyframes sp{0%,10%{left:8px}68%{left:calc(100% - 34px)}82%{left:calc(100% - 48px)}100%,90%{left:calc(100% - 42px)}}
+.lin .ball{animation:lin 2.6s linear infinite}.eo .ball{animation:eo 2.6s var(--ease) infinite}.sp .ball{animation:sp 2.6s var(--spring) infinite}
+.assets{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:12px}
+.asset{aspect-ratio:1;border-radius:18px;border:1px solid var(--hair);position:relative;overflow:hidden;background:radial-gradient(circle at 50% 32%,rgba(255,255,255,.05),var(--s1) 72%);display:flex;align-items:center;justify-content:center;transition:transform .25s var(--spring)}
+.asset:hover{transform:translateY(-6px) scale(1.06)}
+.asset img{width:64%;height:64%;object-fit:contain;filter:drop-shadow(0 10px 16px rgba(0,0,0,.55))}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}@media(max-width:720px){.two,.three{grid-template-columns:1fr}}
+/* phones */
+.phones{display:flex;gap:36px;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+.device{width:330px;flex:none}.device .label{text-align:center;font-size:13px;color:var(--tx2);margin-top:14px}.device .label b{display:block;color:var(--tx);font-size:15px;font-weight:700}
+.phone{width:330px;height:714px;border-radius:48px;background:var(--bg);overflow:hidden;position:relative;box-shadow:0 50px 100px rgba(0,0,0,.65),0 0 0 9px #0c0b0a,0 0 0 10px rgba(255,255,255,.05)}
+.island{position:absolute;top:13px;left:50%;transform:translateX(-50%);width:110px;height:31px;background:#000;border-radius:18px;z-index:30}
+.scr{position:absolute;inset:0;overflow:hidden}
+.statusbar{display:flex;justify-content:space-between;padding:16px 26px 0;font-size:13px;font-weight:600;position:relative;z-index:20}
+.pad{padding:0 20px}
+.phbg{position:absolute;inset:0;z-index:0}.phbg i{position:absolute;border-radius:50%;filter:blur(44px)}
+.gcard{position:relative;border-radius:22px;overflow:hidden;isolation:isolate;background:linear-gradient(155deg,rgba(255,255,255,.12),rgba(255,255,255,.03));backdrop-filter:blur(18px) saturate(180%) brightness(1.05);box-shadow:inset 1.2px 1.2px 0 rgba(255,255,255,.32),inset 0 -14px 26px rgba(0,0,0,.22),0 14px 40px rgba(0,0,0,.45)}
+.tile{border-radius:20px;padding:14px;position:relative;overflow:hidden;min-height:112px;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(155deg,rgba(255,255,255,.08),rgba(255,255,255,.02));backdrop-filter:blur(12px) saturate(150%);box-shadow:inset 1px 1px 0 rgba(255,255,255,.2)}
+.tile .glowbg{position:absolute;width:84px;height:84px;border-radius:50%;filter:blur(26px);top:-12px;left:-8px;opacity:.7}
+.tile img{width:50px;height:50px;object-fit:contain;filter:drop-shadow(0 8px 12px rgba(0,0,0,.5));position:relative;z-index:2}
+.tile .t{font-size:14px;font-weight:600;position:relative;z-index:2}
+.ring{width:120px;height:120px;border-radius:50%;background:conic-gradient(from -90deg,var(--gold-bright),var(--gold) calc(var(--p)*1%),rgba(255,255,255,.06) 0);-webkit-mask:radial-gradient(farthest-side,transparent 70%,#000 71%);mask:radial-gradient(farthest-side,transparent 70%,#000 71%);filter:drop-shadow(0 0 14px rgba(201,168,76,.5))}
+/* PREMIUM bottom bar */
+.foot{position:absolute;left:14px;right:14px;bottom:16px;height:66px;border-radius:24px;display:flex;align-items:center;justify-content:space-around;z-index:20;background:linear-gradient(155deg,rgba(255,255,255,.1),rgba(255,255,255,.03));backdrop-filter:blur(24px) saturate(170%);box-shadow:inset 1px 1px 0 rgba(255,255,255,.28),0 -4px 30px rgba(0,0,0,.4)}
+.foot .it{display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--tx3);font-size:10px;font-weight:600;position:relative;padding-top:4px}
+.foot .it svg{width:23px;height:23px;stroke:var(--tx3);fill:none;stroke-width:1.8}
+.foot .it.on{color:var(--gold)}.foot .it.on svg{stroke:var(--gold);filter:drop-shadow(0 0 6px rgba(201,168,76,.7))}
+.foot .it.on::before{content:"";position:absolute;top:-4px;width:30px;height:30px;border-radius:10px;background:rgba(201,168,76,.14)}
+.foot .it .ind{position:absolute;bottom:-3px;width:5px;height:5px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold);opacity:0}
+.foot .it.on .ind{opacity:1}
+.fab{position:absolute;right:18px;bottom:98px;width:58px;height:58px;border-radius:19px;background:var(--gold-grad);box-shadow:var(--gold-glow);display:flex;align-items:center;justify-content:center;z-index:21;animation:fabp 3s ease-in-out infinite}.fab img{width:30px;height:30px}
+@keyframes fabp{0%,100%{box-shadow:var(--gold-glow)}50%{box-shadow:0 8px 30px rgba(0,0,0,.55),0 0 34px rgba(201,168,76,.55)}}
+.bubble-user{align-self:flex-end;background:linear-gradient(135deg,rgba(232,192,106,.25),rgba(201,168,76,.12));border:1px solid rgba(201,168,76,.35);color:var(--tx);padding:10px 14px;border-radius:18px 18px 4px 18px;font-size:13px;max-width:80%}
+.coach{display:flex;gap:10px;align-items:flex-start}.coach .av{width:36px;height:36px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 30%,rgba(201,168,76,.3),var(--s2));box-shadow:0 0 16px rgba(201,168,76,.35)}.coach .av img{width:24px;height:24px}.coach .body{font-size:13px;line-height:1.5}
+.setrow{display:grid;grid-template-columns:24px 1fr 1fr 32px;gap:8px;align-items:center;padding:9px 0;border-bottom:1px solid var(--hair);font-size:13px}.setrow .ghost{color:var(--tx3)}
+.tick{width:26px;height:26px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}.tick.done{background:var(--gold-grad);color:#211803;box-shadow:0 0 16px rgba(201,168,76,.5)}.tick.todo{border:1px solid var(--hair-strong);color:var(--tx3)}
+.spark{position:absolute;width:6px;height:6px;border-radius:50%;background:#fff;box-shadow:0 0 8px #fff,0 0 14px var(--gold);animation:twk 2.4s ease-in-out infinite}
+@keyframes twk{0%,100%{opacity:0;transform:scale(.3)}50%{opacity:1;transform:scale(1)}}
+/* District-style logo — custom chunky glyphs draw-on then fill */
+.logo{width:300px;height:auto;overflow:visible}
+.logo .ltr{fill:rgba(201,168,76,0);stroke:url(#gg);stroke-width:2.6;stroke-linejoin:round;stroke-dasharray:1700;stroke-dashoffset:1700;transform-box:fill-box;transform-origin:center;
+  animation:drawL 1.1s var(--ease) var(--d,0s) forwards, fillL .8s ease calc(var(--d,0s) + 1s) forwards}
+@keyframes drawL{to{stroke-dashoffset:0}}
+@keyframes fillL{to{fill:rgba(201,168,76,.20)}}
+.logo .cl{stroke:url(#gg);stroke-width:1.3;stroke-dasharray:600;stroke-dashoffset:600;opacity:.55;animation:drawC .7s var(--ease) var(--cd,0s) forwards}
+@keyframes drawC{to{stroke-dashoffset:0}}
+/* rainbow refraction for glass search */
+.rainbow{position:absolute;inset:0;filter:blur(44px);opacity:.5;background:
+  radial-gradient(circle at 28% 62%,rgba(124,92,255,.28),transparent 50%),
+  radial-gradient(circle at 78% 56%,rgba(201,168,76,.20),transparent 50%)}
+.gsearch{position:relative;border-radius:999px;overflow:hidden;isolation:isolate;display:flex;align-items:center;gap:12px;padding:18px 22px;
+  background:linear-gradient(155deg,rgba(255,255,255,.16),rgba(255,255,255,.05));backdrop-filter:blur(14px) saturate(160%);box-shadow:inset 1.4px 1.4px 0 rgba(255,255,255,.4),0 12px 36px rgba(0,0,0,.4)}
+.gsearch::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;backdrop-filter:blur(3px);filter:url(#liquid);opacity:.6}
+.foot-note{padding:44px 0 90px;color:var(--tx3);font-size:13px;text-align:center}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><filter id="liquid" x="-20%" y="-20%" width="140%" height="140%">
+  <feTurbulence type="fractalNoise" baseFrequency="0.009 0.013" numOctaves="2" seed="6" result="n"/>
+  <feGaussianBlur in="n" stdDeviation="1.1" result="nb"/>
+  <feDisplacementMap in="SourceGraphic" in2="nb" scale="40" xChannelSelector="R" yChannelSelector="G"/>
+</filter>
+<linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F4E3B0"/><stop offset=".5" stop-color="#E8C06A"/><stop offset="1" stop-color="#A8873A"/></linearGradient></svg>
+
+<div class="aurora"><i class="a1"></i><i class="a2"></i></div><div class="grain"></div>
+
+<nav class="top"><div class="row">
+  <span class="brand">TAJLY <b>·</b> Design System v3</span>
+  <a href="#vision">Vision</a><a href="#color">Color</a><a href="#depth">Liquid Glass</a><a href="#motion">Motion</a><a href="#components">Components</a><a href="#assets">3D</a><a href="#screens">Screens</a>
+</div></nav>
+
+<div class="wrap">
+<header style="padding:96px 0 60px" id="vision">
+  <div class="tag rev"><span class="dot"></span> v3 · colorful premium 3D · real liquid glass · faithful replications</div>
+  <h1 class="rev" style="margin-top:24px">Make Tajly feel<br><span class="gold-text">expensive.</span></h1>
+  <p class="lead rev">Colorful studio-rendered 3D on quiet glass, genuine refractive liquid glass, and three pixel-faithful set-pieces — the District draw-on logo, a liquid-glass search, and a CREW-style glass onboarding. Gold stays the signature, used like an award.</p>
+  <div class="princ" style="margin-top:36px">
+    <div class="lg rim rev"><b>Quiet canvas, loud objects</b><p>Deep warm-black ground; colorful 3D objects + light carry the color. UI recedes.</p></div>
+    <div class="lg rim rev"><b>Gold = "earned"</b><p>Gold only on ring, primary CTA, active nav, streaks &amp; achievements. Never gold-on-gold.</p></div>
+    <div class="lg rim rev"><b>Real liquid glass</b><p>Displacement refraction + inner light + rim. No crawling shimmer.</p></div>
+    <div class="lg rim rev"><b>Motion with restraint</b><p>Drifting aurora, count-ups, ring fills, draw-on logo, spring physics.</p></div>
+  </div>
+</header>
+
+<section id="color">
+  <div class="eyebrow rev">Foundations · 01</div><h2 class="rev">Color</h2>
+  <p class="muted rev">Gold unchanged. Warm near-black ladder; section accents for identity &amp; glow. Colorful 3D icons supply warmth — gold reserved for "win/active".</p>
+  <h3 style="margin:26px 0 12px" class="rev">Gold — signature</h3>
+  <div class="swatches rev">
+    <div class="sw"><div class="chip" style="background:#F4E3B0"></div><div class="meta"><b>Champagne</b><span>#F4E3B0</span></div></div>
+    <div class="sw"><div class="chip" style="background:#E8C06A"></div><div class="meta"><b>Bright</b><span>#E8C06A</span></div></div>
+    <div class="sw"><div class="chip" style="background:#C9A84C"></div><div class="meta"><b>Base</b><span>#C9A84C</span></div></div>
+    <div class="sw"><div class="chip" style="background:#A8873A"></div><div class="meta"><b>Deep</b><span>#A8873A</span></div></div>
+    <div class="sw"><div class="chip" style="background:var(--gold-grad)"></div><div class="meta"><b>Metallic</b><span>CTA</span></div></div>
+  </div>
+  <h3 style="margin:30px 0 12px" class="rev">Surface ladder (warm near-black)</h3>
+  <div class="ladder rev"><div style="background:#080706">bg</div><div style="background:#100E0C">s0</div><div style="background:#171411">s1</div><div style="background:#201C17">s2</div><div style="background:#2A251F">s3</div><div style="background:#342E27">s4</div></div>
+  <h3 style="margin:30px 0 12px" class="rev">Section accents</h3>
+  <div class="swatches rev">
+    <div class="sw"><div class="chip" style="background:#7C5CFF"></div><div class="meta"><b>Workouts</b><span>violet</span></div></div>
+    <div class="sw"><div class="chip" style="background:#46D17F"></div><div class="meta"><b>Meals</b><span>green</span></div></div>
+    <div class="sw"><div class="chip" style="background:#3B9EFF"></div><div class="meta"><b>Calories</b><span>blue</span></div></div>
+    <div class="sw"><div class="chip" style="background:#FF6B5E"></div><div class="meta"><b>Streak</b><span>coral</span></div></div>
+    <div class="sw"><div class="chip" style="background:#2BD9C4"></div><div class="meta"><b>Community</b><span>teal</span></div></div>
+    <div class="sw"><div class="chip" style="background:#FF5CA8"></div><div class="meta"><b>Challenges</b><span>pink</span></div></div>
+  </div>
+</section>
+
+<section id="depth">
+  <div class="eyebrow rev">Foundations · 02</div><h2 class="rev">Liquid glass &amp; depth</h2>
+  <p class="muted rev">Refraction via SVG displacement bends content beneath; bright inner-top edge + soft inner-bottom shadow + masked rim. No moving shimmer. In Compose: <b>Haze</b> blur + a thin displacement/edge pass.</p>
+  <div class="two" style="margin-top:22px">
+    <div class="lg rim rev" style="padding:26px;min-height:160px"><h3>Liquid glass card</h3><p class="mini" style="margin-top:8px">displacement refraction · inner light · rim highlight</p>
+      <div style="margin-top:18px" class="chips"><span class="chip-pill on">Active</span><span class="chip-pill">Rest day</span><span class="chip-pill">Skipped</span></div></div>
+    <div class="rev" style="position:relative;min-height:160px;border-radius:var(--r-md);overflow:hidden;border:1px solid var(--hair)">
+      <div class="rainbow"></div>
+      <div class="gsearch" style="position:absolute;left:18px;right:18px;top:46px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><span style="color:rgba(255,255,255,.6);font-size:15px">Search workouts, meals…</span></div>
+      <div style="position:absolute;left:18px;bottom:14px" class="mini">Liquid-glass search over colorful refraction (image-4 style)</div>
+    </div>
+  </div>
+</section>
+
+<section id="motion">
+  <div class="eyebrow rev">Foundations · 03</div><h2 class="rev">Motion</h2>
+  <p class="muted rev">240–360ms ease-out entrances, springs for physical motion, 30–80ms stagger, press scale .96, count-ups, ring fills, draw-on logo. Never linear; honor reduced-motion.</p>
+  <div class="three" style="margin-top:20px"><div class="rev"><h3>Linear (cheap)</h3><div class="demo-track lin"><div class="ball"></div></div></div><div class="rev"><h3>Ease-out</h3><div class="demo-track eo"><div class="ball"></div></div></div><div class="rev"><h3>Spring</h3><div class="demo-track sp"><div class="ball"></div></div></div></div>
+</section>
+
+<section id="components">
+  <div class="eyebrow rev">Foundations · 04</div><h2 class="rev">Components</h2>
+  <div class="two" style="margin-top:20px">
+    <div class="lg rim rev" style="padding:22px"><h3 style="margin-bottom:14px">Buttons &amp; chips</h3>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center"><button class="btn">Start workout</button><button class="btn ghost">Referral code</button></div>
+      <div class="chips" style="margin-top:18px"><span class="chip-pill on">All</span><span class="chip-pill">Strength</span><span class="chip-pill">Cardio</span><span class="chip-pill">Mobility</span></div></div>
+    <div class="lg rim rev" style="padding:22px"><h3 style="margin-bottom:14px">Stat ring &amp; achievement</h3>
+      <div style="display:flex;gap:24px;align-items:center">
+        <div style="position:relative"><div class="ring" data-p="74" style="--p:74"></div><div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center"><span class="num countup" data-to="74" style="font-size:26px">74<span style="font-size:12px;color:var(--tx3)">%</span></span><span class="mini">Move</span></div></div>
+        <div class="tile" style="width:124px;min-height:124px;align-items:center;text-align:center"><div class="glowbg" style="background:var(--gold)"></div><img src="assets/front/medal.png" style="width:60px;height:60px;align-self:center"><div class="t">7-day streak</div></div></div></div>
+  </div>
+</section>
+
+<section id="assets">
+  <div class="eyebrow rev">Foundations · 05</div><h2 class="rev">3D library <span class="mini" style="font-weight:400">· colorful studio renders, CC0, white-bg stripped</span></h2>
+  <p class="muted rev">Premium glossy 3D objects with real color (not emoji), on quiet glass tiles. Gold is reserved for accents — no gold-on-gold.</p>
+  <div class="assets rev" style="margin-top:22px">
+    <div class="asset"><img src="assets/icons/gym.png"></div><div class="asset"><img src="assets/icons/fire.png"></div><div class="asset"><img src="assets/front/trophy.png"></div>
+    <div class="asset"><img src="assets/front/medal.png"></div><div class="asset"><img src="assets/icons/crown.png"></div><div class="asset"><img src="assets/icons/heart.png"></div>
+    <div class="asset"><img src="assets/icons/target.png"></div><div class="asset"><img src="assets/icons/water_glass.png"></div><div class="asset"><img src="assets/icons/leaf.png"></div>
+    <div class="asset"><img src="assets/icons/flash_lightning.png"></div><div class="asset"><img src="assets/icons/chart.png"></div><div class="asset"><img src="assets/icons/star.png"></div>
+    <div class="asset"><img src="assets/icons/calendar.png"></div><div class="asset"><img src="assets/icons/rocket.png"></div><div class="asset"><img src="assets/icons/gift.png"></div>
+    <div class="asset"><img src="assets/icons/gloves.png"></div><div class="asset"><img src="assets/icons/tick_check.png"></div><div class="asset"><img src="assets/icons/bulb.png"></div>
+    <div class="asset"><img src="assets/front/shield.png"></div><div class="asset"><img src="assets/front/coin.png"></div>
+  </div>
+</section>
+
+<section id="screens">
+  <div class="eyebrow rev">Applied · the screens</div><h2 class="rev">Hero screens, redesigned</h2>
+  <p class="muted rev">Seven screens. Three are faithful replications: District draw-on logo (Splash), liquid-glass search, CREW-style glass onboarding (real photo melting into dark).</p>
+  <div class="phones" style="margin-top:38px">
+
+    <!-- SPLASH — District-style draw-on logo (custom Tajly glyphs) -->
+    <div class="device rev"><div class="phone"><div class="island"></div><div class="scr">
+      <div class="phbg"><i style="width:70%;height:34%;background:rgba(201,168,76,.28);left:15%;top:30%"></i></div>
+      <div class="statusbar"><span>9:41</span><span>● ● ●</span></div>
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px">
+        <svg class="logo" viewBox="0 0 760 220">
+          <g>
+            <line class="cl" style="--cd:0s"   x1="118" y1="-34" x2="150" y2="246"/>
+            <line class="cl" style="--cd:.1s"  x1="38"  y1="118" x2="744" y2="118"/>
+            <line class="cl" style="--cd:.2s"  x1="-24" y1="150" x2="788" y2="140"/>
+            <line class="cl" style="--cd:.3s"  x1="430" y1="-44" x2="468" y2="254"/>
+            <line class="cl" style="--cd:.4s"  x1="696" y1="-20" x2="660" y2="216"/>
+            <line class="cl" style="--cd:.15s" x1="248" y1="254" x2="222" y2="16"/>
+            <line class="cl" style="--cd:.35s" x1="566" y1="248" x2="602" y2="24"/>
+          </g>
+          <path class="ltr" style="--d:.55s;transform:rotate(1.5deg)"  d="M52,46 L196,46 L196,80 L142,80 L142,172 L106,172 L106,80 L52,80 Z"/>
+          <path class="ltr" style="--d:.72s;transform:rotate(-2deg)" fill-rule="evenodd" d="M208,172 L262,46 L304,46 L358,172 L320,172 L309,140 L257,140 L246,172 Z M283,86 L300,128 L266,128 Z"/>
+          <path class="ltr" style="--d:.89s;transform:rotate(2.5deg)" d="M430,46 L464,46 L464,140 Q464,172 430,172 L404,172 Q376,172 376,148 L376,134 L406,134 L406,146 Q406,150 412,150 L424,150 Q434,150 434,140 L434,46 Z"/>
+          <path class="ltr" style="--d:1.06s;transform:rotate(-1.5deg)" d="M496,46 L530,46 L530,140 L592,140 L592,172 L496,172 Z"/>
+          <path class="ltr" style="--d:1.23s;transform:rotate(2deg)" d="M600,46 L638,46 L670,104 L702,46 L740,46 L688,122 L688,172 L652,172 L652,122 Z"/>
+        </svg>
+        <div class="mini" style="letter-spacing:.3em;text-transform:uppercase;opacity:.8">Your strongest self</div>
+        <div style="display:flex;gap:8px;margin-top:6px"><span class="dot"></span><span class="dot" style="animation-delay:.2s"></span><span class="dot" style="animation-delay:.4s"></span></div>
+      </div>
+    </div></div><div class="label"><b>Splash — District-style draw-on logo</b>Custom chunky glyphs: lines → outline → fill</div></div>
+
+    <!-- ONBOARDING — CREW-style pure glass over photo -->
+    <div class="device rev"><div class="phone"><div class="scr">
+      <img src="assets/photos/hero-athlete.jpg" style="position:absolute;top:0;left:0;width:100%;height:62%;object-fit:cover">
+      <div style="position:absolute;top:0;left:0;right:0;height:64%;background:linear-gradient(180deg,rgba(8,7,6,.15) 30%,rgba(8,7,6,.7) 70%,var(--bg) 98%)"></div>
+      <div class="statusbar" style="color:#fff"><span>9:41</span><span>5G ▦</span></div>
+      <div style="position:absolute;top:46%;left:50%;transform:translateX(-50%);width:74px;height:74px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;letter-spacing:1px;color:var(--champ);background:linear-gradient(155deg,rgba(255,255,255,.18),rgba(201,168,76,.12));backdrop-filter:blur(14px) saturate(160%);box-shadow:inset 1.4px 1.4px 0 rgba(255,255,255,.4),0 10px 30px rgba(0,0,0,.5)">TAJLY</div>
+      <div style="position:absolute;top:58%;left:0;right:0;text-align:center;padding:0 26px"><div style="font-size:30px;font-weight:300;letter-spacing:-.01em">Member exclusive<br>coaching</div><div class="mini" style="margin-top:8px;font-size:13px;color:var(--tx2)">plans, AI coach &amp; challenges</div></div>
+      <div class="pad" style="position:absolute;left:0;right:0;bottom:120px"><div class="gcard rim" style="padding:16px;text-align:center;color:var(--champ);font-weight:600;border:1px solid rgba(201,168,76,.3)">Enter referral code</div></div>
+      <div style="position:absolute;left:34px;right:34px;bottom:96px;display:flex;align-items:center;gap:10px;color:var(--tx3);font-size:12px"><div style="flex:1;height:1px;background:var(--hair-strong)"></div>or, buy a plan<div style="flex:1;height:1px;background:var(--hair-strong)"></div></div>
+      <div class="pad" style="position:absolute;left:0;right:0;bottom:34px"><div class="gcard rim" style="padding:16px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-weight:700">3 months</div><div class="mini" style="color:var(--gold)">Unlimited coaching</div><div class="num" style="font-size:22px;margin-top:6px">₹499 <span class="mini" style="text-decoration:line-through">₹998</span></div></div><div style="width:22px;height:22px;border-radius:50%;border:2px solid var(--gold)"></div></div>
+        <div style="text-align:center;margin-top:14px;font-size:13px;color:var(--tx2)">Logout</div></div>
+    </div></div><div class="label"><b>Onboarding — CREW replication</b>Real photo melts into dark · frosted badge · pure glass</div></div>
+
+    <!-- GLASS SEARCH — image-4 replication -->
+    <div class="device rev"><div class="phone"><div class="scr">
+      <div class="rainbow" style="top:8%;height:46%;inset:auto 0;left:0;right:0;position:absolute"></div>
+      <div class="island"></div><div class="statusbar"><span>9:41</span><span>5G ▦</span></div>
+      <div class="pad" style="margin-top:18px;display:flex;justify-content:space-between;align-items:center;position:relative;z-index:5"><div><div class="mini" style="display:flex;gap:5px;align-items:center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg> Belapur Village</div><div style="font-size:17px;font-weight:800">Discover</div></div><div style="width:38px;height:38px;border-radius:50%;background:var(--s3);border:1px solid var(--hair-strong)"></div></div>
+      <div class="pad" style="margin-top:18px;position:relative;z-index:5">
+        <div class="gsearch"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.75)" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><span style="color:rgba(255,255,255,.65);font-size:15px">Search 'leg day'…</span></div>
+        <div class="chips" style="margin-top:16px;flex-wrap:nowrap;overflow:hidden"><span class="chip-pill" style="display:flex;gap:6px;align-items:center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filters</span><span class="chip-pill on">Strength</span><span class="chip-pill">Cardio</span><span class="chip-pill">Mobility</span></div>
+      </div>
+      <div class="pad" style="margin-top:24px;position:relative;z-index:5"><div class="two">
+        <div class="tile"><div class="glowbg" style="background:var(--violet)"></div><img src="assets/icons/gym.png"><div class="t">Workouts</div></div>
+        <div class="tile"><div class="glowbg" style="background:var(--green)"></div><img src="assets/icons/leaf.png"><div class="t">Meals</div></div>
+        <div class="tile"><div class="glowbg" style="background:var(--pink)"></div><img src="assets/front/trophy.png"><div class="t">Challenges</div></div>
+        <div class="tile"><div class="glowbg" style="background:var(--teal)"></div><img src="assets/icons/heart.png"><div class="t">Community</div></div>
+      </div></div>
+    </div></div><div class="label"><b>Liquid-glass search — image-4</b>Glass capsule over colorful refraction · filter chips</div></div>
+
+    <!-- HOME -->
+    <div class="device rev"><div class="phone"><div class="scr">
+      <div class="phbg"><i style="width:70%;height:22%;background:rgba(201,168,76,.2);left:12%;top:6%"></i><i style="width:50%;height:18%;background:rgba(124,92,255,.14);left:-8%;top:40%"></i></div>
+      <div class="island"></div><div class="statusbar"><span>9:41</span><span>5G ▦</span></div>
+      <div class="pad" style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;position:relative;z-index:5"><div><div class="mini">Good morning</div><div style="font-size:20px;font-weight:800;letter-spacing:-.02em">Kailash</div></div><div style="width:40px;height:40px;border-radius:50%;background:var(--s3);border:1px solid var(--hair-strong)"></div></div>
+      <div class="pad" style="margin-top:14px;position:relative;z-index:5"><div class="gcard rim" style="padding:18px;display:flex;gap:18px;align-items:center">
+        <div style="position:relative"><div class="ring" data-p="68" style="--p:68"></div><div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center"><span class="num countup" data-to="68" style="font-size:24px">68<span style="font-size:11px;color:var(--tx3)">%</span></span><span class="mini">today</span></div></div>
+        <div style="flex:1"><div style="font-weight:700">You're on track</div><div class="mini" style="margin-top:4px">2 of 3 rings closing · 1,240 / 1,840 kcal</div><div style="margin-top:10px"><span class="chip-pill on" style="font-size:11px;padding:6px 11px;display:inline-flex;gap:5px;align-items:center"><img src="assets/icons/fire.png" style="width:15px;height:15px"> 7-day streak</span></div></div></div></div>
+      <div class="pad" style="margin-top:14px;position:relative;z-index:5"><div class="two">
+        <div class="tile"><div class="glowbg" style="background:var(--violet)"></div><img src="assets/icons/gym.png"><div><div class="t">Workout</div><div class="mini">Push day · 45 min</div></div></div>
+        <div class="tile"><div class="glowbg" style="background:var(--green)"></div><img src="assets/icons/leaf.png"><div><div class="t">Meals</div><div class="mini">3 / 4 logged</div></div></div>
+        <div class="tile"><div class="glowbg" style="background:var(--blue)"></div><img src="assets/icons/water_glass.png"><div><div class="t">Hydration</div><div class="num" style="font-size:18px">1.4 L</div></div></div>
+        <div class="tile"><div class="glowbg" style="background:var(--pink)"></div><img src="assets/front/trophy.png"><div><div class="t">Challenge</div><div class="mini">7-day · 4/7</div></div></div>
+      </div></div>
+      <div class="fab"><img src="assets/icons/heart.png"></div>
+      <div class="foot">
+        <div class="it on"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>Home<span class="ind"></span></div>
+        <div class="it"><svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.4"/><circle cx="18" cy="12" r="2.4"/><path d="M8.4 12h7.2M4 9.5v5M20 9.5v5"/></svg>Train<span class="ind"></span></div>
+        <div class="it"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9.5" r="2.3"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5M15 14.2c2.6.2 4.5 2 4.5 4.8"/></svg>Community<span class="ind"></span></div>
+        <div class="it"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.6 3-6 7-6s7 2.4 7 6"/></svg>Profile<span class="ind"></span></div>
+      </div>
+    </div></div><div class="label"><b>Home</b>Colorful glass tiles · animated gold ring · premium nav</div></div>
+
+    <!-- BUDDY -->
+    <div class="device rev"><div class="phone"><div class="scr">
+      <div class="phbg"><i style="width:60%;height:22%;background:rgba(201,168,76,.14);left:20%;top:2%"></i></div>
+      <div class="island"></div><div class="statusbar"><span>9:41</span><span>5G ▦</span></div>
+      <div class="pad" style="margin-top:14px;display:flex;gap:10px;align-items:center;position:relative;z-index:5"><div class="av" style="width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 30%,rgba(201,168,76,.35),var(--s2));box-shadow:0 0 18px rgba(201,168,76,.45)"><img src="assets/icons/heart.png" style="width:24px"></div><div><div style="font-weight:700;font-size:15px">Coach</div><div class="mini">AI · honest with your data</div></div></div>
+      <div class="pad" style="margin-top:16px;display:flex;flex-direction:column;gap:14px;position:relative;z-index:5">
+        <div class="coach"><div class="av"><img src="assets/icons/heart.png"></div><div class="body">That's your <b>7th day in a row</b>. Recovery's solid — good day to push legs. Want me to load it?</div></div>
+        <div class="gcard rim" style="padding:14px;margin-left:46px"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="mini">Suggested</div><div style="font-weight:700">Leg day · 5 exercises</div></div><img src="assets/icons/gym.png" style="width:44px"></div><button class="btn" style="width:100%;margin-top:12px;padding:11px">Start workout</button></div>
+        <div class="bubble-user">Maybe lighter, I'm a bit sore</div>
+        <div class="coach"><div class="av"><img src="assets/icons/heart.png"></div><div class="body">Totally fair. Mobility + a walk — rest counts toward your streak too.</div></div>
+      </div>
+      <div style="position:absolute;left:16px;right:16px;bottom:82px;display:flex;gap:8px;flex-wrap:wrap;z-index:6"><span class="chip-pill" style="font-size:12px">Sounds good</span><span class="chip-pill" style="font-size:12px">Why legs?</span><span class="chip-pill" style="font-size:12px">Shorter</span></div>
+      <div class="gcard rim" style="position:absolute;left:16px;right:16px;bottom:18px;height:54px;display:flex;align-items:center;padding:0 6px 0 16px;gap:8px;z-index:6"><span class="mini" style="flex:1">Message your coach…</span><div style="width:42px;height:42px;border-radius:14px;background:var(--gold-grad);box-shadow:var(--gold-glow);display:flex;align-items:center;justify-content:center;color:#211803">➤</div></div>
+    </div></div><div class="label"><b>AI Buddy chat</b>Full-width coach · inline generative card · glass composer</div></div>
+
+    <!-- WORKOUT -->
+    <div class="device rev"><div class="phone"><div class="scr">
+      <div class="island"></div><div class="statusbar"><span>9:41</span><span>5G ▦</span></div>
+      <div class="pad" style="margin-top:14px;display:flex;justify-content:space-between;align-items:center"><div><div class="mini">Push day · focus mode</div><div style="font-size:20px;font-weight:800">Bench Press</div></div><div style="position:relative;width:60px;height:60px"><div class="ring" data-p="55" style="--p:55;width:60px;height:60px"></div><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center" class="num">1:12</div></div></div>
+      <div class="pad" style="margin-top:16px"><div class="gcard rim" style="padding:16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-weight:700">Working sets</div><img src="assets/icons/gym.png" style="width:40px"></div>
+        <div class="setrow" style="color:var(--tx3);font-size:11px;border-color:var(--hair-strong)"><span>#</span><span>WEIGHT</span><span>REPS</span><span></span></div>
+        <div class="setrow"><span>1</span><span>60 kg</span><span>10</span><div class="tick done">✓</div></div>
+        <div class="setrow"><span>2</span><span>60 kg</span><span>10</span><div class="tick done">✓</div></div>
+        <div class="setrow"><span>3</span><span class="ghost">60 kg</span><span class="ghost">10</span><div class="tick todo"></div></div>
+        <div class="setrow" style="border:none"><span>4</span><span class="ghost">60 kg</span><span class="ghost">8</span><div class="tick todo"></div></div></div></div>
+      <div class="pad" style="margin-top:14px"><div class="gcard rim" style="padding:14px;display:flex;justify-content:space-around;text-align:center"><div><div class="num countup" data-to="3640" style="font-size:22px;color:var(--gold-bright)">3,640</div><div class="mini">volume kg</div></div><div><div class="num" style="font-size:22px">18:24</div><div class="mini">elapsed</div></div><div><div class="num countup" data-to="12" style="font-size:22px">12</div><div class="mini">sets</div></div></div></div>
+      <div class="pad" style="position:absolute;left:0;right:0;bottom:22px"><button class="btn" style="width:100%">Finish workout</button></div>
+    </div></div><div class="label"><b>Workout · active</b>Ghost values · gold checkmarks &amp; rest ring</div></div>
+
+    <!-- CELEBRATION -->
+    <div class="device rev"><div class="phone"><div class="scr">
+      <div class="phbg"><i style="width:90%;height:42%;background:rgba(201,168,76,.3);left:5%;top:16%"></i></div>
+      <div class="island"></div><div class="statusbar"><span>9:41</span><span>5G ▦</span></div>
+      <div class="spark" style="left:20%;top:22%"></div><div class="spark" style="left:78%;top:26%;animation-delay:.6s"></div><div class="spark" style="left:34%;top:16%;animation-delay:1s"></div><div class="spark" style="left:64%;top:40%;animation-delay:1.4s"></div><div class="spark" style="left:48%;top:12%;animation-delay:.3s"></div>
+      <div style="position:absolute;left:0;right:0;top:20%;text-align:center"><img src="assets/front/medal.png" style="width:160px;filter:drop-shadow(0 24px 40px rgba(0,0,0,.6))"><div style="font-size:26px;font-weight:800;margin-top:14px">Challenge complete!</div><div class="mini" style="margin-top:6px">7-Day Workout Streak · +500 XP</div></div>
+      <div class="pad" style="position:absolute;left:0;right:0;bottom:118px"><div class="gcard rim" style="padding:16px;text-align:center"><div class="mini">You earned the apex tier</div><div style="display:flex;justify-content:center;gap:18px;margin-top:10px;align-items:center"><img src="assets/front/medal.png" style="width:38px;opacity:.5"><img src="assets/front/medal.png" style="width:48px"><img src="assets/icons/crown.png" style="width:44px"></div></div></div>
+      <div class="pad" style="position:absolute;left:0;right:0;bottom:54px;display:flex;gap:10px"><button class="btn" style="flex:1">Share</button><button class="btn ghost" style="flex:1">Celebrate</button></div>
+    </div></div><div class="label"><b>Celebration</b>Gold medal + sparkle burst · rationed delight</div></div>
+
+  </div>
+</section>
+
+<div class="foot-note">Tajly premium design system v3 — gold theme preserved · colorful CC0 3D (white-bg stripped) · real liquid glass · District/CREW/glass-search replications.<br>Open in Chrome/Safari for full liquid-glass refraction.</div>
+</div>
+
+<script>
+try{
+ var rm=matchMedia('(prefers-reduced-motion:reduce)').matches;
+ function onView(els,cb){var o=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){cb(x.target);o.unobserve(x.target);}});},{threshold:.25});els.forEach(function(el){o.observe(el);});}
+ onView(document.querySelectorAll('.ring[data-p]'),function(r){if(rm)return;var t=r.dataset.p;r.style.transition='none';r.style.setProperty('--p','0');void r.offsetWidth;r.style.transition='--p 1.2s cubic-bezier(.2,0,0,1)';requestAnimationFrame(function(){r.style.setProperty('--p',t);});});
+ onView(document.querySelectorAll('.countup'),function(c){if(rm)return;var to=+c.dataset.to,dur=1200,t0=performance.now();(function s(t){var k=Math.min(1,(t-t0)/dur),v=Math.round(to*(1-Math.pow(1-k,3)));c.firstChild.nodeValue=v.toLocaleString();if(k<1)requestAnimationFrame(s);})(t0);});
+ document.querySelectorAll('.phone').forEach(function(p){p.style.transition='transform .3s var(--ease)';p.addEventListener('pointermove',function(e){var r=p.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;p.style.transform='perspective(1200px) rotateY('+(x*6)+'deg) rotateX('+(-y*6)+'deg)';});p.addEventListener('pointerleave',function(){p.style.transform='none';});});
+}catch(e){}
+</script>
+</body>
+</html>

@@ -15,7 +15,7 @@ import org.awi.fitness.repository.ClientRepository.Companion.PROJECT_ID
 
 class AuthRepository : ApiService() {
     companion object {
-        private const val API_KEY = "AIzaSyAQClgruJ0Q0l_B4v3J8Sv8gury_8NGK8g"
+        private const val API_KEY = "AIzaSyCWP3mkD7cKuxAxKiR_IEbb4y7cl7jsdiE"
     }
 
     suspend fun signUp(email: String, password: String): Result<SignUpFirebaseResponse> {

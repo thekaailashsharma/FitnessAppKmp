@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import org.awi.fitness.ui.components.GoldButton
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.rememberPagerState
@@ -253,14 +255,17 @@ class AvatarSelectionScreen : Screen {
                     }
                 }
 
+                // Auto-appears the moment an avatar is selected: a clear, tappable button
+                // that confirms the choice and pops back to the chat.
                 if (state.selectedAvatar != null) {
-                    Text(
-                        text = languageViewModel.getString(StringKey.GREAT_CHOICE),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                    GoldButton(
+                        text = "Chat with ${state.selectedAvatar!!.name}",
+                        onClick = { navigator.pop() },
                         modifier = Modifier
-                            .padding(24.dp)
-                            .clickable { navigator.pop() }
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp)
+                            .padding(top = 8.dp, bottom = 24.dp)
+                            .navigationBarsPadding()
                     )
                 } else {
                     Spacer(modifier = Modifier.height(80.dp))

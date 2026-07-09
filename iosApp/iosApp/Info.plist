@@ -6,6 +6,8 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>TAJLY</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,8 +15,6 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>TAJLY</string>
-	<key>CFBundleDisplayName</key>
 	<string>TAJLY</string>
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
@@ -24,41 +24,38 @@
 	<string>1</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>TAJLY needs camera access to take workout photos for the community feed.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>TAJLY uses the microphone so you can talk to your coach with voice input.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>TAJLY uses speech recognition to turn what you say into text for your coach.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>TAJLY needs permission to save photos to your library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>TAJLY needs access to your photo library to share workout photos with the community.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<false/>
 	</dict>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
-		<string>armv7</string>
+		<string>arm64</string>
 	</array>
-	<!-- Photo library access for sharing workout photos in the community feed -->
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>TAJLY needs access to your photo library to share workout photos with the community.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>TAJLY needs permission to save photos to your library.</string>
-
-	<!-- Camera access for taking workout photos -->
-	<key>NSCameraUsageDescription</key>
-	<string>TAJLY needs camera access to take workout photos for the community feed.</string>
-
 	<key>UIStatusBarStyle</key>
 	<string></string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>UISupportedInterfaceOrientations~ipad</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationPortraitUpsideDown</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

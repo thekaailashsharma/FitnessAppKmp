@@ -29,8 +29,8 @@ import org.awi.fitness.navigation.LocalAppNavigation
 import org.awi.fitness.navigation.RootRoute
 import org.awi.fitness.repository.SubscriptionRepository
 import org.awi.fitness.theme.GreenAccent
-import org.awi.fitness.ui.components.FitnessButton
 import org.awi.fitness.ui.components.FitnessTextField
+import org.awi.fitness.ui.components.GoldButton
 import org.awi.fitness.ui.components.TajlyLogoMark
 import org.awi.fitness.viewmodel.AuthState
 import org.awi.fitness.viewmodel.AuthViewModel
@@ -66,6 +66,10 @@ class AuthScreen(
                         false
                     }
                     val settings = UserSettings.getInstance()
+                    // A returning user SIGNING IN already has an account — don't drag them
+                    // back through onboarding (intro animation + name form). Mark onboarding
+                    // complete so they land on the app/paywall. Sign-UP here still onboards.
+                    if (!isSignUp) settings.hasCompletedOnboarding = true
                     appNavigation.navigateTo(
                         when {
                             !hasPremium -> RootRoute.Paywall
@@ -257,7 +261,8 @@ class AuthScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Primary action button
-                FitnessButton(
+                GoldButton(
+                    text = if (isSignUp) "Create account" else "Sign in",
                     onClick = {
                         scope.launch {
                             if (isSignUp) viewModel.signUp() else viewModel.signIn()
@@ -265,12 +270,7 @@ class AuthScreen(
                     },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     loading = isLoading
-                ) {
-                    Text(
-                        text = if (isSignUp) "Create account" else "Sign in",
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+                )
 
                 Spacer(modifier = Modifier.height(20.dp))
 
@@ -305,7 +305,7 @@ class AuthScreen(
 
                 // Subscription reassurance
                 Text(
-                    text = "Free 7-day trial · Cancel anytime",
+                    text = "Free 14-day trial · Cancel anytime",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     textAlign = TextAlign.Center

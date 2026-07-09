@@ -40,7 +40,9 @@ fun WorkoutPlan.toFirestoreRequest(): WorkoutPlanFirestoreRequest {
             difficulty = StringValue(difficulty.name),
             duration = IntegerValue(duration.toString()),
             category = StringValue(category.name),
-            imageUrl = StringValue(imageUrl ?: "")
+            imageUrl = imageUrl?.let { StringValue(it) },
+            // Proper owner field — scopes plans to the user.
+            ownerId = StringValue(ownerId)
         )
     )
 }
@@ -107,6 +109,7 @@ fun WorkoutActivity.toFirestoreRequest(): WorkoutActivityFirestoreRequest {
 // Extension functions for converting Firestore documents to models
 fun FirestoreDocument<WorkoutPlanFields>.toWorkoutPlan(): WorkoutPlan {
     val documentId = name?.split("/")?.last() ?: ""
+    // toDomainModel now maps the proper `ownerId` field directly.
     return fields?.toDomainModel(documentId) ?: WorkoutPlan(id = documentId)
 }
 

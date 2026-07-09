@@ -5,6 +5,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 
 @Composable
 fun FitnessAppTheme(
@@ -13,10 +14,12 @@ fun FitnessAppTheme(
 ) {
     val colors = if (useDarkTheme) DarkColorScheme else LightColorScheme
 
-    MaterialTheme(
-        colorScheme = colors,
-        typography = Typography,
-        shapes = Shapes,
-        content = content
-    )
-} 
+    CompositionLocalProvider(LocalTajlyColors provides tajlyColors(useDarkTheme)) {
+        MaterialTheme(
+            colorScheme = colors,
+            typography = Typography,
+            shapes = Shapes,
+            content = content
+        )
+    }
+}

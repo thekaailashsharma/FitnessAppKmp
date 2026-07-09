@@ -14,7 +14,7 @@ import org.awi.fitness.network.KtorClient
 
 class MealPlanRepository : ApiService() {
     companion object {
-        private const val PROJECT_ID = "fitness-admin-73a72"
+        private const val PROJECT_ID = "awi-fitness-app"
         private const val COLLECTION = "user_meal_plans"
         private const val BASE_URL = "https://firestore.googleapis.com/v1/projects/$PROJECT_ID/databases/(default)/documents/$COLLECTION"
     }

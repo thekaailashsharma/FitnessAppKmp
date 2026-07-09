@@ -23,7 +23,26 @@ data class CommunityUserFields(
     @SerialName("level")
     val level: IntegerValue? = null,
     @SerialName("createdAt")
-    val createdAt: IntegerValue? = null
+    val createdAt: IntegerValue? = null,
+    // Onboarding profile fields (merged onto the same doc via PATCH). All optional so
+    //    partial saves never wipe existing community fields.
+    @SerialName("goal")
+    val goal: StringValue? = null,
+    @SerialName("heightCm")
+    val heightCm: IntegerValue? = null,
+    @SerialName("weightKg")
+    val weightKg: StringValue? = null,
+    @SerialName("age")
+    val age: IntegerValue? = null,
+    @SerialName("gender")
+    val gender: StringValue? = null,
+    // Social links (persisted onto the same doc via merge PATCH). Optional.
+    @SerialName("website")
+    val website: StringValue? = null,
+    @SerialName("instagram")
+    val instagram: StringValue? = null,
+    @SerialName("twitter")
+    val twitter: StringValue? = null
 )
 
 @Serializable
@@ -43,7 +62,10 @@ fun FirestoreDocument<CommunityUserFields>.toCommunityUser(): CommunityUser {
         profileImage = fields?.profileImage?.value?.takeIf { it.isNotEmpty() },
         bio = fields?.bio?.value?.takeIf { it.isNotEmpty() },
         streakDays = fields?.streakDays?.value?.toIntOrNull() ?: 0,
-        level = fields?.level?.value?.toIntOrNull() ?: 1
+        level = fields?.level?.value?.toIntOrNull() ?: 1,
+        website = fields?.website?.value?.takeIf { it.isNotEmpty() },
+        instagram = fields?.instagram?.value?.takeIf { it.isNotEmpty() },
+        twitter = fields?.twitter?.value?.takeIf { it.isNotEmpty() }
     )
 }
 
@@ -82,4 +104,20 @@ data class LikeFirestoreRequest(
 data class FirestoreDeleteResponse(
     val name: String? = null,
     val error: FirestoreError? = null
+)
+
+// Post report (App Store UGC compliance, Guideline 1.2) — written to fitness_testing_reports.
+@Serializable
+data class ReportFirestoreRequest(
+    val fields: ReportFields
+)
+
+@Serializable
+data class ReportFields(
+    @SerialName("postId") val postId: StringValue? = null,
+    @SerialName("postAuthorId") val postAuthorId: StringValue? = null,
+    @SerialName("reporterId") val reporterId: StringValue? = null,
+    @SerialName("reason") val reason: StringValue? = null,
+    @SerialName("createdAt") val createdAt: IntegerValue? = null,
+    @SerialName("status") val status: StringValue? = null
 )

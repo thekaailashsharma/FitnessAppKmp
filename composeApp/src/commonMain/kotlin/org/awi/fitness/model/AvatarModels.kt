@@ -29,14 +29,38 @@ enum class ConversationTrigger {
 }
 
 /**
- * Represents an avatar selection option
+ * Represents an avatar selection option.
+ *
+ * [tagline] is a short human label shown in the UI; [persona] is the voice instruction fed
+ * to Gemini so each coach genuinely writes differently (tone, phrasing, energy).
  */
 @Serializable
 data class AvatarSelection(
     val id: String,
     val name: String,
     val imageUrl: String,
-    val isSelected: Boolean = false
+    val isSelected: Boolean = false,
+    val tagline: String = "",
+    val persona: String = ""
+)
+
+/**
+ * Optional rich "card" the coach can attach to a message — rendered as a native Compose
+ * component that pulls REAL app data at render time. The marker only names the card + an
+ * optional action; the composable reads live stats itself.
+ */
+enum class CoachCardType {
+    WORKOUT_SUGGESTION, MEAL_SUGGESTION, STREAK, LEVEL, PROGRESS, WEIGHT_TREND,
+    HYDRATION, QUICK_ACTIONS, CHALLENGE, CELEBRATION, TIP, GOAL, BREATHE,
+    MOTIVATION, WEEK_ACTIVITY
+}
+
+data class CoachCard(
+    val type: CoachCardType,
+    val title: String = "",
+    val subtitle: String = "",
+    val cta: String = "",
+    val action: String = "" // e.g. "workout", "meals", "challenges", "checkin"
 )
 
 /**
@@ -58,7 +82,8 @@ data class AvatarMessage(
     val content: String,
     val isFromAvatar: Boolean,
     val timestamp: Instant = kotlinx.datetime.Instant.fromEpochMilliseconds(currentTimeMillis()),
-    val mood: AvatarMood? = null // Only applicable for avatar messages
+    val mood: AvatarMood? = null, // Only applicable for avatar messages
+    val card: CoachCard? = null   // Optional rich card attached to an avatar message
 )
 
 /**

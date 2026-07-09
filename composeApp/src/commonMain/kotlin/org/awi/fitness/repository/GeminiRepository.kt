@@ -2,6 +2,9 @@ package org.awi.fitness.repository
 
 import io.ktor.client.request.*
 import io.ktor.http.*
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.awi.fitness.AppConfig
@@ -19,7 +22,8 @@ import org.awi.fitness.network.ApiService
 
 @Serializable
 data class GeminiRequest(
-    val contents: List<GeminiContent>
+    val contents: List<GeminiContent>,
+    val generationConfig: GeminiGenerationConfig? = null
 )
 
 @Serializable
@@ -30,6 +34,20 @@ data class GeminiContent(
 @Serializable
 data class GeminiPart(
     val text: String
+)
+
+@Serializable
+data class GeminiGenerationConfig(
+    val temperature: Double? = null,
+    val topP: Double? = null,
+    val thinkingConfig: GeminiThinkingConfig? = null,
+    val responseMimeType: String? = null
+)
+
+/** thinkingBudget = 0 disables the model's hidden reasoning tokens → fast, cheap chat replies. */
+@Serializable
+data class GeminiThinkingConfig(
+    val thinkingBudget: Int
 )
 
 @Serializable
@@ -46,6 +64,52 @@ data class GeminiCandidate(
 @Serializable
 data class GeminiError(
     val message: String
+)
+
+// ── Vision (image + text) request shape for meal-scan. Mirrors the text request but
+// each part may carry either `text` or an `inline_data` image blob. explicitNulls=false
+// on the Ktor Json means the null branch is simply omitted from the wire payload. ──
+@Serializable
+data class GeminiVisionRequest(
+    val contents: List<GeminiVisionContent>
+)
+
+@Serializable
+data class GeminiVisionContent(
+    val parts: List<GeminiVisionPart>
+)
+
+@Serializable
+data class GeminiVisionPart(
+    val text: String? = null,
+    @SerialName("inline_data") val inlineData: GeminiInlineData? = null
+)
+
+@Serializable
+data class GeminiInlineData(
+    @SerialName("mime_type") val mimeType: String,
+    val data: String
+)
+
+/** A single meal read from a plate photo by Gemini vision (locally journaled). */
+@Serializable
+data class ScannedMeal(
+    val name: String,
+    val calories: Int,
+    val protein: Int,
+    val carbs: Int,
+    val fat: Int
+)
+
+/** Wire shape Gemini returns for a scan — includes a self-reported confidence tier. */
+@Serializable
+private data class ScannedMealWire(
+    val name: String,
+    val calories: Int,
+    val protein: Int,
+    val carbs: Int,
+    val fat: Int,
+    val confidence: String = ""
 )
 
 @Serializable
@@ -438,6 +502,34 @@ Respond with ONLY valid JSON, no markdown fences, no explanation text:
         }
     }
 
+    /**
+     * Coach chat generation: returns the RAW model text (no truncation), with a warmer
+     * temperature and thinking disabled for speed. The caller (AvatarRepository) parses the
+     * text into multiple bubbles + an optional rich-card marker.
+     */
+    suspend fun generateCoachText(prompt: String, temperature: Double = 0.9): Result<String> {
+        return try {
+            val request = GeminiRequest(
+                contents = listOf(GeminiContent(parts = listOf(GeminiPart(text = prompt)))),
+                generationConfig = GeminiGenerationConfig(
+                    temperature = temperature,
+                    thinkingConfig = GeminiThinkingConfig(thinkingBudget = 0)
+                )
+            )
+            val url = "$GEMINI_BASE_URL?key=${AppConfig.geminiApiKey}"
+            val (response, status) = post<GeminiResponse>(url = url, body = request)
+            if (status.isSuccess()) {
+                val text = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+                    ?: return Result.failure(Exception("No response generated"))
+                Result.success(text.trim())
+            } else {
+                Result.failure(Exception(response.error?.message ?: "Gemini API error"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun generateAvatarResponse(prompt: String): Result<org.awi.fitness.model.AvatarMessage> {
         return try {
             val request = GeminiRequest(
@@ -470,6 +562,74 @@ Respond with ONLY valid JSON, no markdown fences, no explanation text:
                 )
             } else {
                 Result.failure(Exception(response.error?.message ?: "Failed to generate avatar response"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Reads a plate photo with Gemini vision and returns its estimated nutrition.
+     * Sends the JPEG as a base64 `inline_data` part alongside a strict-JSON prompt,
+     * mirroring the existing text generateContent flow (same URL + API key + response parse).
+     */
+    @OptIn(ExperimentalEncodingApi::class)
+    suspend fun analyzeMealPhoto(imageBytes: ByteArray): Result<ScannedMeal> {
+        return try {
+            val base64Image = Base64.encode(imageBytes)
+            val prompt = """
+You are a nutrition-analysis AI. Look at this photo of a meal on a plate and identify the food, then estimate its nutrition for the whole visible portion.
+
+Respond with ONLY valid JSON, no markdown fences, no explanation text:
+{"name":"Short dish name","calories":520,"protein":32,"carbs":45,"fat":18,"confidence":"high"}
+
+Rules:
+- name: a short human-readable dish name (under 40 characters)
+- calories: integer kcal for the whole portion shown
+- protein, carbs, fat: integer grams
+- confidence: one of "high", "medium", "low"
+- If the image is not food or is unreadable, still return the JSON with name "Unknown" and confidence "low".
+            """.trimIndent()
+
+            val request = GeminiVisionRequest(
+                contents = listOf(
+                    GeminiVisionContent(
+                        parts = listOf(
+                            GeminiVisionPart(text = prompt),
+                            GeminiVisionPart(
+                                inlineData = GeminiInlineData(
+                                    mimeType = "image/jpeg",
+                                    data = base64Image
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+
+            val url = "$GEMINI_BASE_URL?key=${AppConfig.geminiApiKey}"
+            val (response, status) = post<GeminiResponse>(url = url, body = request)
+
+            if (status.isSuccess()) {
+                val generatedText = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+                    ?: return Result.failure(Exception("No response generated"))
+
+                val cleanJson = extractJsonFromResponse(generatedText)
+                val wire = geminiJson.decodeFromString<ScannedMealWire>(cleanJson)
+                if (wire.name.isBlank() || wire.name.equals("Unknown", ignoreCase = true)) {
+                    return Result.failure(Exception("Couldn't read that meal"))
+                }
+                Result.success(
+                    ScannedMeal(
+                        name = wire.name,
+                        calories = wire.calories,
+                        protein = wire.protein,
+                        carbs = wire.carbs,
+                        fat = wire.fat
+                    )
+                )
+            } else {
+                Result.failure(Exception(response.error?.message ?: "Gemini API error"))
             }
         } catch (e: Exception) {
             Result.failure(e)

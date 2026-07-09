@@ -27,6 +27,23 @@ import io.ktor.client.request.get
 import org.awi.fitness.network.KtorClient
 import org.awi.fitness.utils.decodeImageBitmap
 
+// Process-wide in-memory cache of decoded images, keyed by URL. Loads run on the Compose main
+//    coroutine, so single-threaded access is safe. This makes a re-entered screen (e.g. switching
+//    tabs) show avatars instantly instead of re-downloading + re-decoding every time.
+private const val IMAGE_CACHE_MAX = 150
+private val imageBitmapCache = LinkedHashMap<String, ImageBitmap>()
+
+private fun cachedImage(url: String): ImageBitmap? = imageBitmapCache[url]
+
+private fun cacheImage(url: String, bmp: ImageBitmap) {
+    imageBitmapCache.remove(url)
+    imageBitmapCache[url] = bmp
+    if (imageBitmapCache.size > IMAGE_CACHE_MAX) {
+        val it = imageBitmapCache.keys.iterator()
+        if (it.hasNext()) { it.next(); it.remove() } // evict oldest
+    }
+}
+
 @Composable
 fun ImagePlaceholder(
     modifier: Modifier = Modifier,
@@ -39,24 +56,36 @@ fun ImagePlaceholder(
     initial: String = "",
     tint: Color = MaterialTheme.colorScheme.primary
 ) {
-    var bitmap by remember(url, imageBytes) { mutableStateOf<ImageBitmap?>(null) }
+    // Seed synchronously from the cache so re-entry shows the image with zero flicker/spinner.
+    var bitmap by remember(url, imageBytes) {
+        mutableStateOf(if (!url.isNullOrBlank()) cachedImage(url) else null)
+    }
     var loading by remember(url, imageBytes) { mutableStateOf(false) }
 
     LaunchedEffect(url, imageBytes) {
-        bitmap = null
         when {
             imageBytes != null -> {
                 bitmap = decodeImageBitmap(imageBytes)
             }
             !url.isNullOrBlank() -> {
-                loading = true
-                try {
-                    val bytes = KtorClient.httpClient.get(url).body<ByteArray>()
-                    bitmap = decodeImageBitmap(bytes)
-                } catch (_: Exception) {
+                val cached = cachedImage(url)
+                if (cached != null) {
+                    bitmap = cached
+                } else {
                     bitmap = null
-                } finally {
-                    loading = false
+                    loading = true
+                    try {
+                        val bytes = KtorClient.httpClient.get(url).body<ByteArray>()
+                        val bmp = decodeImageBitmap(bytes)
+                        if (bmp != null) {
+                            cacheImage(url, bmp)
+                            bitmap = bmp
+                        }
+                    } catch (_: Exception) {
+                        bitmap = null
+                    } finally {
+                        loading = false
+                    }
                 }
             }
         }
@@ -76,6 +105,16 @@ fun ImagePlaceholder(
                 )
             }
             loading -> {
+                // Keep the surface from looking broken while bytes are in flight: for avatars
+                // (showInitial) hold the initial and float a subtle spinner over it; otherwise
+                // just show the spinner.
+                if (showInitial && initial.isNotBlank()) {
+                    Text(
+                        text = initial.first().uppercaseChar().toString(),
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = tint
+                    )
+                }
                 CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center),
                     color = tint,

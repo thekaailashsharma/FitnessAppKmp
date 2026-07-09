@@ -22,6 +22,31 @@ data class ChallengeParticipantsUpdateRequest(
     val fields: ChallengeParticipantsFields
 )
 
+/** Merge-safe stat sync onto the user's fitness_testing_users doc (used with updateMask). */
+@Serializable
+data class UserStatsUpdateRequest(
+    val fields: UserStatsFields
+)
+
+@Serializable
+data class UserStatsFields(
+    @SerialName("streakDays") val streakDays: IntegerValue? = null,
+    @SerialName("level") val level: IntegerValue? = null,
+    @SerialName("totalXp") val totalXp: IntegerValue? = null,
+    // Retention push: device token + last-activity timestamp read by the
+    // retention push Cloud Functions. Written via updateMask so unrelated
+    // profile fields are never clobbered.
+    @SerialName("fcmToken") val fcmToken: StringValue? = null,
+    @SerialName("lastWorkoutMillis") val lastWorkoutMillis: IntegerValue? = null,
+    // Deep-personalization signals for touching, milestone-aware notifications.
+    @SerialName("longestStreak") val longestStreak: IntegerValue? = null,
+    @SerialName("totalWorkouts") val totalWorkouts: IntegerValue? = null,
+    @SerialName("goal") val goal: StringValue? = null,
+    @SerialName("displayName") val displayName: StringValue? = null,
+    @SerialName("weightStartKg") val weightStartKg: IntegerValue? = null,
+    @SerialName("weightCurrentKg") val weightCurrentKg: IntegerValue? = null
+)
+
 // ---------------------------------------------------------------------------
 // Firestore field shapes
 // ---------------------------------------------------------------------------
@@ -40,6 +65,8 @@ data class ChallengeFields(
     @SerialName("createdBy") val createdBy: StringValue? = null,
     @SerialName("isPublic") val isPublic: BooleanValue? = null,
     @SerialName("isActive") val isActive: BooleanValue? = null,
+    @SerialName("difficulty") val difficulty: StringValue? = null,
+    @SerialName("durationDays") val durationDays: IntegerValue? = null,
     @SerialName("participantIds") val participantIds: ArrayValueWrapper? = null
 )
 
@@ -82,14 +109,23 @@ fun FirestoreDocument<ChallengeFields>.toChallenge(
     val targetValue = fields?.targetValue?.value?.toIntOrNull() ?: 1
     val badgeIcon = fields?.badgeIcon?.value?.takeIf { it.isNotBlank() } ?: "🏆"
 
+    // Real difficulty / duration when present; 0 duration and BEGINNER-default flag "unknown".
+    val difficultyStr = fields?.difficulty?.value?.takeIf { it.isNotBlank() }
+    val difficulty = difficultyStr?.let {
+        runCatching { ChallengeDifficulty.valueOf(it.uppercase()) }.getOrNull()
+    } ?: ChallengeDifficulty.BEGINNER
+    val hasDifficulty = difficultyStr != null
+    val durationDays = fields?.durationDays?.value?.toIntOrNull() ?: 0
+
     return Challenge(
         id = docId,
         title = fields?.title?.value ?: "",
         description = fields?.description?.value ?: "",
         type = type,
         category = targetType.toCategory(),
-        difficulty = ChallengeDifficulty.INTERMEDIATE,
-        duration = 7,
+        difficulty = difficulty,
+        hasDifficulty = hasDifficulty,
+        duration = durationDays,
         target = targetValue,
         unit = targetType.toUnit(),
         reward = Reward(xp = xpReward),

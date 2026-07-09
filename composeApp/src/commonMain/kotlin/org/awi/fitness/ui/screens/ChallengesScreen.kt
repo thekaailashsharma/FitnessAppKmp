@@ -1,40 +1,71 @@
 package org.awi.fitness.ui.screens
 
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.composed
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import compose.icons.TablerIcons
-import compose.icons.tablericons.Check
-import compose.icons.tablericons.Star
+import compose.icons.tablericons.Award
+import compose.icons.tablericons.CircleCheck
 import compose.icons.tablericons.Trophy
-import compose.icons.tablericons.User
+import fitnessappkmp.composeapp.generated.resources.Res
+import fitnessappkmp.composeapp.generated.resources.card_community
+import fitnessappkmp.composeapp.generated.resources.card_compete
+import fitnessappkmp.composeapp.generated.resources.card_move
+import fitnessappkmp.composeapp.generated.resources.ic3d_flag
+import fitnessappkmp.composeapp.generated.resources.ic3d_medal
+import fitnessappkmp.composeapp.generated.resources.ic3d_star
 import org.awi.fitness.model.*
-import org.awi.fitness.theme.GreenAccent
+import org.awi.fitness.theme.GoldBright
+import org.awi.fitness.theme.GoldPrimary
+import org.awi.fitness.theme.Tajly
+import org.awi.fitness.theme.TajlyTheme
+import org.awi.fitness.theme.pressScale
 import org.awi.fitness.ui.components.*
 import org.awi.fitness.viewmodel.ViewModelStore
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
+import kotlin.math.roundToInt
 
 @Composable
 fun ChallengesScreen() {
     val navigator = LocalNavigator.currentOrThrow
     val viewModel = ViewModelStore.challenges
     val state by viewModel.state.collectAsState()
+    val c = TajlyTheme.colors
     val userSettings = org.awi.fitness.data.UserSettings.getInstance()
     val currentEmail = userSettings.userEmail.orEmpty()
 
@@ -48,20 +79,52 @@ fun ChallengesScreen() {
         if (idx >= 0) "#${idx + 1}" else if (state.leaderboard.isNotEmpty()) "#${state.leaderboard.size + 1}" else "—"
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
+    ProvideGlass {
+    Box(modifier = Modifier.fillMaxSize().background(c.bg)) {
+        // Aurora base — warm gold + violet glows on the canvas the glass refracts.
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background),
+                .glassSource()
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(280.dp)
+                    .blur(90.dp)
+                    .background(Brush.radialGradient(listOf(GoldPrimary.copy(alpha = 0.16f), Color.Transparent))),
+            )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .size(240.dp)
+                    .blur(90.dp)
+                    .background(Brush.radialGradient(listOf(Tajly.Violet.copy(alpha = 0.12f), Color.Transparent))),
+            )
+        }
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             item {
-                HeroSection(firstActiveChallenge = state.activeChallenges.firstOrNull())
+                Column {
+                    Text(
+                        text = "Challenges",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = c.textHi,
+                    )
+                    Text(
+                        text = "Compete, progress, win.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = c.textMid,
+                    )
+                }
             }
 
             item {
-                QuickStatsSection(
+                QuickStatsRow(
                     activeChallengesCount = state.activeChallenges.size,
                     completedCount = state.activeChallenges.count {
                         it.progress >= it.target && it.target > 0
@@ -72,8 +135,8 @@ fun ChallengesScreen() {
 
             // ---- My Active Challenges ----
             item {
-                SectionHeader(
-                    title = "Active Challenges",         // TODO: Add to StringKey.kt
+                ChallengeSectionHeader(
+                    title = "Active Challenges",
                     subtitle = "Keep the momentum going!"
                 )
             }
@@ -82,23 +145,32 @@ fun ChallengesScreen() {
                 item {
                     ChallengesEmptyState(
                         message = "No active challenges yet.\nJoin one below to get started!",
-                        icon = "🏁"
+                        icon = Res.drawable.ic3d_flag
                     )
                 }
             } else {
                 item {
                     LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(horizontal = 4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        contentPadding = PaddingValues(horizontal = 2.dp)
                     ) {
-                        items(state.activeChallenges) { challenge ->
-                            ChallengeCard(
-                                challenge = challenge,
+                        itemsIndexed(state.activeChallenges) { index, challenge ->
+                            val pr = state.userProgress[challenge.id]
+                            val frac = when {
+                                pr != null && pr.targetValue > 0 -> pr.currentValue.toFloat() / pr.targetValue
+                                challenge.target > 0 -> challenge.progress.toFloat() / challenge.target
+                                else -> 0f
+                            }.coerceIn(0f, 1f)
+                            ActiveChallengeImageCard(
+                                title = challenge.title,
+                                fraction = frac,
+                                imageUrl = challenge.imageUrl,
+                                fallback = challengeFallback(index),
                                 onClick = {
                                     viewModel.selectChallenge(challenge)
                                     navigator.push(ChallengeDetailScreen(challenge))
                                 },
-                                modifier = Modifier.width(280.dp)
+                                modifier = Modifier.width(268.dp)
                             )
                         }
                     }
@@ -107,8 +179,8 @@ fun ChallengesScreen() {
 
             // ---- Available Challenges ----
             item {
-                SectionHeader(
-                    title = "Available Challenges",     // TODO: Add to StringKey.kt
+                ChallengeSectionHeader(
+                    title = "Available Challenges",
                     subtitle = "Start a new journey"
                 )
             }
@@ -117,7 +189,7 @@ fun ChallengesScreen() {
                 item {
                     ChallengesEmptyState(
                         message = "No available challenges right now.\nCheck back soon!",
-                        icon = "✨"
+                        icon = Res.drawable.ic3d_star
                     )
                 }
             } else {
@@ -135,38 +207,9 @@ fun ChallengesScreen() {
                 }
             }
 
-            // ---- Recent Achievements (static badges — achievements not in this sprint's scope) ----
+            // ---- Leaderboard (honest: reflects the first active challenge) ----
             item {
-                SectionHeader(
-                    title = "Recent Achievements",
-                    subtitle = "Celebrate your wins!"
-                )
-            }
-
-            item {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(horizontal = 4.dp)
-                ) {
-                    items(staticBadges()) { badge ->
-                        val isUnlocked = when (badge.id) {
-                            "1" -> state.activeChallenges.isNotEmpty() || state.joinedChallengeIds.isNotEmpty()
-                            "2" -> state.activeChallenges.count { it.progress >= it.target && it.target > 0 } >= 1
-                            "3" -> state.activeChallenges.size >= 2
-                            else -> false
-                        }
-                        BadgeCard(
-                            badge = badge,
-                            isUnlocked = isUnlocked,
-                            modifier = Modifier.width(120.dp)
-                        )
-                    }
-                }
-            }
-
-            // ---- Leaderboard (for first active challenge) ----
-            item {
-                SectionHeader(
+                ChallengeSectionHeader(
                     title = "Leaderboard",
                     subtitle = if (state.activeChallenges.isNotEmpty())
                         "Challenge: ${state.activeChallenges.first().title}"
@@ -182,12 +225,33 @@ fun ChallengesScreen() {
                             "Join a challenge to appear on the leaderboard!"
                         else
                             "No entries yet. Be the first!",
-                        icon = "🏅"
+                        icon = Res.drawable.ic3d_medal
                     )
                 }
             } else {
-                items(state.leaderboard) { entry ->
-                    LeaderboardCard(entry = entry)
+                if (state.leaderboard.size >= 3) {
+                    item {
+                        LeaderboardPodium(
+                            entries = state.leaderboard,
+                            onUserClick = { entry ->
+                                navigator.push(
+                                    org.awi.fitness.ui.screens.community.CommunityProfileScreen(entry.userId)
+                                )
+                            },
+                        )
+                    }
+                }
+                item {
+                    val maxXp = state.leaderboard.maxOfOrNull { it.xp }?.coerceAtLeast(1) ?: 1
+                    LeaderboardBars(
+                        entries = state.leaderboard,
+                        maxXp = maxXp,
+                        onUserClick = { entry ->
+                            navigator.push(
+                                org.awi.fitness.ui.screens.community.CommunityProfileScreen(entry.userId)
+                            )
+                        },
+                    )
                 }
             }
 
@@ -199,10 +263,10 @@ fun ChallengesScreen() {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.6f)),
+                    .background(c.bg.copy(alpha = 0.6f)),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = GreenAccent)
+                CircularProgressIndicator(color = GoldPrimary)
             }
         }
 
@@ -214,7 +278,7 @@ fun ChallengesScreen() {
                     .padding(16.dp),
                 action = {
                     TextButton(onClick = { viewModel.clearError() }) {
-                        Text("Dismiss", color = GreenAccent)
+                        Text("Dismiss", color = GoldBright)
                     }
                 }
             ) {
@@ -222,182 +286,193 @@ fun ChallengesScreen() {
             }
         }
     }
+    }
 }
 
 // ---------------------------------------------------------------------------
 // Private composables
 // ---------------------------------------------------------------------------
 
+/** Rotating bundled backdrop for active challenges lacking a remote image. */
+private fun challengeFallback(index: Int): DrawableResource =
+    listOf(Res.drawable.card_compete, Res.drawable.card_community, Res.drawable.card_move)[index % 3]
+
 @Composable
-private fun HeroSection(firstActiveChallenge: Challenge?) {
-    val pulseAnimation by animateFloatAsState(
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = EaseInOut),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulse"
-    )
-
-    val title = firstActiveChallenge?.title ?: "Daily Challenge"
-    val subtitle = firstActiveChallenge?.description ?: "Join a challenge to get started"
-    val progressText = if (firstActiveChallenge != null && firstActiveChallenge.target > 0) {
-        "${firstActiveChallenge.progress}/${firstActiveChallenge.target} ${firstActiveChallenge.unit}"
-    } else {
-        "Start your journey!"
-    }
-    val accentColor = if (firstActiveChallenge != null) Color(firstActiveChallenge.color) else GreenAccent
-
-    Card(
+private fun QuickStatsRow(activeChallengesCount: Int, completedCount: Int, rank: String) {
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            accentColor.copy(alpha = 0.12f),
-                            accentColor.copy(alpha = 0.04f)
-                        )
-                    )
-                )
-                .padding(24.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 2
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                        maxLines = 2
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = progressText,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = accentColor
-                    )
-                }
+        QuickStatTile(
+            icon = TablerIcons.Trophy,
+            value = activeChallengesCount.toString(),
+            label = "Active",
+            accent = Tajly.Violet,
+            modifier = Modifier.weight(1f)
+        )
+        QuickStatTile(
+            icon = TablerIcons.CircleCheck,
+            value = completedCount.toString(),
+            label = "Completed",
+            accent = Tajly.Green,
+            modifier = Modifier.weight(1f)
+        )
+        QuickStatTile(
+            icon = TablerIcons.Award,
+            value = rank,
+            label = "Your rank",
+            accent = GoldPrimary,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
 
+@Composable
+private fun QuickStatTile(
+    icon: ImageVector,
+    value: String,
+    label: String,
+    accent: Color,
+    modifier: Modifier = Modifier
+) {
+    val c = TajlyTheme.colors
+    GlassCard(modifier = modifier, shape = RoundedCornerShape(20.dp)) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp, horizontal = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(CircleShape)
+                    .background(accent.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
+            }
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = c.textHi,
+                maxLines = 1,
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = c.textMid,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+/** Full-bleed image-backdrop card for an active challenge: dark scrim + title + gold progress. */
+@Composable
+private fun ActiveChallengeImageCard(
+    title: String,
+    fraction: Float,
+    imageUrl: String?,
+    fallback: DrawableResource,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val shape = RoundedCornerShape(22.dp)
+
+    // Gold bar fills once on appear.
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { shown = true }
+    val fill by animateFloatAsState(
+        targetValue = if (shown) fraction else 0f,
+        animationSpec = tween(900, easing = EaseOutCubic),
+        label = "barFill",
+    )
+    val pct = (fraction * 100).roundToInt()
+
+    Box(
+        modifier = modifier
+            .height(158.dp)
+            .pressScale(interaction)
+            .clip(shape)
+            .clickable(interactionSource = interaction, indication = null) { onClick() },
+    ) {
+        if (!imageUrl.isNullOrBlank()) {
+            ImagePlaceholder(
+                url = imageUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            Image(
+                painter = painterResource(fallback),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+        Box(
+            modifier = Modifier.fillMaxSize().background(
+                Brush.verticalGradient(
+                    0.2f to Color.Transparent,
+                    1f to Color.Black.copy(alpha = 0.84f),
+                ),
+            ),
+        )
+        Column(
+            modifier = Modifier.fillMaxSize().padding(16.dp),
+            verticalArrangement = Arrangement.Bottom,
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "$pct% complete",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White.copy(alpha = 0.85f),
+            )
+            Spacer(Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.25f)),
+            ) {
                 Box(
                     modifier = Modifier
-                        .size(80.dp)
-                        .scale(pulseAnimation)
-                        .background(color = accentColor.copy(alpha = 0.2f), shape = CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = firstActiveChallenge?.iconName?.takeIf { it.isNotBlank() } ?: "🏆",
-                        fontSize = 36.sp
-                    )
-                }
+                        .fillMaxWidth(fill)
+                        .fillMaxHeight()
+                        .clip(CircleShape)
+                        .background(Tajly.GoldGradient),
+                )
             }
         }
     }
 }
 
 @Composable
-private fun QuickStatsSection(activeChallengesCount: Int, completedCount: Int, rank: String = "—") {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        StatCard(
-            title = "Active",
-            value = activeChallengesCount.toString(),
-            icon = TablerIcons.Trophy,
-            color = GreenAccent,
-            modifier = Modifier.weight(1f)
-        )
-        StatCard(
-            title = "Completed",
-            value = completedCount.toString(),
-            icon = TablerIcons.Check,
-            color = Color(0xFF2196F3),
-            modifier = Modifier.weight(1f)
-        )
-        StatCard(
-            title = "Rank",
-            value = rank,
-            icon = TablerIcons.Star,
-            color = Color(0xFFFFD700),
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
-
-@Composable
-private fun StatCard(
-    title: String,
-    value: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = color,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun SectionHeader(title: String, subtitle: String, modifier: Modifier = Modifier) {
+private fun ChallengeSectionHeader(title: String, subtitle: String, modifier: Modifier = Modifier) {
+    val c = TajlyTheme.colors
     Column(modifier = modifier) {
         Text(
             text = title,
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = c.textHi
         )
         Text(
             text = subtitle,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            style = MaterialTheme.typography.bodySmall,
+            color = c.textMid
         )
     }
 }
@@ -410,154 +485,251 @@ private fun AvailableChallengeRow(
     onTap: () -> Unit,
     onJoin: () -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        onClick = onTap
+    val c = TajlyTheme.colors
+    val accent = challengeAccent(challenge)
+    val shape = RoundedCornerShape(18.dp)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(c.glassFill, shape)
+            .border(1.dp, c.hairStrong, shape)
+            .clickableNoRipple(onTap),
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            Color(challenge.color).copy(alpha = 0.08f),
-                            Color(challenge.color).copy(alpha = 0.02f)
-                        )
-                    )
-                )
-                .padding(16.dp)
+                .align(Alignment.CenterStart)
+                .size(110.dp)
+                .blur(40.dp)
+                .background(Brush.radialGradient(listOf(accent.copy(alpha = 0.28f), Color.Transparent))),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .background(Color(challenge.color).copy(alpha = 0.15f), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = challenge.iconName.takeIf { it.isNotBlank() } ?: "🏆",
-                        fontSize = 22.sp
-                    )
-                }
+            Challenge3dBadge(challenge = challenge, diameter = 52, iconSize = 40)
 
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = challenge.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1
-                    )
-                    Text(
-                        text = challenge.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                        maxLines = 2
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        TypeBadge(type = challenge.type)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = "⭐", fontSize = 12.sp)
-                        Spacer(modifier = Modifier.width(2.dp))
-                        Text(
-                            text = "+${challenge.reward.xp} XP",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-                        )
-                    }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = challenge.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = c.textHi,
+                    maxLines = 1
+                )
+                Text(
+                    text = challenge.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = c.textMid,
+                    maxLines = 2
+                )
+                Spacer(Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TypeChip(type = challenge.type)
+                    XpPill(xp = challenge.reward.xp.takeIf { it > 0 } ?: challenge.xpReward)
                 }
+            }
 
-                Button(
-                    onClick = { if (!isJoining && !isJoined) onJoin() },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isJoined) Color(0xFF4CAF50) else GreenAccent,
-                        disabledContainerColor = if (isJoined) Color(0xFF4CAF50) else GreenAccent.copy(alpha = 0.5f)
-                    ),
-                    enabled = !isJoining && !isJoined,
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    when {
-                        isJoining -> CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp,
-                            color = Color.White
-                        )
-                        isJoined -> Icon(
-                            TablerIcons.Check,
-                            contentDescription = "Joined",
-                            tint = Color.White,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        else -> Text("Join", color = Color.White, style = MaterialTheme.typography.labelMedium)
-                    }
-                }
+            // Gold Join CTA (preserves join / joining / joined states)
+            JoinPill(
+                isJoining = isJoining,
+                isJoined = isJoined,
+                onJoin = { if (!isJoining && !isJoined) onJoin() },
+            )
+        }
+    }
+}
+
+@Composable
+private fun JoinPill(
+    isJoining: Boolean,
+    isJoined: Boolean,
+    onJoin: () -> Unit,
+) {
+    val c = TajlyTheme.colors
+    when {
+        isJoined -> Box(
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(Tajly.Green.copy(alpha = 0.18f))
+                .border(1.dp, Tajly.Green.copy(alpha = 0.4f), CircleShape)
+                .padding(horizontal = 14.dp, vertical = 9.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = TablerIcons.CircleCheck,
+                    contentDescription = "Joined",
+                    tint = Tajly.Green,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(4.dp))
+                Text("Joined", color = Tajly.Green, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+            }
+        }
+        isJoining -> Box(
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(c.glassFill, CircleShape)
+                .border(1.dp, c.hairStrong, CircleShape)
+                .padding(horizontal = 18.dp, vertical = 9.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(16.dp),
+                strokeWidth = 2.dp,
+                color = GoldBright,
+            )
+        }
+        else -> GoldButton(
+            text = "Join",
+            onClick = onJoin,
+        )
+    }
+}
+
+@Composable
+private fun TypeChip(type: ChallengeType) {
+    val (color, label) = when (type) {
+        ChallengeType.DAILY -> Tajly.Green to "Daily"
+        ChallengeType.WEEKLY -> Tajly.Blue to "Weekly"
+        ChallengeType.MONTHLY -> Tajly.Violet to "Monthly"
+        ChallengeType.CUSTOM -> Color(0xFFFF9800) to "Custom"
+    }
+    Box(
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(color.copy(alpha = 0.15f))
+            .padding(horizontal = 10.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = color,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Leaderboard — slim gold bars (magnitude = entry.xp, which holds currentValue)
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun LeaderboardBars(
+    entries: List<LeaderboardEntry>,
+    maxXp: Int,
+    onUserClick: (LeaderboardEntry) -> Unit,
+) {
+    GlassCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            entries.forEach { entry ->
+                LeaderboardBarRow(
+                    entry = entry,
+                    fraction = (entry.xp.toFloat() / maxXp).coerceIn(0f, 1f),
+                    onClick = { onUserClick(entry) },
+                )
             }
         }
     }
 }
 
 @Composable
-private fun TypeBadge(type: ChallengeType) {
-    val (color, label) = when (type) {
-        ChallengeType.DAILY -> Color(0xFF4CAF50) to "Daily"
-        ChallengeType.WEEKLY -> Color(0xFF2196F3) to "Weekly"
-        ChallengeType.MONTHLY -> Color(0xFF9C27B0) to "Monthly"
-        ChallengeType.CUSTOM -> Color(0xFFFF9800) to "Custom"
-    }
-    Box(
-        modifier = Modifier
-            .background(color.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
-            .padding(horizontal = 6.dp, vertical = 2.dp)
+private fun LeaderboardBarRow(
+    entry: LeaderboardEntry,
+    fraction: Float,
+    onClick: () -> Unit,
+) {
+    val c = TajlyTheme.colors
+    val isPodium = entry.rank in 1..3
+
+    // Bar fills once on appear.
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { shown = true }
+    val fill by animateFloatAsState(
+        targetValue = if (shown) fraction else 0f,
+        animationSpec = tween(900, easing = EaseOutCubic),
+        label = "lbFill",
+    )
+
+    Row(
+        modifier = Modifier.fillMaxWidth().clickableNoRipple(onClick),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = color,
-            fontWeight = FontWeight.Medium
+            text = "#${entry.rank}",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = if (isPodium) GoldBright else c.textMid,
+            modifier = Modifier.width(30.dp),
         )
-    }
-}
-
-@Composable
-private fun ChallengesEmptyState(message: String, icon: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(text = icon, fontSize = 40.sp)
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = entry.username,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = c.textHi,
+                    fontWeight = if (isPodium) FontWeight.Bold else FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = entry.xp.toString(),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isPodium) GoldBright else c.textHi,
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(CircleShape)
+                    .background(c.hairStrong),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(fill)
+                        .fillMaxHeight()
+                        .clip(CircleShape)
+                        .background(Tajly.GoldGradient),
+                )
+            }
         }
     }
 }
 
-// ---------------------------------------------------------------------------
-// Static badges (achievements not in this sprint's Firestore scope)
-// ---------------------------------------------------------------------------
+@Composable
+private fun ChallengesEmptyState(message: String, icon: DrawableResource) {
+    val parts = message.split("\n", limit = 2)
+    EmptyState(
+        title = parts.firstOrNull().orEmpty(),
+        subtitle = parts.getOrNull(1).orEmpty(),
+        modifier = Modifier.fillMaxWidth(),
+        icon = {
+            Image(
+                painter = painterResource(icon),
+                contentDescription = null,
+                modifier = Modifier.size(64.dp),
+            )
+        },
+    )
+}
 
-private fun staticBadges(): List<Badge> = listOf(
-    Badge(id = "1", name = "First Steps", description = "Complete your first challenge", iconName = "👟", rarity = BadgeRarity.COMMON),
-    Badge(id = "2", name = "Week Warrior", description = "Complete 7 challenges in a week", iconName = "⚔️", rarity = BadgeRarity.RARE),
-    Badge(id = "3", name = "Consistency King", description = "30-day streak", iconName = "👑", rarity = BadgeRarity.EPIC)
+// Small ripple-free clickable helper (keeps the glass surface clean).
+private fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier = this.then(
+    Modifier.composed {
+        val interaction = remember { MutableInteractionSource() }
+        Modifier.clickable(
+            interactionSource = interaction,
+            indication = null,
+        ) { onClick() }
+    }
 )

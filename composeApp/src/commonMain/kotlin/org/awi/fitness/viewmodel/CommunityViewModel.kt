@@ -14,6 +14,7 @@ import org.awi.fitness.model.CommunityPost
 import org.awi.fitness.model.CommunityUser
 import org.awi.fitness.model.WorkoutCategory
 import org.awi.fitness.repository.CommunityRepository
+import org.awi.fitness.repository.TajlyRepository
 import org.awi.fitness.utils.CommunityEvents
 
 data class CommunityFeedState(
@@ -22,7 +23,8 @@ data class CommunityFeedState(
     val posts: List<CommunityPost> = emptyList(),
     val activeFilter: String = "public", // public, friends, my_posts
     val likedPostIds: Set<String> = emptySet(),
-    val emptyMessage: String? = null
+    val emptyMessage: String? = null,
+    val actionMessage: String? = null // transient toast for report/block confirmations
 )
 
 data class PostDetailState(
@@ -31,7 +33,8 @@ data class PostDetailState(
     val post: CommunityPost? = null,
     val comments: List<CommunityComment> = emptyList(),
     val newCommentText: String = "",
-    val likedByMe: Boolean = false
+    val likedByMe: Boolean = false,
+    val actionMessage: String? = null // transient toast for comment report/block confirmations
 )
 
 data class CreatePostState(
@@ -73,6 +76,7 @@ data class CommunityProfileState(
 
 class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedState()) {
     val communityRepository = CommunityRepository()
+    private val tajlyRepository = TajlyRepository()
 
     init {
         // Ensure the current user's profile exists in Firestore so they appear in friend suggestions.
@@ -103,10 +107,18 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
     
     // Feed actions
     suspend fun loadCommunityFeed(filter: String = "public") {
-        mutableState.update { 
-            it.copy(isLoading = true, error = null) 
+        // Fire-and-forget: ensure the TAJLY Day-0 seed exists so the feed is never empty on a
+        // fresh install. Idempotent and best-effort — wrapped so a failure never blocks the feed.
+        screenModelScope.launch {
+            try {
+                tajlyRepository.ensureTajlySeed()
+            } catch (_: Exception) { }
         }
-        
+
+        mutableState.update {
+            it.copy(isLoading = true, error = null)
+        }
+
         try {
             val result = communityRepository.getCommunityFeed(filter)
             result.fold(
@@ -139,7 +151,7 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
                 }
             )
         } catch (e: Exception) {
-            mutableState.update { 
+            mutableState.update {
                 it.copy(
                     isLoading = false,
                     error = "Failed to load feed: ${e.message}"
@@ -147,7 +159,49 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
             }
         }
     }
-    
+
+    /** Report a post for review (App Store UGC compliance, Guideline 1.2). */
+    suspend fun reportPost(postId: String, authorId: String, reason: String = "Inappropriate content") {
+        communityRepository.reportPost(postId, authorId, reason)
+        mutableState.update { it.copy(actionMessage = "Thanks — we'll review this within 24 hours.") }
+    }
+
+    /** Block a user: hide their posts immediately and persist the block. */
+    fun blockUser(userId: String) {
+        org.awi.fitness.data.UserSettings.getInstance().blockUser(userId)
+        mutableState.update { st ->
+            st.copy(
+                posts = st.posts.filter { it.userId != userId },
+                actionMessage = "Blocked — you won't see their posts anymore."
+            )
+        }
+    }
+
+    fun clearActionMessage() {
+        mutableState.update { it.copy(actionMessage = null) }
+    }
+
+    /** Report a comment for review (App Store UGC compliance, Guideline 1.2). */
+    suspend fun reportComment(commentId: String, commentAuthorId: String, parentPostId: String) {
+        communityRepository.reportComment(commentId, commentAuthorId, parentPostId, "Inappropriate content")
+        _postDetailState.update { it.copy(actionMessage = "Thanks — we'll review this within 24 hours.") }
+    }
+
+    /** Block a user from the post-detail screen: hide their comments now and persist the block. */
+    fun blockUserFromDetail(userId: String) {
+        org.awi.fitness.data.UserSettings.getInstance().blockUser(userId)
+        _postDetailState.update { st ->
+            st.copy(
+                comments = st.comments.filter { it.userId != userId },
+                actionMessage = "Blocked — you won't see their content anymore."
+            )
+        }
+    }
+
+    fun clearDetailActionMessage() {
+        _postDetailState.update { it.copy(actionMessage = null) }
+    }
+
     suspend fun likePost(postId: String) {
         try {
             val result = communityRepository.likePost(postId)
@@ -198,13 +252,17 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
                 ?: communityRepository.getPost(postId).getOrNull()
 
             if (post != null) {
-                _postDetailState.update { it.copy(post = post) }
+                // Seed the heart state from Firestore so the like button reflects reality.
+                val likedByMe = communityRepository.getLikedPostIds(listOf(postId)).contains(postId)
+                _postDetailState.update { it.copy(post = post, likedByMe = likedByMe) }
 
                 val commentsResult = communityRepository.getPostComments(postId)
                 commentsResult.fold(
                     onSuccess = { comments ->
+                        // Hide comments from users this person has blocked.
+                        val blocked = org.awi.fitness.data.UserSettings.getInstance().blockedUserIds
                         _postDetailState.update {
-                            it.copy(isLoading = false, comments = comments)
+                            it.copy(isLoading = false, comments = comments.filter { c -> c.userId !in blocked })
                         }
                     },
                     onFailure = { error ->
@@ -426,18 +484,41 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
     
     fun updateSearchQuery(query: String) {
         _findFriendsState.update { it.copy(searchQuery = query) }
-        
-        // In a real app, we'd do a search here
-        // For now, we'll just filter the suggested users
+
+        // Instant local feedback while typing: filter the already-loaded suggestions.
+        // The real, full-collection search runs on the keyboard Search action (performUserSearch).
         if (query.isNotEmpty()) {
-            val results = _findFriendsState.value.suggestedUsers.filter { 
-                it.name.contains(query, ignoreCase = true) || 
-                it.username.contains(query, ignoreCase = true) 
+            val results = _findFriendsState.value.suggestedUsers.filter {
+                it.name.contains(query, ignoreCase = true) ||
+                it.username.contains(query, ignoreCase = true)
             }
             _findFriendsState.update { it.copy(searchResults = results) }
         } else {
             _findFriendsState.update { it.copy(searchResults = emptyList()) }
         }
+    }
+
+    // Real Firestore-backed search across the whole users collection. Falls back to the
+    // in-memory filter over loaded suggestions if the query fails.
+    suspend fun performUserSearch() {
+        val query = _findFriendsState.value.searchQuery.trim()
+        if (query.isEmpty()) {
+            _findFriendsState.update { it.copy(searchResults = emptyList()) }
+            return
+        }
+        val result = communityRepository.searchUsers(query)
+        result.fold(
+            onSuccess = { users ->
+                _findFriendsState.update { it.copy(searchResults = users) }
+            },
+            onFailure = {
+                val results = _findFriendsState.value.suggestedUsers.filter {
+                    it.name.contains(query, ignoreCase = true) ||
+                    it.username.contains(query, ignoreCase = true)
+                }
+                _findFriendsState.update { it.copy(searchResults = results) }
+            }
+        )
     }
     
     fun updateFriendsTab(tab: String) {
@@ -579,10 +660,19 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
         }
     }
 
-    suspend fun updateUserProfile(displayName: String, bio: String, profileImageUrl: String?) {
+    suspend fun updateUserProfile(
+        displayName: String,
+        bio: String,
+        profileImageUrl: String?,
+        website: String? = null,
+        instagram: String? = null,
+        twitter: String? = null
+    ) {
         _profileState.update { it.copy(isSavingProfile = true, saveProfileSuccess = false) }
         try {
-            val result = communityRepository.updateUserProfile(displayName, bio, profileImageUrl)
+            val result = communityRepository.updateUserProfile(
+                displayName, bio, profileImageUrl, website, instagram, twitter
+            )
             result.fold(
                 onSuccess = {
                     _profileState.update { state ->
@@ -592,7 +682,10 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
                             user = state.user?.copy(
                                 name = displayName.ifBlank { state.user.name },
                                 bio = bio.ifBlank { null },
-                                profileImage = profileImageUrl ?: state.user.profileImage
+                                profileImage = profileImageUrl ?: state.user.profileImage,
+                                website = if (website != null) website.ifBlank { null } else state.user.website,
+                                instagram = if (instagram != null) instagram.ifBlank { null } else state.user.instagram,
+                                twitter = if (twitter != null) twitter.ifBlank { null } else state.user.twitter
                             )
                         )
                     }
@@ -614,18 +707,22 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
         displayName: String,
         bio: String,
         existingPhotoUrl: String?,
-        imageBytes: ByteArray?
+        imageBytes: ByteArray?,
+        website: String? = null,
+        instagram: String? = null,
+        twitter: String? = null
     ) {
         _profileState.update { it.copy(isSavingProfile = true, saveProfileSuccess = false) }
         try {
             // Upload new photo if bytes provided
             val resolvedPhotoUrl: String? = if (imageBytes != null) {
                 val fileName = "${org.awi.fitness.utils.currentTimeMillis()}_profile.jpg"
-                communityRepository.uploadImageToStorage(imageBytes, fileName)
+                // Avatars only need ~512px — compress harder than post images.
+                communityRepository.uploadImageToStorage(imageBytes, fileName, maxDim = 512)
             } else {
                 existingPhotoUrl
             }
-            updateUserProfile(displayName, bio, resolvedPhotoUrl)
+            updateUserProfile(displayName, bio, resolvedPhotoUrl, website, instagram, twitter)
         } catch (e: Exception) {
             _profileState.update { it.copy(isSavingProfile = false, error = e.message) }
         }

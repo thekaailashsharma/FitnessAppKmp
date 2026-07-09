@@ -11,7 +11,11 @@ data class WorkoutPlan(
     val difficulty: WorkoutDifficulty = WorkoutDifficulty.BEGINNER,
     val duration: Int = 12, // in weeks
     val category: WorkoutCategory = WorkoutCategory.STRENGTH,
-    val imageUrl: String? = null
+    val imageUrl: String? = null,
+    // Scopes a plan to the user who created it. Persisted through the Firestore
+    // `imageUrl` slot (see WorkoutFirestoreModels) so no shared/global collection
+    // change is needed. Blank for legacy shared plans, which are filtered out.
+    val ownerId: String = ""
 )
 
 @Serializable

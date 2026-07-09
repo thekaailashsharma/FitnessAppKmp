@@ -22,7 +22,7 @@ data class ConfigAppDocument(
 
 class ConfigRepository : ApiService() {
     companion object {
-        private const val FIRESTORE_PROJECT = "fitness-admin-73a72"
+        private const val FIRESTORE_PROJECT = "awi-fitness-app"
         private const val CONFIG_DOC_URL =
             "https://firestore.googleapis.com/v1/projects/$FIRESTORE_PROJECT/databases/(default)/documents/config/app"
     }

@@ -46,7 +46,12 @@ data class CommunityUser(
     val streakDays: Int = 0,
     val level: Int = 1,
     val badges: List<Badge> = emptyList(),
-    val isFollowing: Boolean = false
+    val isFollowing: Boolean = false,
+    val followersCount: Int = 0,
+    val followingCount: Int = 0,
+    val website: String? = null,
+    val instagram: String? = null,
+    val twitter: String? = null
 )
 
 

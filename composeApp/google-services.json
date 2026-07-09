@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "364817892105",
+    "project_id": "awi-fitness-app",
+    "storage_bucket": "awi-fitness-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:364817892105:android:e557acca6c171311ce49d8",
+        "android_client_info": {
+          "package_name": "org.awi.fitness"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCWP3mkD7cKuxAxKiR_IEbb4y7cl7jsdiE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:364817892105:android:fa659d64561cffedce49d8",
+        "android_client_info": {
+          "package_name": "org.awi.tajly"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCWP3mkD7cKuxAxKiR_IEbb4y7cl7jsdiE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

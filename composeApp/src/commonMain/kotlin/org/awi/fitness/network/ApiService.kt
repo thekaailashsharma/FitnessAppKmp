@@ -35,7 +35,7 @@ abstract class ApiService {
     protected open val userSettings: UserSettings = UserSettings.getInstance()
 
     companion object {
-        private const val API_KEY = "AIzaSyAQClgruJ0Q0l_B4v3J8Sv8gury_8NGK8g"
+        private const val API_KEY = "AIzaSyCWP3mkD7cKuxAxKiR_IEbb4y7cl7jsdiE"
     }
 
     private suspend fun validateClientStatus(): ValidationResult {

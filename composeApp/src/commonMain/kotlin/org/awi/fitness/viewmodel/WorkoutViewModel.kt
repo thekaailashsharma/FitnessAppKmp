@@ -1,6 +1,7 @@
 package org.awi.fitness.viewmodel
 
-import cafe.adriel.voyager.core.model.StateScreenModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,27 +21,13 @@ data class WorkoutUIState(
     val selectedPlanId: String? = null
 )
 
-data class ProgressUiState(
-    val weeklyProgress: List<Pair<Long, Float>> = emptyList(),
-    val completionRate: Int = 0,
-    val strengthGain: Int = 0,
-    val totalWorkoutHours: Int = 0,
-    val warnings: List<String> = emptyList(),
-    val recentActivities: List<WorkoutActivity> = emptyList(),
-    val exercises: List<Exercise> = emptyList(),
-    val isLoading: Boolean = true
-)
-
 class WorkoutViewModel {
     private val workoutRepository = WorkoutRepository()
     private val geminiRepository = GeminiRepository()
     private val userSettings = UserSettings.getInstance()
-    
+
     private val _state = MutableStateFlow(WorkoutUIState())
     val state: StateFlow<WorkoutUIState> = _state.asStateFlow()
-
-    private val _progressUiState = MutableStateFlow(ProgressUiState())
-    val progressUiState: StateFlow<ProgressUiState> = _progressUiState.asStateFlow()
 
     suspend fun saveUserGoals(
         goal: FitnessGoal,
@@ -60,12 +47,19 @@ class WorkoutViewModel {
                 language = userSettings.language.value
             ).getOrThrow()
 
+            // Tag the plan with the current user so it is scoped to them (and so it
+            // survives the owner filter in getAllWorkoutPlans).
+            val ownerId = userSettings.userId?.takeIf { it.isNotBlank() }
+                ?: userSettings.userEmail?.takeIf { it.isNotBlank() }
+                ?: ""
+
             val workoutPlan = WorkoutPlan(
                 name = generatedPlan.workoutName,
                 description = generatedPlan.description,
                 difficulty = normalizeWorkoutDifficulty(generatedPlan.difficulty),
                 duration = generatedPlan.estimatedDuration,
-                category = normalizeWorkoutCategory(generatedPlan.category)
+                category = normalizeWorkoutCategory(generatedPlan.category),
+                ownerId = ownerId
             )
 
             val planId = workoutRepository.insertWorkoutPlan(workoutPlan).getOrThrow()
@@ -212,42 +206,24 @@ class WorkoutViewModel {
         }
     }
 
-    suspend fun loadProgress(planId: String) {
-        // Load recent activities
-        workoutRepository.getRecentActivities(planId).collect { activities ->
-            _progressUiState.value = _progressUiState.value.copy(
-                recentActivities = activities
-            )
-        }
-
-        // Load completion rate
-        val currentTime = org.awi.fitness.utils.currentTimeMillis()
-        workoutRepository.getCompletionCountForDay(planId, currentTime).collect { completedToday ->
-            val warnings = mutableListOf<String>()
-            if (completedToday == 0) {
-                warnings.add("You haven't completed any exercises today")
+    /**
+     * Completes several exercises robustly: the network writes are fired in parallel (no
+     * serial blocking loop / artificial delays) and the plans are reloaded once at the end.
+     * Any failure is surfaced via the error state and returned to the caller.
+     */
+    suspend fun completeExercises(exercises: List<Exercise>): Result<Unit> {
+        if (exercises.isEmpty()) return Result.success(Unit)
+        return try {
+            kotlinx.coroutines.coroutineScope {
+                exercises.map { ex ->
+                    async { workoutRepository.setExerciseCompleted(ex, true).getOrThrow() }
+                }.awaitAll()
             }
-            
-            _progressUiState.value = _progressUiState.value.copy(
-                warnings = warnings,
-                completionRate = calculateCompletionRate(completedToday)
-            )
+            loadWorkoutPlans()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            _state.update { it.copy(error = "Failed to finish workout: ${e.message}") }
+            Result.failure(e)
         }
-
-        // Generate sample progress data for the graph
-        val weeklyProgress = (0..6).map { daysAgo ->
-            val timestamp = org.awi.fitness.utils.currentTimeMillis() - (daysAgo * 24 * 60 * 60 * 1000L)
-            timestamp to (0.3f + kotlin.random.Random.nextFloat() * 0.5f)
-        }.reversed()
-
-        _progressUiState.value = _progressUiState.value.copy(
-            weeklyProgress = weeklyProgress,
-            strengthGain = 15,
-            totalWorkoutHours = 24
-        )
     }
-
-    private fun calculateCompletionRate(completedToday: Int): Int {
-        return (completedToday * 100) / 5 // Assuming 5 exercises per day
-    }
-} 
+}

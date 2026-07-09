@@ -1,17 +1,18 @@
 package org.awi.fitness.ui.screens.community
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,31 +25,22 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -64,13 +56,17 @@ import compose.icons.tablericons.MessageCircle
 import compose.icons.tablericons.Star
 import compose.icons.tablericons.Trophy
 import compose.icons.tablericons.UserPlus
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.awi.fitness.model.ActivityNotification
 import org.awi.fitness.model.CommunityActivityType
-import org.awi.fitness.theme.GreenAccent
-import org.awi.fitness.theme.TextGray
-import org.awi.fitness.ui.components.statusBarPadding
+import org.awi.fitness.theme.GoldPrimary
+import org.awi.fitness.theme.Tajly
+import org.awi.fitness.theme.TajlyTheme
+import org.awi.fitness.theme.pressScale
+import org.awi.fitness.ui.components.GlassCard
+import org.awi.fitness.ui.components.GoldButton
 import org.awi.fitness.ui.components.ImagePlaceholder
+import org.awi.fitness.ui.components.statusBarPadding
 import org.awi.fitness.utils.DateUtils
 import org.awi.fitness.viewmodel.CommunityViewModel
 import org.awi.fitness.viewmodel.ViewModelStore
@@ -83,99 +79,107 @@ class ActivityScreen : Screen {
         val viewModel = rememberScreenModel { CommunityViewModel() }
         val activityState by viewModel.activityState.collectAsState()
         val scope = rememberCoroutineScope()
+        val c = TajlyTheme.colors
 
         LaunchedEffect(Unit) {
             viewModel.loadActivityNotifications()
         }
-        
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = "Activity",
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                fontWeight = FontWeight.Bold
-                            )
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = { navigator.pop() }) {
-                            Icon(
-                                imageVector = TablerIcons.ArrowLeft,
-                                contentDescription = "Back"
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background,
-                        titleContentColor = MaterialTheme.colorScheme.onBackground
-                    ),
-                    modifier = Modifier.statusBarPadding()
-                )
-            }
-        ) { paddingValues ->
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(c.bg),
+        ) {
+            // Community section glow (teal) behind the header.
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .background(Color(0xFFFEFBE6).copy(alpha = 0.1f))
-            ) {
-                if (activityState.isLoading) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                    }
-                } else if (activityState.error != null) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = activityState.error ?: "Unknown error",
-                            color = MaterialTheme.colorScheme.error
+                    .fillMaxWidth()
+                    .height(220.dp)
+                    .background(Tajly.sectionGlow(Tajly.Teal)),
+            )
+
+            Column(modifier = Modifier.fillMaxSize()) {
+                // ---- Glass top bar ----
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarPadding()
+                        .padding(start = 12.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    GlassIconButton(onClick = { navigator.pop() }) {
+                        Icon(
+                            TablerIcons.ArrowLeft,
+                            contentDescription = "Back",
+                            tint = c.textHi,
+                            modifier = Modifier.size(20.dp),
                         )
                     }
-                } else if (activityState.notifications.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No activity yet",
-                            color = TextGray
-                        )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        text = "Activity",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = c.textHi,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+
+                when {
+                    activityState.isLoading -> {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = GoldPrimary)
+                        }
                     }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp)
-                    ) {
-                        items(activityState.notifications) { notification ->
-                            NotificationItem(
-                                notification = notification,
-                                viewModel = viewModel,
-                                onNotificationClick = {
-                                    scope.launch {
-                                        viewModel.markNotificationAsRead(notification.id)
-                                    }
-                                    when (notification.type) {
-                                        CommunityActivityType.LIKE, CommunityActivityType.COMMENT -> {
-                                            if (notification.targetId.isNotBlank()) {
-                                                navigator.push(PostDetailScreen(notification.targetId))
-                                            }
-                                        }
-                                        CommunityActivityType.FOLLOW -> {
-                                            if (notification.userId.isNotBlank()) {
-                                                navigator.push(CommunityProfileScreen(notification.userId))
-                                            }
-                                        }
-                                        else -> { /* badge/streak/challenge — no nav needed */ }
-                                    }
-                                }
+
+                    activityState.error != null -> {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(
+                                text = activityState.error ?: "Unknown error",
+                                color = MaterialTheme.colorScheme.error
                             )
+                        }
+                    }
+
+                    activityState.notifications.isEmpty() -> {
+                        CommunityEmptyState(
+                            title = "No activity yet",
+                            message = "Kudos, comments and new followers will show up here.",
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            items(activityState.notifications, key = { it.id }) { notification ->
+                                NotificationItem(
+                                    notification = notification,
+                                    viewModel = viewModel,
+                                    onNotificationClick = {
+                                        scope.launch {
+                                            viewModel.markNotificationAsRead(notification.id)
+                                        }
+                                        when (notification.type) {
+                                            CommunityActivityType.LIKE, CommunityActivityType.COMMENT -> {
+                                                if (notification.targetId.isNotBlank()) {
+                                                    navigator.push(PostDetailScreen(notification.targetId))
+                                                }
+                                            }
+                                            CommunityActivityType.FOLLOW -> {
+                                                if (notification.userId.isNotBlank()) {
+                                                    navigator.push(CommunityProfileScreen(notification.userId))
+                                                }
+                                            }
+                                            else -> { /* badge/streak/challenge — no nav needed */ }
+                                        }
+                                    }
+                                )
+                            }
+                            item { Spacer(Modifier.height(80.dp)) }
                         }
                     }
                 }
@@ -185,42 +189,65 @@ class ActivityScreen : Screen {
 }
 
 @Composable
+private fun GlassIconButton(
+    onClick: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    val c = TajlyTheme.colors
+    val interaction = remember { MutableInteractionSource() }
+    Box(
+        modifier = Modifier
+            .pressScale(interaction)
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(c.glassFill, CircleShape)
+            .border(1.dp, c.hairStrong, CircleShape)
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) { content() }
+}
+
+@Composable
 fun NotificationItem(
     notification: ActivityNotification,
     viewModel: CommunityViewModel,
     onNotificationClick: () -> Unit
 ) {
+    val c = TajlyTheme.colors
     val scope = rememberCoroutineScope()
+    val cardInteraction = remember { MutableInteractionSource() }
 
-    Box(
+    // Accent color per notification type (quiet canvas, one colored leading badge).
+    val accent = when (notification.type) {
+        CommunityActivityType.LIKE -> Tajly.Coral
+        CommunityActivityType.COMMENT -> Tajly.Blue
+        CommunityActivityType.FOLLOW -> Tajly.Green
+        CommunityActivityType.CHALLENGE_INVITE -> Tajly.Pink
+        CommunityActivityType.BADGE_EARNED -> GoldPrimary
+        CommunityActivityType.STREAK_MILESTONE -> GoldPrimary
+    }
+
+    GlassCard(
+        shape = RoundedCornerShape(20.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onNotificationClick() }
-            .background(
-                if (!notification.isRead) 
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) 
-                else 
-                    Color.Transparent
-            )
-            .padding(vertical = 12.dp, horizontal = 16.dp)
+            .pressScale(cardInteraction)
+            .clickable(interactionSource = cardInteraction, indication = null, onClick = onNotificationClick),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.Top
         ) {
-            // Profile image or icon
+            // Leading badge: profile image, or colored type icon.
             Box(
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(46.dp)
                     .clip(CircleShape)
                     .background(
-                        when (notification.type) {
-                            CommunityActivityType.BADGE_EARNED, CommunityActivityType.STREAK_MILESTONE -> GreenAccent
-                            else -> if (notification.userProfileImage == null) 
-                                MaterialTheme.colorScheme.primary 
-                            else 
-                                Color.Transparent
-                        }
+                        if (notification.userProfileImage != null) Color.Transparent
+                        else accent.copy(alpha = 0.18f)
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -242,34 +269,29 @@ fun NotificationItem(
                             CommunityActivityType.STREAK_MILESTONE -> TablerIcons.Bell
                         },
                         contentDescription = null,
-                        tint = when (notification.type) {
-                            CommunityActivityType.BADGE_EARNED, CommunityActivityType.STREAK_MILESTONE -> Color.Black
-                            else -> MaterialTheme.colorScheme.onPrimary
-                        },
-                        modifier = Modifier.size(24.dp)
+                        tint = accent,
+                        modifier = Modifier.size(22.dp)
                     )
                 }
             }
-            
-            Spacer(modifier = Modifier.width(16.dp))
-            
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
                 // Notification content
                 when (notification.type) {
                     CommunityActivityType.LIKE -> {
                         Text(
                             text = "${notification.userName} cheered your post",
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = c.textHi,
                         )
                         if (notification.targetContent.isNotBlank()) {
                             Text(
                                 text = "\"${notification.targetContent}\"",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                color = c.textMid,
                                 maxLines = 2
                             )
                         }
@@ -277,15 +299,15 @@ fun NotificationItem(
                     CommunityActivityType.COMMENT -> {
                         Text(
                             text = "${notification.userName} commented on your post",
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = c.textHi,
                         )
                         if (notification.targetContent.isNotBlank()) {
                             Text(
                                 text = "\"${notification.targetContent}\"",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                color = c.textMid,
                                 maxLines = 2
                             )
                         }
@@ -293,87 +315,75 @@ fun NotificationItem(
                     CommunityActivityType.FOLLOW -> {
                         Text(
                             text = "${notification.userName} started following you",
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = c.textHi,
                         )
                     }
                     CommunityActivityType.CHALLENGE_INVITE -> {
                         Text(
                             text = "You're invited to a challenge",
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = c.textHi,
                         )
                         if (notification.targetContent.isNotBlank()) {
                             Text(
                                 text = notification.targetContent,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                color = c.textMid,
                             )
                         }
                     }
                     CommunityActivityType.BADGE_EARNED -> {
                         Text(
                             text = "You've earned the '${notification.targetContent}' badge!",
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = c.textHi,
                         )
                         Text(
                             text = "Congratulations!",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            color = c.textMid,
                         )
                     }
                     CommunityActivityType.STREAK_MILESTONE -> {
                         Text(
                             text = "You're on a ${notification.targetContent}!",
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = c.textHi,
                         )
                         Text(
                             text = "Keep it up!",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            color = c.textMid,
                         )
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(4.dp))
-                
-                // Time
+
+                // Time — demoted, single relative stamp.
                 Text(
                     text = DateUtils.formatTimestampRelative(notification.timestamp),
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextGray
+                    color = c.textLow
                 )
-                
+
                 // Challenge buttons
                 if (notification.type == CommunityActivityType.CHALLENGE_INVITE && !notification.isRead) {
                     Spacer(modifier = Modifier.height(12.dp))
-                    
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = {
-                                scope.launch {
-                                    viewModel.markNotificationAsRead(notification.id)
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.surface,
-                                contentColor = MaterialTheme.colorScheme.onSurface
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Decline")
-                        }
 
-                        Button(
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        // Primary CTA: Accept (gold). Decline demoted to glass pill.
+                        GoldButton(
+                            text = "Accept",
                             onClick = {
                                 scope.launch {
                                     notification.targetId.takeIf { it.isNotBlank() }?.let { challengeId ->
@@ -382,32 +392,67 @@ fun NotificationItem(
                                     viewModel.markNotificationAsRead(notification.id)
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = Color.Black
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Accept")
-                        }
+                            modifier = Modifier.weight(1f),
+                        )
+                        GlassTextPill(
+                            text = "Decline",
+                            onClick = {
+                                scope.launch {
+                                    viewModel.markNotificationAsRead(notification.id)
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                        )
                     }
                 }
             }
-            
-            Spacer(modifier = Modifier.width(8.dp))
-            
-            // Timestamp
-            Text(
-                text = DateUtils.formatTimestampShort(notification.timestamp),
-                style = MaterialTheme.typography.bodySmall,
-                color = TextGray
-            )
+
+            // Unread indicator — gold dot (rationed gold = "needs attention").
+            // Subtle one-note pulse to read as "live" without being noisy.
+            if (!notification.isRead) {
+                Spacer(modifier = Modifier.width(10.dp))
+                val pulse = rememberInfiniteTransition()
+                val dotScale by pulse.animateFloat(
+                    initialValue = 1f,
+                    targetValue = 1.25f,
+                    animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
+                )
+                Box(
+                    modifier = Modifier
+                        .graphicsLayer { scaleX = dotScale; scaleY = dotScale }
+                        .size(9.dp)
+                        .clip(CircleShape)
+                        .background(Tajly.GoldGradient)
+                )
+            }
         }
     }
-    
-    Divider(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        modifier = Modifier.padding(horizontal = 16.dp)
-    )
+}
+
+@Composable
+private fun GlassTextPill(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val c = TajlyTheme.colors
+    val interaction = remember { MutableInteractionSource() }
+    Box(
+        modifier = modifier
+            .pressScale(interaction)
+            .clip(RoundedCornerShape(16.dp))
+            .background(c.glassFill, RoundedCornerShape(16.dp))
+            .border(1.dp, c.hairStrong, RoundedCornerShape(16.dp))
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+            .height(52.dp)
+            .padding(horizontal = 18.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            color = c.textHi,
+            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.titleSmall,
+        )
+    }
 }

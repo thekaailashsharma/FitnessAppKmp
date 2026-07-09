@@ -13,6 +13,7 @@ enum class RootRoute {
     PurchaseSuccess,
     Onboarding,
     Main,
+    FixPayment,
 }
 
 class AppNavigationController(initial: RootRoute = RootRoute.Splash) {

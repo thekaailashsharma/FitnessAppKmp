@@ -1,60 +1,145 @@
 package org.awi.fitness.ui.screens.home
 
-import androidx.compose.animation.*
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import compose.icons.TablerIcons
-import compose.icons.tablericons.*
-import org.awi.fitness.ui.CalorieCalculatorScreen
-import org.awi.fitness.ui.screens.ProfileScreen
-import org.awi.fitness.viewmodel.HomeViewModel
-import kotlin.math.roundToInt
+import compose.icons.tablericons.Activity
+import compose.icons.tablericons.ArrowUpRight
+import compose.icons.tablericons.Scan
+import compose.icons.tablericons.Award
+import compose.icons.tablericons.Bell
+import compose.icons.tablericons.Bolt
+import compose.icons.tablericons.ChevronRight
+import compose.icons.tablericons.Flame
+import compose.icons.tablericons.Heart
+import compose.icons.tablericons.Leaf
+import compose.icons.tablericons.Send
+import compose.icons.tablericons.Trophy
+import compose.icons.tablericons.User
+import compose.icons.tablericons.Users
+import fitnessappkmp.composeapp.generated.resources.Res
+import fitnessappkmp.composeapp.generated.resources.card_coach
+import fitnessappkmp.composeapp.generated.resources.card_community
+import fitnessappkmp.composeapp.generated.resources.card_compete
+import fitnessappkmp.composeapp.generated.resources.card_fuel
+import fitnessappkmp.composeapp.generated.resources.card_move
+import fitnessappkmp.composeapp.generated.resources.card_streak
+import fitnessappkmp.composeapp.generated.resources.card_yoga
+import fitnessappkmp.composeapp.generated.resources.ic3d_fire
+import fitnessappkmp.composeapp.generated.resources.tex_gold_2
+import kotlinx.coroutines.launch
+import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.isoDayNumber
+import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
-import kotlinx.datetime.todayIn
+import org.awi.fitness.ui.components.LottieAnim
 import org.awi.fitness.data.StringKey
 import org.awi.fitness.data.UserSettings
-import org.awi.fitness.model.Meal
-import org.awi.fitness.model.MealSlot
-import org.awi.fitness.ui.screens.WorkoutSchedulerScreen
-import org.awi.fitness.viewmodel.DailyTip
-import org.awi.fitness.viewmodel.LanguageViewModel
+import org.awi.fitness.model.ConversationTrigger
+import org.awi.fitness.repository.SubscriptionRepository
+import org.awi.fitness.theme.GoldBright
+import org.awi.fitness.theme.GoldPrimary
+import org.awi.fitness.theme.OnGold
+import org.awi.fitness.theme.Tajly
+import org.awi.fitness.theme.TajlyTheme
+import org.awi.fitness.ui.CalorieCalculatorScreen
+import org.awi.fitness.ui.components.BackdropImage
+import org.awi.fitness.ui.components.GlassCard
+import org.awi.fitness.ui.components.GlassTier
+import org.awi.fitness.ui.components.GoldButton
+import org.awi.fitness.ui.components.ImagePlaceholder
+import org.awi.fitness.ui.components.ProvideGlass
+import org.awi.fitness.ui.components.StatRing
+import org.awi.fitness.ui.components.glassSource
+import org.awi.fitness.ui.screens.ChallengeDetailScreen
+import org.awi.fitness.ui.screens.MealScreen
+import org.awi.fitness.ui.screens.MealScanScreen
+import org.awi.fitness.ui.screens.MyPlansScreen
+import org.awi.fitness.ui.screens.PaywallScreen
+import org.awi.fitness.ui.screens.ProfileScreen
+import org.awi.fitness.ui.screens.TipDeckScreen
+import org.awi.fitness.ui.screens.WorkoutScreen
+import org.awi.fitness.ui.screens.avatar.AvatarScreen
+import org.awi.fitness.ui.screens.community.CommunityFeedScreen
+import org.awi.fitness.ui.screens.community.PostDetailScreen
+import org.awi.fitness.viewmodel.LocalArticleViewModel
 import org.awi.fitness.viewmodel.LocalHomeViewModel
 import org.awi.fitness.viewmodel.LocalLanguageViewModel
 import org.awi.fitness.viewmodel.LocalMealPlanViewModel
-import org.awi.fitness.viewmodel.TipIcon
+import org.awi.fitness.viewmodel.LocalWorkoutViewModel
+import org.awi.fitness.viewmodel.ViewModelStore
 import org.awi.fitness.viewmodel.WorkoutSchedulePreview
-import kotlinx.datetime.Clock
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
+private enum class HomeTimeframe { TODAY, WEEK }
+
+/**
+ * Tajly home — immersive backdrop + floating liquid glass, ~13 sections all bound to real
+ * ViewModels (zero mock data; honest empty states). Signature swipeable motivational deck,
+ * count-up / ring-sweep micro-animations. Every CTA opens a real, working screen.
+ */
 class HomeScreen : Screen {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
-        val viewModel = LocalHomeViewModel.current
-        val state by viewModel.state.collectAsState()
+        val homeVm = LocalHomeViewModel.current
+        val state by homeVm.state.collectAsState()
         val languageViewModel = LocalLanguageViewModel.current
-        val mealPlanViewModel = LocalMealPlanViewModel.current
-        val mealState by mealPlanViewModel.state.collectAsState()
+        val mealPlanVm = LocalMealPlanViewModel.current
+        val mealState by mealPlanVm.state.collectAsState()
+        val workoutVm = LocalWorkoutViewModel.current
+        val workoutState by workoutVm.state.collectAsState()
+        val challengesVm = ViewModelStore.challenges
+        val challengeState by challengesVm.state.collectAsState()
+        val communityVm = ViewModelStore.community
+        val communityState by communityVm.state.collectAsState()
+        val activityState by communityVm.activityState.collectAsState()
+
         val userSettings = UserSettings.getInstance()
         val mealCompletions by userSettings.mealCompletions.collectAsState()
         val currentLanguage by userSettings.language.collectAsState()
@@ -64,200 +149,225 @@ class HomeScreen : Screen {
         val todayStr = remember { today.toString() }
 
         val todayMeals = remember(mealState.activePlan, todayDow) {
-            mealState.activePlan?.meals
-                ?.filter { it.dayOfWeek == todayDow }
-                ?.sortedBy { m -> when (m.mealSlot) { MealSlot.BREAKFAST -> 0; MealSlot.LUNCH -> 1; MealSlot.DINNER -> 2; MealSlot.SNACK -> 3 } }
-                ?: emptyList()
+            mealState.activePlan?.meals?.filter { it.dayOfWeek == todayDow } ?: emptyList()
         }
         val todayDone = mealCompletions[todayStr] ?: emptySet()
         val mealsEaten = todayMeals.count { todayDone.contains(it.id) }
-        val caloriesConsumed = todayMeals.filter { todayDone.contains(it.id) }.sumOf { it.calories }
-        val caloriesTarget = mealState.activePlan?.targetCalories?.takeIf { it > 0 }
+        val macros = remember(mealState.activePlan, mealCompletions, todayDow) {
+            mealPlanVm.getDailyMacros(todayDow, todayStr)
+        }
+        // Honest daily target: real when a plan/profile exists, otherwise null → "Set your goal".
+        val caloriesTarget: Int? = mealState.activePlan?.targetCalories?.takeIf { it > 0 }
             ?: userSettings.calculatedCalories.takeIf { it > 100 }
-            ?: 2000
+        val hasTarget = caloriesTarget != null
         val hasMealPlan = mealState.activePlan != null
+        val currentStreak = userSettings.currentStreak
+        val totalXp = userSettings.totalXp
+        val userLevel = userSettings.userLevel
+
+        val weekDates = remember(today) {
+            val monday = today.plus(DatePeriod(days = -(today.dayOfWeek.isoDayNumber - 1)))
+            (0..6).map { monday.plus(DatePeriod(days = it)).toString() }
+        }
+        val weekDayNums = remember(today) {
+            val monday = today.plus(DatePeriod(days = -(today.dayOfWeek.isoDayNumber - 1)))
+            (0..6).map { monday.plus(DatePeriod(days = it)).dayOfMonth }
+        }
+        // Real per-day activity: a day is "done" if a meal was eaten OR a workout was completed.
+        val lastWorkoutDate = userSettings.lastWorkoutDate
+        val weekDone = remember(weekDates, mealCompletions, lastWorkoutDate) {
+            weekDates.map { date ->
+                (mealCompletions[date] ?: emptySet()).isNotEmpty() || date == lastWorkoutDate
+            }
+        }
+        // Real weekly consumed calories — sum of each day's real consumed total (never target*7).
+        val weeklyConsumed = remember(mealState.activePlan, mealCompletions) {
+            weekDates.mapIndexed { i, date -> mealPlanVm.getDailyMacros(i + 1, date).consumedCalories }.sum()
+        }
+        val todayRing = when {
+            todayMeals.isNotEmpty() -> mealsEaten.toFloat() / todayMeals.size
+            caloriesTarget != null && caloriesTarget > 0 -> macros.consumedCalories.toFloat() / caloriesTarget
+            else -> 0f
+        }.coerceIn(0f, 1f)
 
         LaunchedEffect(Unit) {
-            viewModel.loadIfNeeded()
+            homeVm.loadIfNeeded()
+            challengesVm.loadChallenges()
+            communityVm.loadCommunityFeed()
+            communityVm.loadActivityNotifications()
+        }
+        LaunchedEffect(currentLanguage) { homeVm.refresh() }
+
+        var isPremium by remember { mutableStateOf(true) } // assume premium until known → hide band by default
+        LaunchedEffect(Unit) {
+            isPremium = runCatching { SubscriptionRepository().checkPremiumAccess() }.getOrDefault(false)
         }
 
-        // Refresh daily tips whenever language changes
-        LaunchedEffect(currentLanguage) {
-            viewModel.refresh()
+        val c = TajlyTheme.colors
+        val userName = remember(userSettings.userName, userSettings.userEmail) {
+            userSettings.userName?.takeIf { it.isNotBlank() }
+                ?: (userSettings.userEmail ?: "").substringBefore("@").replaceFirstChar { it.uppercase() }
+        }
+        var timeframe by remember { mutableStateOf(HomeTimeframe.TODAY) }
+
+        val heroValue = when (timeframe) {
+            HomeTimeframe.WEEK -> weeklyConsumed
+            HomeTimeframe.TODAY -> caloriesTarget ?: 0
+        }
+        val heroRing = when (timeframe) {
+            HomeTimeframe.TODAY -> todayRing
+            HomeTimeframe.WEEK -> if (caloriesTarget != null && caloriesTarget > 0)
+                weeklyConsumed.toFloat() / (caloriesTarget * 7) else 0f
+        }.coerceIn(0f, 1f)
+        val heroLabel = when (timeframe) {
+            HomeTimeframe.TODAY -> "Daily target"
+            HomeTimeframe.WEEK -> "Consumed this week"
         }
 
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = languageViewModel.getString(StringKey.APP_NAME),
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    },
-                    actions = {
-                        IconButton(onClick = { navigator.push(ProfileScreen(languageViewModel = languageViewModel)) }) {
-                            Icon(
-                                imageVector = TablerIcons.User,
-                                contentDescription = languageViewModel.getString(StringKey.PROFILE)
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background
-                    )
-                )
+        val activeChallenges = challengeState.activeChallenges
+        val firstChallenge = activeChallenges.firstOrNull()
+        val hp = Modifier.padding(horizontal = 20.dp)
+
+        // Swipe-deck cards — only those backed by real data/features.
+        val stackCards = buildList {
+            add(StackCard(card_move_res(), "Today's session", "Your body keeps score. Show up.", "Start today's workout") { org.awi.fitness.navigation.CoachNav.open("TRAIN") })
+            add(StackCard(card_coach_res(), "Your coach", "Stuck? Ask me anything, right now.", "Talk to your coach") { navigator.push(AvatarScreen(ConversationTrigger.MANUAL)) })
+            add(StackCard(card_fuel_res(), "Fuel", "Great days are built on great plates.", "Check today's meals") { org.awi.fitness.navigation.CoachNav.openMeals() })
+            if (firstChallenge != null) {
+                val prog = challengeState.userProgress[firstChallenge.id]?.let { pr ->
+                    if (pr.targetValue > 0) (pr.currentValue * 100 / pr.targetValue) else 0
+                } ?: 0
+                add(StackCard(card_compete_res(), "Challenge", "You're $prog% there. Don't stop now.", "Continue the challenge") { navigator.push(ChallengeDetailScreen(firstChallenge)) })
             }
-        ) { paddingValues ->
-            when {
-                state.isLoading -> {
+            add(StackCard(card_streak_res(), "Streak", if (currentStreak > 0) "$currentStreak days. Protect the flame." else "Start your streak today.", "Keep the streak alive") { org.awi.fitness.navigation.CoachNav.open("TRAIN") })
+        }
+
+        ProvideGlass {
+            Box(modifier = Modifier.fillMaxSize().background(c.bg)) {
+                // Immersive hero backdrop — theme-aware, Firebase-controllable, glass source.
+                Box(modifier = Modifier.fillMaxWidth().height(440.dp).glassSource()) {
+                    BackdropImage(surface = "home", modifier = Modifier.fillMaxSize())
                     Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                    }
-                }
-                state.error != null -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = state.error ?: languageViewModel.getString(StringKey.AN_ERROR_OCCURRED),
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyLarge
+                        modifier = Modifier.fillMaxSize().background(
+                            Brush.verticalGradient(
+                                0.0f to c.bg.copy(alpha = if (c.isDark) 0.15f else 0.10f),
+                                0.55f to c.bg.copy(alpha = if (c.isDark) 0.60f else 0.55f),
+                                0.86f to c.bg.copy(alpha = 0.94f),
+                                1.0f to c.bg
+                            )
                         )
-                    }
+                    )
                 }
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues)
-                            .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+
+                when {
+                    state.isLoading && state.userProfile == null -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                        CircularProgressIndicator(color = GoldPrimary)
+                    }
+                    else -> LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(22.dp),
+                        contentPadding = PaddingValues(top = 52.dp, bottom = 120.dp)
                     ) {
                         item {
-                            WelcomeSection(
-                                userName = run {
-                                    val settings = UserSettings.getInstance()
-                                    val name = settings.userName?.takeIf { it.isNotBlank() }
-                                    val email = settings.userEmail ?: ""
-                                    name ?: email.substringBefore("@").replaceFirstChar { it.uppercase() }
-                                },
-                                languageViewModel = languageViewModel
-                            )
+                            HeroSection(hp, userName, heroValue, heroRing, heroLabel, macros.consumedCalories,
+                                state.bmr, state.tdee, state.bmr > 100f && state.tdee > 100f, currentStreak,
+                                activityState.unreadCount, timeframe, { timeframe = it }, languageViewModel,
+                                hasTarget = hasTarget,
+                                onSetGoal = { navigator.push(CalorieCalculatorScreen()) },
+                                onAvatar = { navigator.push(ProfileScreen(languageViewModel = languageViewModel)) },
+                                onBell = { navigator.push(CommunityFeedScreen()) })
                         }
-
                         item {
-                            QuickStatsSection(
-                                scheduledToday = state.scheduledWorkoutsToday,
-                                caloriesGoal = state.caloriesGoal,
-                                mealsEaten = mealsEaten,
-                                totalMeals = todayMeals.size,
-                                languageViewModel = languageViewModel
-                            )
+                            Column {
+                                SectionHead(hp, "For you today", "swipe →")
+                                Spacer(Modifier.height(10.dp))
+                                MotivationStack(stackCards)
+                            }
                         }
-
                         item {
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            TodaysPlanCard(hp, state.upcomingWorkout, mealsEaten, todayMeals.size, hasMealPlan,
+                                state.scheduledWorkoutsToday, languageViewModel,
+                                onStart = { org.awi.fitness.navigation.CoachNav.open("TRAIN") },
+                                onNutrition = { org.awi.fitness.navigation.CoachNav.openMeals() },
+                                onMeals = { navigator.push(MyPlansScreen(mealPlanVm)) })
+                        }
+                        item {
+                            BentoGrid(hp, workoutState.workoutPlans.size, mealsEaten, todayMeals.size,
+                                activeChallenges.size,
+                                onCoach = { navigator.push(AvatarScreen(ConversationTrigger.MANUAL)) },
+                                onWorkouts = { org.awi.fitness.navigation.CoachNav.open("TRAIN") },
+                                onNutrition = { org.awi.fitness.navigation.CoachNav.openMeals() },
+                                onChallenges = { firstChallenge?.let { navigator.push(ChallengeDetailScreen(it)) } })
+                        }
+                        item {
+                            Row(
+                                modifier = hp.fillMaxWidth()
+                                    .clip(RoundedCornerShape(18.dp))
+                                    .background(Tajly.GoldGradient)
+                                    .clickable { navigator.push(MealScanScreen()) }
+                                    .padding(horizontal = 18.dp, vertical = 15.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                NavigationCard(
-                                    title = languageViewModel.getString(StringKey.CALORIE_CALCULATOR),
-                                    description = languageViewModel.getString(StringKey.CALCULATE_DAILY_CALORIES),
-                                    icon = TablerIcons.Calculator,
-                                    onClick = { navigator.push(CalorieCalculatorScreen()) }
-                                )
-                                NavigationCard(
-                                    title = languageViewModel.getString(StringKey.WORKOUT_SCHEDULE),
-                                    description = languageViewModel.getString(StringKey.PLAN_MANAGE_WORKOUT),
-                                    icon = TablerIcons.CalendarEvent,
-                                    onClick = { navigator.push(WorkoutSchedulerScreen()) }
-                                )
+                                Icon(TablerIcons.Scan, contentDescription = null, tint = OnGold, modifier = Modifier.size(24.dp))
+                                Spacer(Modifier.width(14.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text("Scan a meal", style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.ExtraBold, color = OnGold)
+                                    Text("Snap your plate — AI reads the macros",
+                                        style = MaterialTheme.typography.bodySmall, color = OnGold.copy(alpha = 0.75f))
+                                }
+                                Icon(TablerIcons.ArrowUpRight, contentDescription = null, tint = OnGold, modifier = Modifier.size(20.dp))
                             }
                         }
-
-                        // Fitness Stats or CTA
                         item {
-                            if (state.bmr > 100f && state.tdee > 100f) {
-                                FitnessStatsSection(
-                                    bmr = state.bmr,
-                                    tdee = state.tdee,
-                                    languageViewModel = languageViewModel
-                                )
-                            } else {
-                                CalculateNeedsCta(
-                                    languageViewModel = languageViewModel,
-                                    onClick = { navigator.push(CalorieCalculatorScreen()) }
-                                )
+                            Row(hp.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                NutritionWidget(Modifier.weight(1f), mealsEaten, todayMeals.size, todayRing,
+                                    macros.consumedProtein, macros.consumedCarbs, macros.consumedFat, hasMealPlan) { org.awi.fitness.navigation.CoachNav.openMeals() }
+                                StreakWidget(Modifier.weight(1f), currentStreak, userLevel, totalXp) { org.awi.fitness.navigation.CoachNav.open("TRAIN") }
                             }
                         }
+                        item { WeekStrip(hp, weekDayNums, weekDone, todayDow) { org.awi.fitness.navigation.CoachNav.openMeals() } }
 
-                        if (hasMealPlan && todayMeals.isNotEmpty()) {
+                        if (activeChallenges.isNotEmpty()) {
                             item {
-                                TodaysMealsCard(
-                                    meals = todayMeals,
-                                    eaten = mealsEaten,
-                                    caloriesConsumed = caloriesConsumed,
-                                    caloriesTarget = caloriesTarget,
-                                    languageViewModel = languageViewModel
-                                )
+                                Column {
+                                    SectionHead(hp, "Active challenges", "")
+                                    Spacer(Modifier.height(10.dp))
+                                    LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        itemsIndexed(activeChallenges) { i, ch ->
+                                            val pr = challengeState.userProgress[ch.id]
+                                            val frac = if (pr != null && pr.targetValue > 0) pr.currentValue.toFloat() / pr.targetValue else 0f
+                                            ChallengeImageCard(ch.title, "${(frac.coerceIn(0f, 1f) * 100).roundToInt()}% complete",
+                                                frac.coerceIn(0f, 1f), ch.imageUrl, challengeFallback(i)) { navigator.push(ChallengeDetailScreen(ch)) }
+                                        }
+                                    }
+                                }
                             }
                         }
 
-                        // Upcoming workout
-                        if (state.upcomingWorkout != null) {
+                        communityState.posts.firstOrNull()?.let { post ->
                             item {
-                                UpcomingWorkoutCard(
-                                    workout = state.upcomingWorkout!!,
-                                    onClick = { navigator.push(WorkoutSchedulerScreen()) },
-                                    languageViewModel = languageViewModel
-                                )
+                                Column {
+                                    SectionHead(hp, "From the community", "See the feed", onAction = { navigator.push(CommunityFeedScreen()) })
+                                    Spacer(Modifier.height(10.dp))
+                                    CommunityHighlight(hp, post.userName, post.content, post.imageUrl, post.likes,
+                                        activityState.unreadCount) { navigator.push(PostDetailScreen(post.id)) }
+                                }
                             }
                         }
 
-                        // Daily Tips
+                        item { CoachBand(hp, languageViewModel) { navigator.push(AvatarScreen(ConversationTrigger.MANUAL)) } }
+
                         if (state.dailyTips.isNotEmpty()) {
                             item {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = languageViewModel.getString(StringKey.DAILY_WELLNESS_TIPS),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(top = 8.dp)
-                                    )
-                                    IconButton(
-                                        onClick = { viewModel.refresh() }
-                                    ) {
-                                        Icon(
-                                            imageVector = TablerIcons.Refresh,
-                                            contentDescription = languageViewModel.getString(StringKey.REFRESH_TIPS),
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                            }
-                            
-                            item {
-                                LazyRow(
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    contentPadding = PaddingValues(horizontal = 4.dp)
-                                ) {
-                                    items(state.dailyTips) { tip ->
-                                        TipCard(tip = tip)
-                                    }
+                                TipsCard(hp, state.dailyTips.size, languageViewModel.getString(StringKey.DAILY_WELLNESS_TIPS)) {
+                                    navigator.push(TipDeckScreen(state.dailyTips))
                                 }
                             }
                         }
 
-                        item {
-                            Spacer(modifier = Modifier.height(16.dp))
+                        if (!isPremium) {
+                            item { PremiumBand(hp) { navigator.push(PaywallScreen(languageViewModel)) } }
                         }
                     }
                 }
@@ -266,492 +376,540 @@ class HomeScreen : Screen {
     }
 }
 
-@Composable
-private fun WelcomeSection(
-    userName: String,
-    languageViewModel: LanguageViewModel
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = "${languageViewModel.getString(StringKey.WELCOME_BACK)},",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-        )
-        Text(
-            text = userName,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
-    }
-}
+// ── data ──
+private data class StackCard(val img: DrawableResource, val eyebrow: String, val headline: String, val cta: String, val onClick: () -> Unit)
+@Composable private fun card_move_res() = Res.drawable.card_move
+@Composable private fun card_coach_res() = Res.drawable.card_coach
+@Composable private fun card_fuel_res() = Res.drawable.card_fuel
+@Composable private fun card_compete_res() = Res.drawable.card_compete
+@Composable private fun card_streak_res() = Res.drawable.card_streak
 
+// ── Hero ──
 @Composable
-private fun QuickStatsSection(
-    scheduledToday: Int,
-    caloriesGoal: Int,
-    mealsEaten: Int,
-    totalMeals: Int,
-    languageViewModel: LanguageViewModel
+private fun HeroSection(
+    modifier: Modifier, userName: String, heroValue: Int, heroRing: Float, heroLabel: String,
+    consumed: Int, bmr: Float, tdee: Float, hasStats: Boolean, streak: Int, unread: Int,
+    timeframe: HomeTimeframe, onTimeframe: (HomeTimeframe) -> Unit,
+    lang: org.awi.fitness.viewmodel.LanguageViewModel, hasTarget: Boolean, onSetGoal: () -> Unit,
+    onAvatar: () -> Unit, onBell: () -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        StatCard(
-            value = if (totalMeals > 0) "$mealsEaten/$totalMeals" else "—",
-            label = languageViewModel.getString(StringKey.MEALS_PROGRESS),
-            icon = TablerIcons.Fold,
-            modifier = Modifier.weight(1f)
-        )
-        StatCard(
-            value = "$scheduledToday",
-            label = languageViewModel.getString(StringKey.TODAY),
-            icon = TablerIcons.CalendarEvent,
-            modifier = Modifier.weight(1f)
-        )
-        StatCard(
-            value = if (caloriesGoal > 0) "$caloriesGoal" else "—",
-            label = languageViewModel.getString(StringKey.CALORIE_GOAL),
-            icon = TablerIcons.Flame,
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
+    val c = TajlyTheme.colors
+    // Static values — no rolling count-up (per request), so the number never re-animates.
+    val shownValue = heroValue
+    val shownRing = heroRing
 
-@Composable
-private fun StatCard(
-    value: String,
-    label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.height(100.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun NavigationCard(
-    title: String,
-    description: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                modifier = Modifier.size(48.dp)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(lang.getString(StringKey.WELCOME_BACK).uppercase(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = GoldBright)
+                Text(userName, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = c.textHi, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            Box {
+                GlassCard(shape = CircleShape, tier = GlassTier.Nav, modifier = Modifier.size(44.dp).clickable(onClick = onBell)) {
+                    Box(Modifier.fillMaxSize(), Alignment.Center) { Icon(TablerIcons.Bell, null, tint = c.textHi, modifier = Modifier.size(20.dp)) }
+                }
+                if (unread > 0) {
+                    val pulse = rememberInfiniteTransition()
+                    val s by pulse.animateFloat(1f, 1.15f, infiniteRepeatable(tween(900), RepeatMode.Reverse))
+                    Box(Modifier.align(Alignment.TopEnd).graphicsLayer { scaleX = s; scaleY = s }.size(17.dp).clip(CircleShape).background(Tajly.GoldGradient), contentAlignment = Alignment.Center) {
+                        Text(if (unread > 9) "9+" else "$unread", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), fontWeight = FontWeight.Bold, color = OnGold)
+                    }
                 }
             }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun FitnessStatsSection(
-    bmr: Float,
-    tdee: Float,
-    languageViewModel: LanguageViewModel
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text(
-                text = languageViewModel.getString(StringKey.FITNESS_STATS),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        text = languageViewModel.getString(StringKey.BMR),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
-                    Text(
-                        text = bmr.roundToInt().toString(),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Column {
-                    Text(
-                        text = languageViewModel.getString(StringKey.TDEE),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
-                    Text(
-                        text = tdee.roundToInt().toString(),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CalculateNeedsCta(
-    languageViewModel: LanguageViewModel,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                modifier = Modifier.size(48.dp)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = TablerIcons.Calculator,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = languageViewModel.getString(StringKey.CALCULATE_YOUR_NEEDS),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = languageViewModel.getString(StringKey.CALCULATE_YOUR_NEEDS_DESC),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
-            }
-            Icon(
-                imageVector = TablerIcons.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun TodaysMealsCard(
-    meals: List<Meal>,
-    eaten: Int,
-    caloriesConsumed: Int,
-    caloriesTarget: Int,
-    languageViewModel: LanguageViewModel
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = languageViewModel.getString(StringKey.TODAYS_MEALS),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                ) {
-                    Text(
-                        text = "$eaten/${meals.size} ${languageViewModel.getString(StringKey.MEALS_EATEN)}",
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            if (caloriesTarget > 0) {
-                Spacer(modifier = Modifier.height(12.dp))
-                val progress = (caloriesConsumed.toFloat() / caloriesTarget).coerceIn(0f, 1f)
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp)),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f),
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "$caloriesConsumed / $caloriesTarget ${languageViewModel.getString(StringKey.KCAL)}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            meals.take(4).forEach { meal ->
-                val slotColor = when (meal.mealSlot) {
-                    MealSlot.BREAKFAST -> Color(0xFFFF9800)
-                    MealSlot.LUNCH -> Color(0xFF4CAF50)
-                    MealSlot.DINNER -> Color(0xFF2196F3)
-                    MealSlot.SNACK -> Color(0xFF9C27B0)
-                }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(slotColor)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = meal.name,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        text = "${meal.calories} ${languageViewModel.getString(StringKey.KCAL)}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    )
-                }
-            }
-            if (meals.size > 4) {
-                Text(
-                    text = "+${meals.size - 4} ${languageViewModel.getString(StringKey.SHOW_MORE).lowercase()}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun UpcomingWorkoutCard(
-    workout: WorkoutSchedulePreview,
-    onClick: () -> Unit,
-    languageViewModel: LanguageViewModel,
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(workout.color).copy(alpha = 0.1f)
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = languageViewModel.getString(StringKey.UPCOMING_WORKOUT),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Surface(
-                    shape = CircleShape,
-                    color = Color(workout.color).copy(alpha = 0.2f),
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            TablerIcons.CalendarEvent,
-                            contentDescription = null,
-                            tint = Color(workout.color),
-                            modifier = Modifier.size(20.dp)
+            Spacer(Modifier.width(10.dp))
+            // Profile entry: tap the avatar to open the Profile screen. Shows the user's
+            // photo when set, otherwise their initials (User icon if the name is empty).
+            val profilePhotoUrl = UserSettings.getInstance().profilePhotoUrl
+            GlassCard(shape = CircleShape, tier = GlassTier.Nav, modifier = Modifier.size(50.dp).clickable(onClick = onAvatar)) {
+                Box(Modifier.fillMaxSize().clip(CircleShape), Alignment.Center) {
+                    if (!profilePhotoUrl.isNullOrBlank() || userName.isNotBlank()) {
+                        ImagePlaceholder(
+                            url = profilePhotoUrl,
+                            contentDescription = userName,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize().clip(CircleShape),
+                            showInitial = true,
+                            initial = userName,
+                            tint = OnGold,
+                            backgroundColor = GoldPrimary
                         )
+                    } else {
+                        Icon(TablerIcons.User, null, tint = GoldBright, modifier = Modifier.size(26.dp))
                     }
                 }
             }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+            TimeframeText("Today", timeframe == HomeTimeframe.TODAY) { onTimeframe(HomeTimeframe.TODAY) }
+            TimeframeText("This week", timeframe == HomeTimeframe.WEEK) { onTimeframe(HomeTimeframe.WEEK) }
+        }
+
+        if (hasTarget) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(shownValue.grouped(), style = MaterialTheme.typography.displayLarge.copy(fontSize = 62.sp, lineHeight = 62.sp, fontWeight = FontWeight.Bold), color = c.textHi, maxLines = 1)
+                        Text(" ${lang.getString(StringKey.KCAL)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = c.textMid, modifier = Modifier.padding(bottom = 10.dp))
+                    }
+                    Text(heroLabel.uppercase(), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = c.textMid)
+                }
+                StatRing(progress = shownRing, diameter = 76.dp, strokeWidth = 8.dp) {
+                    Text("${(shownRing * 100).roundToInt()}%", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = c.textHi)
+                }
+            }
+        } else {
+            // Honest empty state — no confident fake 2,000 target. Prompt to set a real goal.
+            GlassCard(goldTint = true, modifier = Modifier.fillMaxWidth().clickable(onClick = onSetGoal)) {
+                Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("No calorie goal yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = c.textHi)
+                    Text("Set your goal to see your real daily target and track how you're doing.", style = MaterialTheme.typography.bodyMedium, color = c.textMid)
+                    GoldButton(text = "Set your goal", onClick = onSetGoal)
+                }
+            }
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            StatRow(TablerIcons.Flame, "Consumed", "${consumed.grouped()} ${lang.getString(StringKey.KCAL)}")
+            if (hasStats) {
+                StatRow(TablerIcons.Heart, "BMR", "${bmr.roundToInt().grouped()} ${lang.getString(StringKey.KCAL)}")
+                StatRow(TablerIcons.Activity, "TDEE", "${tdee.roundToInt().grouped()} ${lang.getString(StringKey.KCAL)}")
+            }
+            StatRow(TablerIcons.Award, lang.getString(StringKey.DAY_STREAK), "$streak")
+        }
+    }
+}
+
+@Composable
+private fun TimeframeText(text: String, sel: Boolean, onClick: () -> Unit) {
+    val c = TajlyTheme.colors
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable(onClick = onClick)) {
+        Text(text, style = MaterialTheme.typography.titleSmall, fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium, color = if (sel) c.textHi else c.textMid)
+        Spacer(Modifier.height(4.dp))
+        Box(Modifier.height(2.dp).width(if (sel) 18.dp else 0.dp).clip(RoundedCornerShape(1.dp)).background(GoldPrimary))
+    }
+}
+
+@Composable
+private fun StatRow(icon: ImageVector, label: String, value: String) {
+    val c = TajlyTheme.colors
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, null, tint = GoldBright, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(12.dp))
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = c.textMid, modifier = Modifier.weight(1f))
+        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = c.textHi)
+    }
+}
+
+@Composable
+private fun SectionHead(modifier: Modifier, title: String, action: String, onAction: (() -> Unit)? = null) {
+    val c = TajlyTheme.colors
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Text(title.uppercase(), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = c.textHi)
+        // Only render an action label when it actually does something (informational hints like
+        // "swipe →" have no onAction; dead links are omitted entirely).
+        if (action.isNotBlank()) {
             Text(
-                text = workout.title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium
+                action,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = GoldBright,
+                modifier = if (onAction != null) Modifier.clip(RoundedCornerShape(6.dp)).clickable(onClick = onAction) else Modifier
             )
-            
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(top = 4.dp)
-            ) {
-                Icon(
-                    TablerIcons.Clock,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+        }
+    }
+}
+
+// ── Swipe deck ──
+@Composable
+private fun MotivationStack(cards: List<StackCard>) {
+    if (cards.isEmpty()) return
+    var order by remember { mutableStateOf(cards.indices.toList()) }
+    Box(Modifier.fillMaxWidth().padding(horizontal = 24.dp).height(420.dp)) {
+        val visible = order.take(3)
+        visible.reversed().forEachIndexed { idx, cardIndex ->
+            val depth = visible.size - 1 - idx
+            key(cardIndex) {
+                if (depth == 0) {
+                    TopSwipeCard(cards[cardIndex]) { order = order.drop(1) + order.first() }
+                } else {
+                    Box(Modifier.fillMaxSize().graphicsLayer {
+                        scaleX = 1f - depth * 0.05f; scaleY = 1f - depth * 0.05f
+                        translationY = depth * 22.dp.toPx()
+                    }) { StackCardContent(cards[cardIndex], interactive = false) }
+                }
+            }
+        }
+    }
+    Spacer(Modifier.height(12.dp))
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+        cards.indices.forEach { i ->
+            val on = order.first() == i
+            Box(Modifier.padding(horizontal = 3.dp).height(6.dp).width(if (on) 20.dp else 6.dp).clip(RoundedCornerShape(3.dp))
+                .background(if (on) GoldPrimary else TajlyTheme.colors.hairStrong))
+        }
+    }
+}
+
+@Composable
+private fun TopSwipeCard(card: StackCard, onSwiped: () -> Unit) {
+    val offsetX = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+    Box(
+        Modifier.fillMaxSize().graphicsLayer { translationX = offsetX.value; rotationZ = offsetX.value / 45f }
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures(
+                    onDragEnd = {
+                        if (abs(offsetX.value) > 240f) scope.launch { offsetX.animateTo(if (offsetX.value > 0) 1400f else -1400f, tween(260)); onSwiped() }
+                        else scope.launch { offsetX.animateTo(0f, spring()) }
+                    },
+                    onHorizontalDrag = { _, drag -> scope.launch { offsetX.snapTo(offsetX.value + drag) } }
                 )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = formatTime(workout.startTime),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                )
+            }
+    ) { StackCardContent(card, interactive = true) }
+}
+
+@Composable
+private fun StackCardContent(card: StackCard, interactive: Boolean) {
+    Box(Modifier.fillMaxSize().clip(RoundedCornerShape(28.dp))) {
+        Image(painterResource(card.img), null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.0f to Color.Black.copy(alpha = 0.05f), 0.55f to Color.Black.copy(alpha = 0.38f), 1.0f to Color.Black.copy(alpha = 0.82f))))
+        Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Bottom) {
+            Text(card.eyebrow.uppercase(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = GoldBright)
+            Spacer(Modifier.height(8.dp))
+            Text(card.headline, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 3)
+            Spacer(Modifier.height(16.dp))
+            if (interactive) GoldButton(text = card.cta, onClick = card.onClick)
+            else Spacer(Modifier.height(40.dp))
+        }
+    }
+}
+
+// ── Today's plan ──
+@Composable
+private fun TodaysPlanCard(
+    modifier: Modifier, upcoming: WorkoutSchedulePreview?, mealsEaten: Int, totalMeals: Int, hasMealPlan: Boolean,
+    scheduledToday: Int, lang: org.awi.fitness.viewmodel.LanguageViewModel,
+    onStart: () -> Unit, onNutrition: () -> Unit, onMeals: () -> Unit
+) {
+    val c = TajlyTheme.colors
+    GlassCard(modifier = modifier.fillMaxWidth().height(196.dp).clickable(onClick = onStart), goldTint = true, tier = GlassTier.Hero) {
+        Column(Modifier.fillMaxSize().padding(20.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+                Text("Today's plan".uppercase(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = GoldBright)
+                GoldButton(text = lang.getString(StringKey.START_WORKOUT), onClick = onStart)
+            }
+            Spacer(Modifier.weight(1f))
+            if (upcoming != null) {
+                Text("Next session".uppercase(), style = MaterialTheme.typography.labelSmall, color = c.textMid)
+                Text(upcoming.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = c.textHi, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("${formatTime(upcoming.startTime)} – ${formatTime(upcoming.endTime)}", style = MaterialTheme.typography.bodySmall, color = c.textMid)
+            } else {
+                Text(lang.getString(StringKey.REST_DAY_TODAY), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = c.textHi)
+                Text("Plan your week", style = MaterialTheme.typography.bodySmall, color = c.textMid)
+            }
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PlanChip(TablerIcons.Leaf, "Nutrition", if (hasMealPlan && totalMeals > 0) "$mealsEaten/$totalMeals" else "—", onNutrition)
+                PlanChip(TablerIcons.Bolt, "Meals", if (hasMealPlan) "Plan" else "Set up", onMeals)
             }
         }
     }
 }
 
 @Composable
-private fun TipCard(
-    tip: DailyTip
+private fun PlanChip(icon: ImageVector, label: String, value: String, onClick: () -> Unit) {
+    val c = TajlyTheme.colors
+    Row(Modifier.clip(RoundedCornerShape(12.dp)).background(c.textHi.copy(alpha = 0.06f)).clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+        Icon(icon, null, tint = GoldBright, modifier = Modifier.size(16.dp))
+        Text(label, style = MaterialTheme.typography.labelMedium, color = c.textMid)
+        Text(value, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = c.textHi)
+    }
+}
+
+// ── Bento ──
+@Composable
+private fun BentoGrid(
+    modifier: Modifier, planCount: Int, mealsEaten: Int, totalMeals: Int, challengeCount: Int,
+    onCoach: () -> Unit, onWorkouts: () -> Unit, onNutrition: () -> Unit, onChallenges: () -> Unit
 ) {
-    Card(
-        modifier = Modifier.width(200.dp),
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(
-            containerColor = Color(tip.color).copy(alpha = 0.1f)
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Icon(
-                imageVector = when (tip.icon) {
-                    TipIcon.WATER -> TablerIcons.Glass
-                    TipIcon.FOOD -> TablerIcons.Fold
-                    TipIcon.SLEEP -> TablerIcons.Moon
-                    TipIcon.EXERCISE -> TablerIcons.Run
-                    TipIcon.MINDFULNESS -> TablerIcons.Heart
-                    TipIcon.HEALTH -> TablerIcons.Heart
-                },
-                contentDescription = null,
-                tint = Color(tip.color),
-                modifier = Modifier.size(24.dp)
-            )
-            
-            Text(
-                text = tip.tip,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            BentoTileCard(Modifier.weight(1f), TablerIcons.Bolt, GoldBright, "Ask your coach", "Powered by AI", onCoach)
+            BentoTileCard(Modifier.weight(1f), TablerIcons.Activity, Tajly.Green, "Your workouts", "$planCount plans", onWorkouts)
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            BentoTileCard(Modifier.weight(1f), TablerIcons.Leaf, Tajly.Teal, "Today's nutrition", if (totalMeals > 0) "$mealsEaten/$totalMeals today" else "Set up", onNutrition)
+            BentoTileCard(Modifier.weight(1f), TablerIcons.Trophy, Tajly.Violet, "Your challenges", if (challengeCount > 0) "$challengeCount active" else "Join one", onChallenges)
         }
     }
 }
 
-private fun formatTime(timestamp: Long): String {
-    val dateTime = Instant.fromEpochMilliseconds(timestamp)
-        .toLocalDateTime(TimeZone.currentSystemDefault())
-    return "${dateTime.hour.toString().padStart(2, '0')}:${dateTime.minute.toString().padStart(2, '0')}"
+@Composable
+private fun BentoTileCard(modifier: Modifier, icon: ImageVector, accent: Color, label: String, sub: String, onClick: () -> Unit) {
+    val c = TajlyTheme.colors
+    GlassCard(modifier = modifier.height(118.dp).clickable(onClick = onClick)) {
+        Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.SpaceBetween) {
+            Box(Modifier.size(40.dp).clip(RoundedCornerShape(13.dp)).background(accent.copy(alpha = 0.16f)), contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = accent, modifier = Modifier.size(22.dp))
+            }
+            Column {
+                Text(label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = c.textHi, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(sub, style = MaterialTheme.typography.labelSmall, color = c.textMid)
+            }
+        }
+    }
+}
+
+// ── Widgets ──
+@Composable
+private fun NutritionWidget(modifier: Modifier, mealsEaten: Int, totalMeals: Int, ring: Float, p: Int, cbs: Int, f: Int, hasPlan: Boolean, onClick: () -> Unit) {
+    val c = TajlyTheme.colors
+    GlassCard(modifier = modifier.height(150.dp).clickable(onClick = onClick)) {
+        Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.SpaceBetween) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+                Text("Nutrition", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = c.textHi)
+                WidgetArrow()
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                StatRing(progress = ring, diameter = 54.dp, strokeWidth = 7.dp) {
+                    Text(if (totalMeals > 0) "$mealsEaten/$totalMeals" else "0", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = c.textHi)
+                }
+                if (hasPlan) Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    MacroLine("P", p); MacroLine("C", cbs); MacroLine("F", f)
+                } else Text("Set up a meal plan", style = MaterialTheme.typography.bodySmall, color = c.textMid)
+            }
+        }
+    }
+}
+
+@Composable
+private fun MacroLine(k: String, v: Int) {
+    val c = TajlyTheme.colors
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(k, style = MaterialTheme.typography.labelSmall, color = c.textMid)
+        Text("${v}g", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = c.textHi)
+    }
+}
+
+@Composable
+private fun StreakWidget(modifier: Modifier, streak: Int, level: Int, xp: Int, onClick: () -> Unit) {
+    val c = TajlyTheme.colors
+    val xpInto = xp % 500
+    GlassCard(modifier = modifier.height(150.dp).clickable(onClick = onClick)) {
+        Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.SpaceBetween) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+                Text("Day streak", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = c.textHi)
+                WidgetArrow()
+            }
+            Column {
+                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("$streak", style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold), color = c.textHi)
+                    LottieAnim("lottie_flame.json", Modifier.size(40.dp).padding(bottom = 4.dp))
+                }
+                Text("Level $level · $xpInto/500 XP", style = MaterialTheme.typography.labelSmall, color = c.textMid)
+                Spacer(Modifier.height(5.dp))
+                Box(Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(3.dp)).background(c.hairStrong)) {
+                    Box(Modifier.fillMaxWidth(xpInto / 500f).fillMaxHeight().clip(RoundedCornerShape(3.dp)).background(Tajly.GoldGradient))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WidgetArrow() {
+    Box(Modifier.size(30.dp).clip(CircleShape).background(Tajly.GoldGradient), contentAlignment = Alignment.Center) {
+        Icon(TablerIcons.ArrowUpRight, null, tint = OnGold, modifier = Modifier.size(16.dp))
+    }
+}
+
+// ── Week strip ──
+/**
+ * Clean 7-day activity strip driven by real per-day data (a day is "done" when a meal was
+ * eaten or a workout completed). Today is ringed in gold, done days filled gold, future days
+ * muted. Tapping opens the meals day view.
+ */
+@Composable
+private fun WeekStrip(modifier: Modifier, dayNums: List<Int>, done: List<Boolean>, todayDow: Int, onClick: () -> Unit) {
+    val c = TajlyTheme.colors
+    val labels = listOf("M", "T", "W", "T", "F", "S", "S")
+    val activeCount = done.count { it }
+    GlassCard(modifier = modifier.fillMaxWidth().clickable(onClick = onClick)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("This week".uppercase(), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = c.textHi)
+            }
+            Spacer(Modifier.height(14.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                labels.forEachIndexed { i, l ->
+                    val dow = i + 1
+                    val isToday = dow == todayDow
+                    val isFuture = dow > todayDow
+                    val filled = done.getOrElse(i) { false }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            l,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isFuture) c.textLow else c.textMid
+                        )
+                        Box(
+                            Modifier.size(36.dp).clip(CircleShape).then(
+                                when {
+                                    filled -> Modifier.background(Tajly.GoldGradient)
+                                    isToday -> Modifier.border(2.dp, GoldPrimary, CircleShape)
+                                    else -> Modifier.background(c.glassFill, CircleShape)
+                                }
+                            ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "${dayNums.getOrElse(i) { 0 }}",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = if (isToday || filled) FontWeight.Bold else FontWeight.Medium,
+                                color = when {
+                                    filled -> OnGold
+                                    isToday -> GoldBright
+                                    isFuture -> c.textLow
+                                    else -> c.textHi
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ── Challenge image card (full backdrop, like the mockup) ──
+private fun challengeFallback(index: Int): DrawableResource =
+    listOf(Res.drawable.card_compete, Res.drawable.card_community, Res.drawable.card_move)[index % 3]
+
+@Composable
+private fun ChallengeImageCard(title: String, subtitle: String, frac: Float, imageUrl: String?, fallback: DrawableResource, onClick: () -> Unit) {
+    Box(Modifier.width(224.dp).height(150.dp).clip(RoundedCornerShape(22.dp)).clickable(onClick = onClick)) {
+        if (!imageUrl.isNullOrBlank()) {
+            ImagePlaceholder(url = imageUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        } else {
+            Image(painterResource(fallback), null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        }
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.3f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.82f))))
+        Column(Modifier.fillMaxSize().padding(14.dp), verticalArrangement = Arrangement.Bottom) {
+            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(subtitle, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.85f))
+            Spacer(Modifier.height(8.dp))
+            Box(Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(3.dp)).background(Color.White.copy(alpha = 0.25f))) {
+                Box(Modifier.fillMaxWidth(frac).fillMaxHeight().clip(RoundedCornerShape(3.dp)).background(Tajly.GoldGradient))
+            }
+        }
+    }
+}
+
+// ── Community highlight ──
+@Composable
+private fun CommunityHighlight(modifier: Modifier, name: String, text: String, imageUrl: String?, likes: Int, unread: Int, onClick: () -> Unit) {
+    val c = TajlyTheme.colors
+    GlassCard(modifier = modifier.fillMaxWidth().clickable(onClick = onClick)) {
+        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(Modifier.size(36.dp).clip(CircleShape).background(Tajly.GoldGradient))
+                Text(name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = c.textHi, modifier = Modifier.weight(1f))
+                if (unread > 0) Box(Modifier.clip(RoundedCornerShape(8.dp)).background(Tajly.GoldGradient).padding(horizontal = 8.dp, vertical = 3.dp)) {
+                    Text("$unread new", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = OnGold)
+                }
+            }
+            Text(text, style = MaterialTheme.typography.bodyMedium, color = c.textHi, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            if (!imageUrl.isNullOrBlank()) {
+                ImagePlaceholder(url = imageUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxWidth().height(140.dp).clip(RoundedCornerShape(14.dp)))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text("♥ $likes", style = MaterialTheme.typography.labelMedium, color = c.textMid)
+            }
+        }
+    }
+}
+
+// ── Coach band ──
+@Composable
+private fun CoachBand(modifier: Modifier, lang: org.awi.fitness.viewmodel.LanguageViewModel, onClick: () -> Unit) {
+    val c = TajlyTheme.colors
+    GlassCard(modifier = modifier.fillMaxWidth().clickable(onClick = onClick), shape = RoundedCornerShape(20.dp), goldTint = true) {
+        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(Modifier.size(42.dp).clip(CircleShape).background(Tajly.GoldGradient), contentAlignment = Alignment.Center) {
+                Icon(TablerIcons.Bolt, null, tint = OnGold, modifier = Modifier.size(22.dp))
+            }
+            Text(lang.getString(StringKey.HOME_ASK_COACH), style = MaterialTheme.typography.bodyLarge, color = c.textMid, modifier = Modifier.weight(1f))
+            Icon(TablerIcons.Send, null, tint = GoldBright, modifier = Modifier.size(22.dp))
+        }
+    }
+}
+
+// ── Editorial row ──
+@Composable
+private fun EditorialRow(modifier: Modifier, ic3d: DrawableResource?, icon: ImageVector?, tint: Color, title: String, subtitle: String, onClick: () -> Unit) {
+    val c = TajlyTheme.colors
+    GlassCard(modifier = modifier.fillMaxWidth().clickable(onClick = onClick)) {
+        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Box(Modifier.size(46.dp).clip(CircleShape).background(tint.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
+                if (ic3d != null) Image(painterResource(ic3d), null, modifier = Modifier.size(28.dp))
+                else if (icon != null) Icon(icon, null, tint = tint, modifier = Modifier.size(24.dp))
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = c.textHi)
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = c.textMid, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
+            Icon(TablerIcons.ChevronRight, null, tint = c.textMid, modifier = Modifier.size(20.dp))
+        }
+    }
+}
+
+// ── Wellness tips card (image backdrop) ──
+@Composable
+private fun TipsCard(modifier: Modifier, count: Int, title: String, onClick: () -> Unit) {
+    Box(modifier.fillMaxWidth().height(130.dp).clip(RoundedCornerShape(24.dp)).clickable(onClick = onClick)) {
+        Image(painterResource(Res.drawable.card_yoga), null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Color.Black.copy(alpha = 0.72f), Color.Black.copy(alpha = 0.28f)))))
+        Row(Modifier.fillMaxSize().padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Daily wellness".uppercase(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = GoldBright)
+                Spacer(Modifier.height(4.dp))
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
+                Text("$count tips for today · swipe through", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.85f))
+            }
+            Icon(TablerIcons.ChevronRight, null, tint = Color.White, modifier = Modifier.size(22.dp))
+        }
+    }
+}
+
+// ── Premium band ──
+@Composable
+private fun PremiumBand(modifier: Modifier, onClick: () -> Unit) {
+    GlassCard(modifier = modifier.fillMaxWidth().height(150.dp).clickable(onClick = onClick), tier = GlassTier.Hero) {
+        Image(painterResource(Res.drawable.tex_gold_2), null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Color.Black.copy(alpha = 0.72f), Color.Black.copy(alpha = 0.35f)))))
+        Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.Center) {
+            Text("Unlock Tajly Premium", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
+            Text("Unlimited AI plans, coaching & challenges", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.85f))
+            Spacer(Modifier.height(12.dp))
+            GoldButton(text = "Go Premium", onClick = onClick)
+        }
+    }
+}
+
+// ── helpers ──
+private fun Int.grouped(): String {
+    val neg = this < 0
+    val s = kotlin.math.abs(this).toString()
+    val sb = StringBuilder()
+    val n = s.length
+    for (i in 0 until n) { if (i > 0 && (n - i) % 3 == 0) sb.append(','); sb.append(s[i]) }
+    return if (neg) "-$sb" else sb.toString()
+}
+
+private fun formatTime(ts: Long): String {
+    val dt = Instant.fromEpochMilliseconds(ts).toLocalDateTime(TimeZone.currentSystemDefault())
+    return "${dt.hour.toString().padStart(2, '0')}:${dt.minute.toString().padStart(2, '0')}"
 }

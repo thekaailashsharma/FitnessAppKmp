@@ -144,50 +144,47 @@ class ChallengesViewModel {
         _state.value = _state.value.copy(selectedChallenge = challenge)
     }
 
-    fun createChallenge(challenge: Challenge) {
-        scope.launch {
-            _state.value = _state.value.copy(isLoading = true, error = null)
-            val result = repository.createChallenge(challenge)
-            result.fold(
-                onSuccess = { loadChallenges() },
-                onFailure = { e ->
-                    _state.value = _state.value.copy(isLoading = false, error = e.message)
-                }
-            )
-        }
-    }
-
-    // Called by WorkoutScreen when a workout day is completed
+    // Called by WorkoutScreen when a workout day is completed (count-based, per event)
     fun autoProgressWorkoutChallenges() {
-        autoProgressByType(ChallengeTargetType.WORKOUTS)
+        autoProgressByType(ChallengeTargetType.WORKOUTS, perDay = false)
     }
 
-    // Called by MealScreen when a meal is marked as eaten
+    // Called by MealScreen when a meal is marked as eaten (count-based, per event)
     fun autoProgressMealChallenges() {
-        autoProgressByType(ChallengeTargetType.MEALS)
+        autoProgressByType(ChallengeTargetType.MEALS, perDay = false)
     }
 
-    // Called by CommunityViewModel when a post is created
+    // Called by CommunityViewModel when a post is created (count-based, per event)
     fun autoProgressPostChallenges() {
-        autoProgressByType(ChallengeTargetType.POSTS)
+        autoProgressByType(ChallengeTargetType.POSTS, perDay = false)
     }
 
-    // Called by UserSettings.recordWorkoutCompleted for streak challenges
+    // Called on daily check-in / workout for STREAK challenges (day-based → once per calendar day)
     fun autoProgressStreakChallenges() {
-        autoProgressByType(ChallengeTargetType.STREAK)
+        autoProgressByType(ChallengeTargetType.STREAK, perDay = true)
     }
 
-    private fun autoProgressByType(type: ChallengeTargetType) {
+    /**
+     * Advance active challenges of [type]. Count-based challenges advance once per event.
+     * Day-based challenges ([perDay]) advance at most once per calendar day (deduped via
+     * UserSettings) so a "7-day" target can't be finished by 7 events in one day.
+     */
+    private fun autoProgressByType(type: ChallengeTargetType, perDay: Boolean) {
         scope.launch {
+            val userSettings = org.awi.fitness.data.UserSettings.getInstance()
             val matching = _state.value.activeChallenges.filter { it.targetType == type }
+            var advancedAny = false
             for (challenge in matching) {
+                if (perDay && !userSettings.canAdvanceChallengeToday(challenge.id)) continue
                 val currentProgress = _state.value.userProgress[challenge.id]?.currentValue
                     ?: challenge.progress
                 if (currentProgress < challenge.target) {
                     repository.updateProgress(challenge.id, currentProgress + 1)
+                    if (perDay) userSettings.markChallengeAdvancedToday(challenge.id)
+                    advancedAny = true
                 }
             }
-            if (matching.isNotEmpty()) loadChallenges()
+            if (advancedAny) loadChallenges()
         }
     }
 

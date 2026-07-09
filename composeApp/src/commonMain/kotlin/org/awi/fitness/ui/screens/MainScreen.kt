@@ -3,6 +3,8 @@ package org.awi.fitness.ui.screens
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,28 +26,49 @@ import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import kotlinx.coroutines.launch
 import org.awi.fitness.model.ConversationTrigger
-import org.awi.fitness.theme.GreenAccent
+import org.awi.fitness.theme.GoldBright
+import org.awi.fitness.theme.OnGold
+import org.awi.fitness.theme.Tajly
+import org.awi.fitness.theme.TajlyTheme
 import org.awi.fitness.ui.components.BuddyFab
+import org.awi.fitness.ui.components.GlassTier
+import org.awi.fitness.ui.components.ProvideGlass
+import org.awi.fitness.ui.components.glassSource
+import org.awi.fitness.ui.components.liquidGlass
 import org.awi.fitness.ui.screens.community.CommunityFeedScreen
+import org.awi.fitness.ui.screens.community.CreatePostScreen
 import org.awi.fitness.ui.screens.home.HomeScreen
 import org.awi.fitness.viewmodel.*
 
-// 4 tabs: Home · Train · Community · Profile
-// Challenges, Meals, Discover live inside their parent tabs or Profile
+// Tabs: Home · Train · [ + ] · Challenges · Community
+// Profile now lives in the Home header (tap the avatar top-right).
 private enum class Tab(val icon: ImageVector, val label: String) {
     HOME(TablerIcons.Home, "Home"),
     TRAIN(TablerIcons.Run, "Train"),
+    CHALLENGES(TablerIcons.Trophy, "Challenges"),
     COMMUNITY(TablerIcons.Users, "Community"),
-    PROFILE(TablerIcons.User, "Profile"),
 }
 
 class MainScreen : Screen {
     @Composable
     override fun Content() {
         var currentTab by rememberSaveable { mutableStateOf(Tab.HOME) }
+
+        // The coach chat can request a tab switch after popping back here (e.g. a card's
+        // "Start workout" opens the Train tab). We consume the request and clear it.
+        LaunchedEffect(Unit) {
+            org.awi.fitness.navigation.CoachNav.requestedTab.collect { req ->
+                when (req) {
+                    "HOME" -> currentTab = Tab.HOME
+                    "TRAIN" -> currentTab = Tab.TRAIN
+                    "CHALLENGES" -> currentTab = Tab.CHALLENGES
+                    "COMMUNITY" -> currentTab = Tab.COMMUNITY
+                }
+                if (req != null) org.awi.fitness.navigation.CoachNav.requestedTab.value = null
+            }
+        }
         val navigator = LocalNavigator.currentOrThrow
         val coroutineScope = rememberCoroutineScope()
-        val langVm = ViewModelStore.language
         val communityViewModel = ViewModelStore.community
         val activityState by communityViewModel.activityState.collectAsState()
         val unreadCount = activityState.unreadCount
@@ -56,47 +79,56 @@ class MainScreen : Screen {
             }
         }
 
+        val c = TajlyTheme.colors
+        LaunchedEffect(Unit) { ViewModelStore.backdrop.refreshIfStale() }
         CompositionLocalProvider(
             LocalHomeViewModel provides ViewModelStore.home,
             LocalWorkoutViewModel provides ViewModelStore.workout,
             LocalMealPlanViewModel provides ViewModelStore.mealPlan,
             LocalArticleViewModel provides ViewModelStore.article,
-            LocalLanguageViewModel provides ViewModelStore.language
+            LocalLanguageViewModel provides ViewModelStore.language,
+            org.awi.fitness.viewmodel.LocalBackdropViewModel provides ViewModelStore.backdrop
         ) {
-            Scaffold(
-                containerColor = MaterialTheme.colorScheme.background,
-                floatingActionButton = {
-                    if (currentTab != Tab.COMMUNITY) {
-                        BuddyFab(
-                            onClick = {
-                                coroutineScope.launch {
-                                    navigator.push(
-                                        org.awi.fitness.ui.screens.avatar.AvatarScreen(ConversationTrigger.MANUAL)
-                                    )
-                                }
-                            }
-                        )
+            ProvideGlass {
+                Box(modifier = Modifier.fillMaxSize().background(c.bg)) {
+                    // Content fills the whole screen and scrolls UNDER the glass bar.
+                    Box(modifier = Modifier.fillMaxSize().glassSource()) {
+                        when (currentTab) {
+                            Tab.HOME -> HomeScreen().Content()
+                            Tab.TRAIN -> TrainTabScreen(navigator = navigator)
+                            Tab.CHALLENGES -> ChallengesScreen()
+                            Tab.COMMUNITY -> CommunityFeedScreen().Content()
+                        }
                     }
-                },
-                bottomBar = {
+
+                    // Buddy FAB floats just above the glass bar (hidden on Community).
+                    if (currentTab != Tab.COMMUNITY) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .navigationBarsPadding()
+                                .padding(end = 18.dp, bottom = 92.dp)
+                        ) {
+                            BuddyFab(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        navigator.push(
+                                            org.awi.fitness.ui.screens.avatar.AvatarScreen(ConversationTrigger.MANUAL)
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                    }
+
+                    // Floating liquid-glass bottom bar with a center Post action.
                     TajlyBottomBar(
                         currentTab = currentTab,
                         onTabSelected = { currentTab = it },
-                        unreadCount = unreadCount
+                        onPost = { navigator.push(CreatePostScreen()) },
+                        unreadCount = unreadCount,
+                        modifier = Modifier.align(Alignment.BottomCenter)
                     )
-                }
-            ) { paddingValues ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                ) {
-                    when (currentTab) {
-                        Tab.HOME -> HomeScreen().Content()
-                        Tab.TRAIN -> TrainTabScreen(navigator = navigator)
-                        Tab.COMMUNITY -> CommunityFeedScreen().Content()
-                        Tab.PROFILE -> ProfileTabScreen(langVm)
-                    }
                 }
             }
         }
@@ -107,31 +139,55 @@ class MainScreen : Screen {
 private fun TajlyBottomBar(
     currentTab: Tab,
     onTabSelected: (Tab) -> Unit,
+    onPost: () -> Unit,
     unreadCount: Int = 0,
+    modifier: Modifier = Modifier,
 ) {
-    Surface(
-        color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 12.dp,
-        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding()
-                .height(64.dp)
-                .padding(horizontal = 8.dp),
+                .height(66.dp)
+                // Pure liquid glass: floating capsule (corner == height/2) that blurs the
+                // screen content behind it via Haze. GlassTier.Nav = least blur / most
+                // see-through / highest float + specular rim, per Apple's Liquid Glass.
+                .liquidGlass(RoundedCornerShape(33.dp), tier = GlassTier.Nav)
+                .padding(horizontal = 4.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Tab.entries.forEach { tab ->
-                TajlyTabItem(
-                    tab = tab,
-                    isSelected = currentTab == tab,
-                    onClick = { onTabSelected(tab) },
-                    modifier = Modifier.weight(1f),
-                    badgeCount = if (tab == Tab.COMMUNITY) unreadCount else 0
-                )
-            }
+            TajlyTabItem(Tab.HOME, currentTab == Tab.HOME, { onTabSelected(Tab.HOME) }, Modifier.weight(1f))
+            TajlyTabItem(Tab.TRAIN, currentTab == Tab.TRAIN, { onTabSelected(Tab.TRAIN) }, Modifier.weight(1f))
+            CenterPostButton(onClick = onPost, modifier = Modifier.weight(1f))
+            TajlyTabItem(Tab.CHALLENGES, currentTab == Tab.CHALLENGES, { onTabSelected(Tab.CHALLENGES) }, Modifier.weight(1f))
+            TajlyTabItem(Tab.COMMUNITY, currentTab == Tab.COMMUNITY, { onTabSelected(Tab.COMMUNITY) }, Modifier.weight(1f), badgeCount = unreadCount)
+        }
+    }
+}
+
+/** Center Post action — the single compose entry for the community. */
+@Composable
+private fun CenterPostButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier
+                .size(46.dp)
+                .clip(CircleShape)
+                .background(Tajly.GoldGradient)
+                .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = TablerIcons.Plus,
+                contentDescription = "Post",
+                tint = OnGold,
+                modifier = Modifier.size(26.dp)
+            )
         }
     }
 }
@@ -144,6 +200,7 @@ private fun TajlyTabItem(
     modifier: Modifier = Modifier,
     badgeCount: Int = 0,
 ) {
+    val c = TajlyTheme.colors
     val indicatorWidth by animateDpAsState(
         targetValue = if (isSelected) 24.dp else 0.dp,
         animationSpec = tween(200),
@@ -167,7 +224,7 @@ private fun TajlyTabItem(
                     .size(40.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(
-                        if (isSelected) GreenAccent.copy(alpha = 0.12f)
+                        if (isSelected) GoldBright.copy(alpha = 0.12f)
                         else androidx.compose.ui.graphics.Color.Transparent
                     ),
                 contentAlignment = Alignment.Center
@@ -186,7 +243,7 @@ private fun TajlyTabItem(
                         Icon(
                             imageVector = tab.icon,
                             contentDescription = tab.label,
-                            tint = if (isSelected) GreenAccent else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = if (isSelected) GoldBright else c.textMid,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -194,7 +251,7 @@ private fun TajlyTabItem(
                     Icon(
                         imageVector = tab.icon,
                         contentDescription = tab.label,
-                        tint = if (isSelected) GreenAccent else MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = if (isSelected) GoldBright else c.textMid,
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -206,7 +263,7 @@ private fun TajlyTabItem(
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                     fontSize = 10.sp
                 ),
-                color = if (isSelected) GreenAccent else MaterialTheme.colorScheme.onSurfaceVariant
+                color = if (isSelected) GoldBright else c.textMid
             )
             Spacer(Modifier.height(2.dp))
             Box(
@@ -214,29 +271,38 @@ private fun TajlyTabItem(
                     .width(indicatorWidth)
                     .height(3.dp)
                     .clip(CircleShape)
-                    .background(if (isSelected) GreenAccent else androidx.compose.ui.graphics.Color.Transparent)
+                    .background(if (isSelected) GoldBright else androidx.compose.ui.graphics.Color.Transparent)
             )
         }
     }
 }
 
-// Train tab: Workouts / Meals / Challenges with a clean TabRow
+// Train tab: Workouts / Meals with a clean TabRow (Challenges is now a top-level tab)
 // Uses Box+visibility so each sub-screen is kept alive (no state loss on tab switch)
 @Composable
 private fun TrainTabScreen(navigator: cafe.adriel.voyager.navigator.Navigator) {
     var selectedIndex by rememberSaveable { mutableStateOf(0) }
-    val tabs = listOf("Workouts", "Meals", "Challenges")
+    val tabs = listOf("Workouts", "Meals")
+
+    // Honor a requested sub-tab (e.g. Home "Nutrition" → Meals), then clear it.
+    val requestedSub by org.awi.fitness.navigation.CoachNav.requestedTrainSubTab.collectAsState()
+    LaunchedEffect(requestedSub) {
+        requestedSub?.let {
+            selectedIndex = it.coerceIn(0, tabs.lastIndex)
+            org.awi.fitness.navigation.CoachNav.requestedTrainSubTab.value = null
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         TabRow(
             selectedTabIndex = selectedIndex,
             containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = GreenAccent,
+            contentColor = GoldBright,
             indicator = { tabPositions ->
                 if (selectedIndex < tabPositions.size) {
                     TabRowDefaults.SecondaryIndicator(
                         modifier = Modifier.tabIndicatorOffset(tabPositions[selectedIndex]),
-                        color = GreenAccent
+                        color = GoldBright
                     )
                 }
             }
@@ -252,7 +318,7 @@ private fun TrainTabScreen(navigator: cafe.adriel.voyager.navigator.Navigator) {
                             fontWeight = if (selectedIndex == index) FontWeight.Bold else FontWeight.Normal
                         )
                     },
-                    selectedContentColor = GreenAccent,
+                    selectedContentColor = GoldBright,
                     unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -268,14 +334,6 @@ private fun TrainTabScreen(navigator: cafe.adriel.voyager.navigator.Navigator) {
             }
             // Meals
             if (selectedIndex == 1) MealScreen().Content()
-            // Challenges
-            if (selectedIndex == 2) ChallengesScreen()
         }
     }
-}
-
-// Profile tab — wraps the existing ProfileScreen without requiring back navigation
-@Composable
-private fun ProfileTabScreen(langVm: org.awi.fitness.viewmodel.LanguageViewModel) {
-    ProfileScreen(languageViewModel = langVm).Content()
 }

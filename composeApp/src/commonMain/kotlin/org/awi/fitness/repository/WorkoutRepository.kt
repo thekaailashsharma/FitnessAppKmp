@@ -8,7 +8,7 @@ import org.awi.fitness.network.ApiService
 
 class WorkoutRepository : ApiService() {
     companion object {
-        private const val PROJECT_ID = "fitness-admin-73a72"
+        private const val PROJECT_ID = "awi-fitness-app"
     }
 
     suspend fun getAllWorkoutPlans(): Result<List<WorkoutPlanWithExercises>> {
@@ -23,7 +23,14 @@ class WorkoutRepository : ApiService() {
                 return Result.failure(Exception("Failed to fetch workout plans"))
             }
 
-            val plans = plansResponse.documents?.map { it.toWorkoutPlan() } ?: emptyList()
+            // Scope plans to the signed-in user. Legacy shared plans carry a blank
+            // ownerId and are intentionally hidden (per product decision). If we can't
+            // resolve an owner id we show none of the Firestore plans (the code-defined
+            // pre-made plan is added by the UI and is unaffected).
+            val owner = currentOwnerId()
+            val allPlans = plansResponse.documents?.map { it.toWorkoutPlan() } ?: emptyList()
+            val plans = if (owner.isBlank()) emptyList()
+                else allPlans.filter { it.ownerId == owner }
 
             // Fetch all exercises once, then group by planId
             val exercisesUrl = "https://firestore.googleapis.com/v1/projects/$PROJECT_ID/databases/(default)/documents/exercises"
@@ -125,7 +132,11 @@ class WorkoutRepository : ApiService() {
             println("Full response: $response")
 
             if (status.isSuccess()) {
-                val planId = response.fields?.id?.value ?: ""
+                // Use the Firestore DOCUMENT id (matches plan.id at load, which powers the
+                //    exercises join). Previously returned the random `fields.id` UUID, so
+                //    exercises were keyed by an id that never matched → empty plan detail.
+                val planId = response.name?.split("/")?.lastOrNull()
+                    ?: response.fields?.id?.value ?: ""
                 println("Successfully created workout plan with ID: $planId")
                 Result.success(planId)
             } else {
@@ -230,7 +241,7 @@ class WorkoutRepository : ApiService() {
 
             if (status.isSuccess()) {
                 val activities = response.documents
-                    ?.map { it.toWorkoutActivity() }
+                    ?.mapNotNull { it.toWorkoutActivity() }
                     ?.filter { it.planId == planId }
                     ?.sortedByDescending { it.timestamp }
                     ?: emptyList()
@@ -243,9 +254,16 @@ class WorkoutRepository : ApiService() {
         }
     }
 
+    /** Resolves the current user's owner id (userId preferred, email as fallback). */
+    private fun currentOwnerId(): String =
+        userSettings.userId?.takeIf { it.isNotBlank() }
+            ?: userSettings.userEmail?.takeIf { it.isNotBlank() }
+            ?: ""
+
     // Helper functions to convert Firestore documents to models
     private fun FirestoreDocument<WorkoutPlanFields>.toWorkoutPlan(): WorkoutPlan {
         val documentId = name?.split("/")?.last() ?: ""
+        // toDomainModel now maps the proper `ownerId` field.
         return fields?.toDomainModel(documentId) ?: WorkoutPlan(id = documentId)
     }
 
@@ -254,15 +272,19 @@ class WorkoutRepository : ApiService() {
         return fields?.toDomainModel(documentId) ?: Exercise()
     }
 
-    private fun FirestoreDocument<*>.toWorkoutActivity(): WorkoutActivity {
-        val fields = this.fields as? Map<*, *>
+    // Null-safe: rows with an unknown/missing `type` are skipped (return null) instead of
+    // throwing, so one bad document no longer collapses the whole activity list to empty.
+    private fun FirestoreDocument<*>.toWorkoutActivity(): WorkoutActivity? {
+        val fields = this.fields as? Map<*, *> ?: return null
+        val typeStr = (fields["type"] as? Map<*, *>)?.get("stringValue") as? String
+        val type = runCatching { ActivityType.valueOf(typeStr ?: "") }.getOrNull() ?: return null
         return WorkoutActivity(
             id = this.name?.split("/")?.last() ?: "",
-            type = ActivityType.valueOf((fields?.get("type") as? Map<*, *>)?.get("stringValue") as? String ?: "EXERCISE_COMPLETED"),
-            description = (fields?.get("description") as? Map<*, *>)?.get("stringValue") as? String ?: "",
-            timestamp = ((fields?.get("timestamp") as? Map<*, *>)?.get("integerValue") as? String)?.toLongOrNull() ?: 0,
-            exerciseId = (fields?.get("exerciseId") as? Map<*, *>)?.get("stringValue") as? String ?: "",
-            planId = (fields?.get("planId") as? Map<*, *>)?.get("stringValue") as? String ?: ""
+            type = type,
+            description = (fields["description"] as? Map<*, *>)?.get("stringValue") as? String ?: "",
+            timestamp = ((fields["timestamp"] as? Map<*, *>)?.get("integerValue") as? String)?.toLongOrNull() ?: 0,
+            exerciseId = (fields["exerciseId"] as? Map<*, *>)?.get("stringValue") as? String ?: "",
+            planId = (fields["planId"] as? Map<*, *>)?.get("stringValue") as? String ?: ""
         )
     }
 } 

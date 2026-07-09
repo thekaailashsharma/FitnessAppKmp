@@ -37,10 +37,19 @@ data class DailyTip(
 )
 
 enum class TipIcon {
-    WATER, FOOD, SLEEP, EXERCISE, MINDFULNESS, HEALTH;
-    
-    companion object {
-        fun random(): TipIcon = entries[Random.nextInt(entries.size)]
+    WATER, FOOD, SLEEP, EXERCISE, MINDFULNESS, HEALTH
+}
+
+/** Maps a wellness tip to a matching icon by its content (deterministic, not random). */
+private fun tipIconFor(tip: String): TipIcon {
+    val t = tip.lowercase()
+    return when {
+        t.contains("water") || t.contains("hydrat") || t.contains("drink") -> TipIcon.WATER
+        t.contains("sleep") || t.contains("rest") || t.contains("recover") -> TipIcon.SLEEP
+        t.contains("eat") || t.contains("food") || t.contains("meal") || t.contains("protein") || t.contains("nutrition") || t.contains("diet") || t.contains("veg") || t.contains("fruit") -> TipIcon.FOOD
+        t.contains("workout") || t.contains("exercise") || t.contains("train") || t.contains("run") || t.contains("walk") || t.contains("strength") || t.contains("move") -> TipIcon.EXERCISE
+        t.contains("breath") || t.contains("stress") || t.contains("relax") || t.contains("mind") || t.contains("medit") || t.contains("calm") -> TipIcon.MINDFULNESS
+        else -> TipIcon.HEALTH
     }
 }
 
@@ -89,11 +98,16 @@ class HomeViewModel {
                     0xFF7B1FA2, 0xFFC2185B, 0xFF00796B
                 )
                 val currentLang = userSettings.language.value ?: "en"
-                val randomTips = getHomeFitnessTips(currentLang).shuffled().take(6).map { tip ->
+                // Stable per day: seed the shuffle with the date so the tips (and their order)
+                // don't re-randomize on every load. The icon is derived from the tip content,
+                // and the color is assigned by position — both deterministic.
+                val daySeed = org.awi.fitness.utils.todayLocalDate().toEpochDays().toLong()
+                val rng = Random(daySeed)
+                val randomTips = getHomeFitnessTips(currentLang).shuffled(rng).take(6).mapIndexed { index, tip ->
                     DailyTip(
                         tip = tip,
-                        icon = TipIcon.random(),
-                        color = tipColors[Random.nextInt(tipColors.size)]
+                        icon = tipIconFor(tip),
+                        color = tipColors[index % tipColors.size]
                     )
                 }
 

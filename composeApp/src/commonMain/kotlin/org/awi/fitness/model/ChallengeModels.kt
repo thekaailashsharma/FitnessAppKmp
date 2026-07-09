@@ -11,7 +11,8 @@ data class Challenge(
     val type: ChallengeType = ChallengeType.DAILY,
     val category: ChallengeCategory = ChallengeCategory.EXERCISE,
     val difficulty: ChallengeDifficulty = ChallengeDifficulty.BEGINNER,
-    val duration: Int = 1, // in days
+    val hasDifficulty: Boolean = false, // false when the template didn't specify one → hide chip
+    val duration: Int = 0, // in days (0 = unspecified → hide)
     val target: Int = 0, // target value (reps, steps, etc.)
     val unit: String = "", // unit of measurement
     val reward: Reward = Reward(),
@@ -123,18 +124,6 @@ enum class BadgeRarity {
 }
 
 @Serializable
-data class UserProgress(
-    val userId: String = "",
-    val totalXp: Int = 0,
-    val currentLevel: Int = 1,
-    val currentStreak: Int = 0,
-    val longestStreak: Int = 0,
-    val badgesEarned: List<Badge> = emptyList(),
-    val challengesCompleted: Int = 0,
-    val rank: Int = 0
-)
-
-@Serializable
 data class LeaderboardEntry(
     val userId: String = "",
     val username: String = "",
@@ -155,3 +144,99 @@ data class ChallengeProgress(
     val completedAt: Long? = null,
     val displayName: String = ""
 )
+
+// ---------------------------------------------------------------------------
+// Achievements — real, milestone-driven badges rendered on AchievementsScreen.
+// Each achievement maps to a Badge and an unlock rule evaluated against real stats.
+// ---------------------------------------------------------------------------
+
+/** Snapshot of the user's real gamification stats used to evaluate achievements. */
+data class AchievementStats(
+    val totalXp: Int = 0,
+    val level: Int = 1,
+    val currentStreak: Int = 0,
+    val workoutsCompleted: Int = 0,
+    val challengesCompleted: Int = 0
+)
+
+/** A badge plus its human requirement and the rule that unlocks it. */
+data class Achievement(
+    val badge: Badge,
+    val requirement: String,
+    val isEarned: (AchievementStats) -> Boolean
+)
+
+object AchievementCatalog {
+    val all: List<Achievement> = listOf(
+        Achievement(
+            badge = Badge(
+                id = "first_workout",
+                name = "First Steps",
+                description = "Complete your very first workout.",
+                rarity = BadgeRarity.COMMON
+            ),
+            requirement = "Complete 1 workout",
+            isEarned = { it.workoutsCompleted >= 1 }
+        ),
+        Achievement(
+            badge = Badge(
+                id = "streak_7",
+                name = "On Fire",
+                description = "Stay active 7 days in a row.",
+                rarity = BadgeRarity.RARE
+            ),
+            requirement = "Reach a 7-day streak",
+            isEarned = { it.currentStreak >= 7 }
+        ),
+        Achievement(
+            badge = Badge(
+                id = "streak_30",
+                name = "Unstoppable",
+                description = "Stay active 30 days in a row.",
+                rarity = BadgeRarity.LEGENDARY
+            ),
+            requirement = "Reach a 30-day streak",
+            isEarned = { it.currentStreak >= 30 }
+        ),
+        Achievement(
+            badge = Badge(
+                id = "first_challenge",
+                name = "Challenger",
+                description = "Complete your first challenge.",
+                rarity = BadgeRarity.COMMON
+            ),
+            requirement = "Complete 1 challenge",
+            isEarned = { it.challengesCompleted >= 1 }
+        ),
+        Achievement(
+            badge = Badge(
+                id = "challenges_5",
+                name = "Champion",
+                description = "Complete five challenges.",
+                rarity = BadgeRarity.EPIC
+            ),
+            requirement = "Complete 5 challenges",
+            isEarned = { it.challengesCompleted >= 5 }
+        ),
+        Achievement(
+            badge = Badge(
+                id = "level_5",
+                name = "Rising Star",
+                description = "Reach level 5.",
+                rarity = BadgeRarity.RARE
+            ),
+            requirement = "Reach level 5",
+            isEarned = { it.level >= 5 }
+        ),
+        Achievement(
+            badge = Badge(
+                id = "level_10",
+                name = "Elite",
+                description = "Reach level 10.",
+                rarity = BadgeRarity.LEGENDARY
+            ),
+            requirement = "Reach level 10",
+            isEarned = { it.level >= 10 }
+        )
+    )
+}

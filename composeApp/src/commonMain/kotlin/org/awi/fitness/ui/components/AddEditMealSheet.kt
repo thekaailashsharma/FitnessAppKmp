@@ -1,6 +1,8 @@
 package org.awi.fitness.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,14 +18,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -31,7 +30,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -50,6 +48,10 @@ import compose.icons.tablericons.Trash
 import org.awi.fitness.data.StringKey
 import org.awi.fitness.model.Meal
 import org.awi.fitness.model.MealSlot
+import org.awi.fitness.theme.OnGold
+import org.awi.fitness.theme.Tajly
+import org.awi.fitness.theme.TajlyTheme
+import org.awi.fitness.theme.pressScale
 import org.awi.fitness.viewmodel.LanguageViewModel
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -70,11 +72,15 @@ fun AddEditMealSheet(
     onDismiss: () -> Unit,
     onSave: (Meal) -> Unit
 ) {
+    val c = TajlyTheme.colors
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val isEdit = existingMeal != null
     val tfColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = MaterialTheme.colorScheme.primary,
-        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+        unfocusedBorderColor = c.hairStrong,
+        focusedTextColor = c.textHi,
+        unfocusedTextColor = c.textHi,
+        cursorColor = MaterialTheme.colorScheme.primary
     )
 
     var name by remember { mutableStateOf(existingMeal?.name ?: "") }
@@ -98,8 +104,8 @@ fun AddEditMealSheet(
         modifier = Modifier.fillMaxSize(),
         sheetState = sheetState,
         dragHandle = null,
-        containerColor = MaterialTheme.colorScheme.background,
-        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+        containerColor = c.bg,
+        shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
     ) {
         Column(
             modifier = Modifier
@@ -112,7 +118,8 @@ fun AddEditMealSheet(
                 text = if (isEdit) languageViewModel.getString(StringKey.EDIT_MEAL)
                 else languageViewModel.getString(StringKey.ADD_MEAL),
                 style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground
+                fontWeight = FontWeight.ExtraBold,
+                color = c.textHi
             )
 
             OutlinedTextField(
@@ -121,32 +128,23 @@ fun AddEditMealSheet(
                 label = { Text(languageViewModel.getString(StringKey.MEAL_NAME)) },
                 placeholder = { Text(languageViewModel.getString(StringKey.MEAL_NAME_HINT)) },
                 modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
+                shape = RoundedCornerShape(14.dp),
                 colors = tfColors,
                 singleLine = true
             )
 
             Column {
-                Text(
-                    text = languageViewModel.getString(StringKey.MEAL_SLOT),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                SectionLabel(languageViewModel.getString(StringKey.MEAL_SLOT))
                 Spacer(modifier = Modifier.height(8.dp))
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     MealSlot.entries.forEach { slot ->
-                        FilterChip(
+                        GlassChip(
+                            text = slotLabel(slot, languageViewModel),
                             selected = selectedSlot == slot,
-                            onClick = { selectedSlot = slot },
-                            label = { Text(slotLabel(slot, languageViewModel)) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
+                            onClick = { selectedSlot = slot }
                         )
                     }
                 }
@@ -161,7 +159,7 @@ fun AddEditMealSheet(
                     onValueChange = { calories = it.filter { c -> c.isDigit() } },
                     label = { Text(languageViewModel.getString(StringKey.CALORIES_LABEL)) },
                     modifier = Modifier.weight(1f),
-                    shape = MaterialTheme.shapes.medium,
+                    shape = RoundedCornerShape(14.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     colors = tfColors
@@ -171,7 +169,7 @@ fun AddEditMealSheet(
                     onValueChange = { protein = it.filter { c -> c.isDigit() } },
                     label = { Text(languageViewModel.getString(StringKey.PROTEIN_LABEL)) },
                     modifier = Modifier.weight(1f),
-                    shape = MaterialTheme.shapes.medium,
+                    shape = RoundedCornerShape(14.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     colors = tfColors
@@ -187,7 +185,7 @@ fun AddEditMealSheet(
                     onValueChange = { carbs = it.filter { c -> c.isDigit() } },
                     label = { Text(languageViewModel.getString(StringKey.CARBS_LABEL)) },
                     modifier = Modifier.weight(1f),
-                    shape = MaterialTheme.shapes.medium,
+                    shape = RoundedCornerShape(14.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     colors = tfColors
@@ -197,7 +195,7 @@ fun AddEditMealSheet(
                     onValueChange = { fat = it.filter { c -> c.isDigit() } },
                     label = { Text(languageViewModel.getString(StringKey.FAT_LABEL)) },
                     modifier = Modifier.weight(1f),
-                    shape = MaterialTheme.shapes.medium,
+                    shape = RoundedCornerShape(14.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     colors = tfColors
@@ -209,33 +207,21 @@ fun AddEditMealSheet(
                 onValueChange = { prepTime = it.filter { c -> c.isDigit() } },
                 label = { Text(languageViewModel.getString(StringKey.PREP_TIME_LABEL)) },
                 modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
+                shape = RoundedCornerShape(14.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
                 colors = tfColors
             )
 
             Column {
-                Text(
-                    text = languageViewModel.getString(StringKey.INGREDIENTS),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                SectionLabel(languageViewModel.getString(StringKey.INGREDIENTS))
                 Spacer(modifier = Modifier.height(8.dp))
                 ingredients.forEachIndexed { index, ingredient ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.surface)
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    GlassRow {
                         Text(
                             text = ingredient,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = c.textHi,
                             modifier = Modifier.weight(1f)
                         )
                         IconButton(
@@ -250,7 +236,7 @@ fun AddEditMealSheet(
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -262,49 +248,27 @@ fun AddEditMealSheet(
                         onValueChange = { newIngredient = it },
                         placeholder = { Text(languageViewModel.getString(StringKey.INGREDIENT_HINT)) },
                         modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.medium,
+                        shape = RoundedCornerShape(14.dp),
                         singleLine = true,
                         colors = tfColors
                     )
-                    IconButton(
+                    GoldAddButton(
+                        contentDescription = languageViewModel.getString(StringKey.ADD_INGREDIENT),
                         onClick = {
                             if (newIngredient.isNotBlank()) {
                                 ingredients = ingredients + newIngredient.trim()
                                 newIngredient = ""
                             }
-                        },
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.primary)
-                    ) {
-                        Icon(
-                            TablerIcons.Plus,
-                            contentDescription = languageViewModel.getString(StringKey.ADD_INGREDIENT),
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                        }
+                    )
                 }
             }
 
             Column {
-                Text(
-                    text = languageViewModel.getString(StringKey.INSTRUCTIONS),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                SectionLabel(languageViewModel.getString(StringKey.INSTRUCTIONS))
                 Spacer(modifier = Modifier.height(8.dp))
                 instructions.forEachIndexed { index, instruction ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.surface)
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    GlassRow {
                         Text(
                             text = "${index + 1}.",
                             style = MaterialTheme.typography.bodyMedium,
@@ -315,7 +279,7 @@ fun AddEditMealSheet(
                         Text(
                             text = instruction,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = c.textHi,
                             modifier = Modifier.weight(1f)
                         )
                         IconButton(
@@ -330,7 +294,7 @@ fun AddEditMealSheet(
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -342,62 +306,45 @@ fun AddEditMealSheet(
                         onValueChange = { newInstruction = it },
                         placeholder = { Text(languageViewModel.getString(StringKey.INSTRUCTION_HINT)) },
                         modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.medium,
+                        shape = RoundedCornerShape(14.dp),
                         singleLine = true,
                         colors = tfColors
                     )
-                    IconButton(
+                    GoldAddButton(
+                        contentDescription = languageViewModel.getString(StringKey.ADD_INSTRUCTION),
                         onClick = {
                             if (newInstruction.isNotBlank()) {
                                 instructions = instructions + newInstruction.trim()
                                 newInstruction = ""
                             }
-                        },
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.primary)
-                    ) {
-                        Icon(
-                            TablerIcons.Plus,
-                            contentDescription = languageViewModel.getString(StringKey.ADD_INSTRUCTION),
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                        }
+                    )
                 }
             }
 
             Column {
-                Text(
-                    text = languageViewModel.getString(StringKey.DIETARY_TAGS),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                SectionLabel(languageViewModel.getString(StringKey.DIETARY_TAGS))
                 Spacer(modifier = Modifier.height(8.dp))
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     availableTags.forEach { tag ->
-                        FilterChip(
+                        GlassChip(
+                            text = tag,
                             selected = selectedTags.contains(tag),
                             onClick = {
                                 selectedTags = if (selectedTags.contains(tag))
                                     selectedTags - tag else selectedTags + tag
-                            },
-                            label = { Text(tag) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
+                            }
                         )
                     }
                 }
             }
 
-            Button(
+            GoldButton(
+                text = languageViewModel.getString(StringKey.SAVE_MEAL),
+                enabled = canSave,
                 onClick = {
                     val meal = Meal(
                         id = existingMeal?.id ?: "manual_${Uuid.random()}",
@@ -415,18 +362,60 @@ fun AddEditMealSheet(
                     )
                     onSave(meal)
                 },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = canSave,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(languageViewModel.getString(StringKey.SAVE_MEAL))
-            }
+                modifier = Modifier.fillMaxWidth()
+            )
 
             Spacer(modifier = Modifier.height(32.dp))
         }
+    }
+}
+
+@Composable
+private fun SectionLabel(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        color = TajlyTheme.colors.textHi
+    )
+}
+
+@Composable
+private fun GlassRow(content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit) {
+    val c = TajlyTheme.colors
+    val shape = RoundedCornerShape(12.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(c.glassFill, shape)
+            .border(1.dp, c.hairStrong, shape)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        content = content
+    )
+}
+
+@Composable
+private fun GoldAddButton(
+    contentDescription: String,
+    onClick: () -> Unit
+) {
+    val interaction = remember { MutableInteractionSource() }
+    Box(
+        modifier = Modifier
+            .pressScale(interaction)
+            .size(48.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(Tajly.GoldGradient)
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            TablerIcons.Plus,
+            contentDescription = contentDescription,
+            tint = OnGold,
+            modifier = Modifier.size(22.dp)
+        )
     }
 }

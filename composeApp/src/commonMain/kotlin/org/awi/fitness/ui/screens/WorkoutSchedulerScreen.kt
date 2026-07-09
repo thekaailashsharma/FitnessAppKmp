@@ -1,15 +1,16 @@
 package org.awi.fitness.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import compose.icons.TablerIcons
@@ -18,24 +19,37 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import compose.icons.SimpleIcons
-import compose.icons.simpleicons.Googlecalendar
-import compose.icons.tablericons.ArrowLeft
-import compose.icons.tablericons.Calendar
-import compose.icons.tablericons.CalendarEvent
-import compose.icons.tablericons.CalendarOff
-import compose.icons.tablericons.CalendarStats
+import fitnessappkmp.composeapp.generated.resources.Res
+import fitnessappkmp.composeapp.generated.resources.ic3d_calendar
+import fitnessappkmp.composeapp.generated.resources.ic3d_gym
 import kotlinx.datetime.*
 import org.awi.fitness.data.*
+import org.awi.fitness.theme.GoldBright
+import org.awi.fitness.theme.GoldPrimary
+import org.awi.fitness.theme.OnGold
+import org.awi.fitness.theme.Tajly
+import org.awi.fitness.theme.TajlyTheme
+import org.awi.fitness.theme.pressScale
+import org.awi.fitness.ui.components.AuroraBackground
+import org.awi.fitness.ui.components.EmptyState
+import org.awi.fitness.ui.components.GlassCard
+import org.awi.fitness.ui.components.GlassChip
+import org.awi.fitness.ui.components.GlassTier
+import org.awi.fitness.ui.components.GoldButton
+import org.awi.fitness.ui.components.ProvideGlass
+import org.awi.fitness.ui.components.glassSource
 import org.awi.fitness.viewmodel.LanguageViewModel
+import org.jetbrains.compose.resources.painterResource
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.hours
 import kotlin.uuid.ExperimentalUuidApi
@@ -48,85 +62,118 @@ class WorkoutSchedulerScreen : Screen {
         val userSettings = UserSettings.getInstance()
         val navigator = LocalNavigator.currentOrThrow
         val workoutSchedules by userSettings.workoutSchedules.collectAsState()
-        
+
         var selectedDate by remember { mutableStateOf(org.awi.fitness.utils.todayLocalDate()) }
         var showAddDialog by remember { mutableStateOf(false) }
         var selectedSchedule by remember { mutableStateOf<WorkoutSchedule?>(null) }
         var viewMode by remember { mutableStateOf(ViewMode.WEEK) }
+        val c = TajlyTheme.colors
 
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text("Workout Schedule") },
-                    navigationIcon = {
-                        IconButton(onClick = { navigator.pop() }) {
-                            Icon(
-                                imageVector = TablerIcons.ArrowLeft,
-                                contentDescription = "Back"
-                            )
-                        }
-                    },
-                    actions = {
-                        TextButton(
-                            onClick = { 
-                                selectedDate = org.awi.fitness.utils.todayLocalDate() 
+        // Dates that have at least one scheduled session — drives the calendar dots.
+        val sessionDates = remember(workoutSchedules) {
+            workoutSchedules.map {
+                Instant.fromEpochMilliseconds(it.startTime)
+                    .toLocalDateTime(TimeZone.currentSystemDefault()).date
+            }.toSet()
+        }
+
+        val schedules = remember(workoutSchedules, selectedDate) {
+            workoutSchedules.filter {
+                val scheduleDate = Instant.fromEpochMilliseconds(it.startTime)
+                    .toLocalDateTime(TimeZone.currentSystemDefault()).date
+                scheduleDate == selectedDate
+            }.sortedBy { it.startTime } // light hour-ordered list
+        }
+
+        ProvideGlass {
+            Box(modifier = Modifier.fillMaxSize().background(c.bg)) {
+                AuroraBackground(modifier = Modifier.fillMaxSize().glassSource()) {}
+
+                Scaffold(
+                    containerColor = Color.Transparent,
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("Workout Schedule", fontWeight = FontWeight.Bold) },
+                            navigationIcon = {
+                                IconButton(onClick = { navigator.pop() }) {
+                                    Icon(
+                                        imageVector = TablerIcons.ArrowLeft,
+                                        contentDescription = "Back"
+                                    )
+                                }
                             },
-                            colors = ButtonDefaults.textButtonColors(
-                                contentColor = MaterialTheme.colorScheme.primary
+                            actions = {
+                                IconButton(onClick = { showAddDialog = true }) {
+                                    Icon(TablerIcons.Plus, contentDescription = "Add Workout", tint = GoldPrimary)
+                                }
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = Color.Transparent,
+                                titleContentColor = c.textHi,
+                                navigationIconContentColor = c.textHi
                             )
-                        ) {
-                            Icon(
-                                TablerIcons.CalendarStats,
-                                contentDescription = "Go to Today",
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Today")
-                        }
-                        
-                        IconButton(onClick = { viewMode = if (viewMode == ViewMode.WEEK) ViewMode.MONTH else ViewMode.WEEK }) {
-                            Icon(
-                                if (viewMode == ViewMode.WEEK) SimpleIcons.Googlecalendar else TablerIcons.CalendarEvent,
-                                contentDescription = "Toggle View"
-                            )
-                        }
-                        IconButton(onClick = { showAddDialog = true }) {
-                            Icon(TablerIcons.Plus, contentDescription = "Add Workout")
-                        }
-                    }
-                )
-            }
-        ) { padding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-            ) {
-                CalendarHeader(
-                    selectedDate = selectedDate,
-                    onDateSelected = { selectedDate = it },
-                    viewMode = viewMode
-                )
-
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    val schedules = workoutSchedules.filter {
-                        val scheduleDate = Instant.fromEpochMilliseconds(it.startTime)
-                            .toLocalDateTime(TimeZone.currentSystemDefault()).date
-                        scheduleDate == selectedDate
-                    }
-
-                    items(schedules) { schedule ->
-                        WorkoutCard(
-                            schedule = schedule,
-                            onEdit = { selectedSchedule = schedule },
-                            onDelete = { userSettings.deleteWorkoutSchedule(schedule.id) }
                         )
+                    }
+                ) { padding ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding)
+                    ) {
+                        CalendarHeader(
+                            selectedDate = selectedDate,
+                            onDateSelected = { selectedDate = it },
+                            viewMode = viewMode,
+                            onViewModeChange = { viewMode = it },
+                            onToday = { selectedDate = org.awi.fitness.utils.todayLocalDate() },
+                            sessionDates = sessionDates
+                        )
+
+                        if (schedules.isEmpty()) {
+                            EmptyState(
+                                title = "No workouts scheduled",
+                                subtitle = "Tap + to plan a session for this day.",
+                                modifier = Modifier.fillMaxWidth().weight(1f),
+                                icon = {
+                                    Image(
+                                        painter = painterResource(Res.drawable.ic3d_calendar),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(96.dp)
+                                    )
+                                },
+                                cta = {
+                                    GoldButton(
+                                        text = "Add Workout",
+                                        onClick = { showAddDialog = true }
+                                    )
+                                }
+                            )
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                item {
+                                    Text(
+                                        text = "${selectedDate.prettyDay()} · ${schedules.size} ${if (schedules.size == 1) "session" else "sessions"}",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = c.textMid
+                                    )
+                                }
+                                itemsIndexed(schedules, key = { _, s -> s.id }) { index, schedule ->
+                                    WorkoutCard(
+                                        schedule = schedule,
+                                        index = index,
+                                        onEdit = { selectedSchedule = schedule },
+                                        onDelete = { userSettings.deleteWorkoutSchedule(schedule.id) }
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -159,29 +206,77 @@ class WorkoutSchedulerScreen : Screen {
 private fun CalendarHeader(
     selectedDate: LocalDate,
     onDateSelected: (LocalDate) -> Unit,
-    viewMode: ViewMode
+    viewMode: ViewMode,
+    onViewModeChange: (ViewMode) -> Unit,
+    onToday: () -> Unit,
+    sessionDates: Set<LocalDate>
 ) {
     val today = remember { org.awi.fitness.utils.todayLocalDate() }
-    
-    Column(
+    val c = TajlyTheme.colors
+
+    GlassCard(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(16.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        shape = RoundedCornerShape(24.dp),
+        goldTint = true,
+        tier = GlassTier.Hero
     ) {
-        Text(
-            text = when (viewMode) {
-                ViewMode.WEEK -> "Week of ${selectedDate.month} ${selectedDate.year}"
-                ViewMode.MONTH -> "${selectedDate.month} ${selectedDate.year}"
-            },
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = when (viewMode) {
+                            ViewMode.WEEK -> "Week of"
+                            ViewMode.MONTH -> "Month of"
+                        }.uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = GoldBright
+                    )
+                    Text(
+                        text = "${selectedDate.month.pretty()} ${selectedDate.year}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = c.textHi
+                    )
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .clickable(onClick = onToday)
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Icon(
+                        TablerIcons.CalendarStats,
+                        contentDescription = "Go to Today",
+                        tint = GoldPrimary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "Today",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = GoldPrimary
+                    )
+                }
+            }
 
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
+            Spacer(Modifier.height(14.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                GlassChip(text = "Week", selected = viewMode == ViewMode.WEEK, onClick = { onViewModeChange(ViewMode.WEEK) })
+                GlassChip(text = "Month", selected = viewMode == ViewMode.MONTH, onClick = { onViewModeChange(ViewMode.MONTH) })
+            }
+
+            Spacer(Modifier.height(14.dp))
+
             val dates = when (viewMode) {
                 ViewMode.WEEK -> {
                     val firstDayOfWeek = selectedDate.minus(DatePeriod(days = selectedDate.dayOfWeek.isoDayNumber - 1))
@@ -198,13 +293,19 @@ private fun CalendarHeader(
                 }
             }
 
-            items(dates) { date ->
-                DateCell(
-                    date = date,
-                    isSelected = date == selectedDate,
-                    isToday = date == today,
-                    onClick = { onDateSelected(date) }
-                )
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(dates) { date ->
+                    DateCell(
+                        date = date,
+                        isSelected = date == selectedDate,
+                        isToday = date == today,
+                        hasSession = sessionDates.contains(date),
+                        onClick = { onDateSelected(date) }
+                    )
+                }
             }
         }
     }
@@ -225,104 +326,201 @@ private fun DateCell(
     date: LocalDate,
     isSelected: Boolean,
     isToday: Boolean,
+    hasSession: Boolean,
     onClick: () -> Unit
 ) {
+    val c = TajlyTheme.colors
+    val contentColor = when {
+        isSelected -> OnGold
+        isToday -> GoldPrimary
+        else -> c.textHi
+    }
+    val interaction = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier
-            .size(44.dp)
-            .clip(CircleShape)
-            .background(
+            .pressScale(interaction)
+            .width(46.dp)
+            .height(64.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .then(
                 when {
-                    isSelected -> MaterialTheme.colorScheme.primary
-                    isToday -> MaterialTheme.colorScheme.tertiaryContainer
-                    else -> Color.Transparent
+                    isSelected -> Modifier.background(Tajly.GoldGradient)
+                    isToday -> Modifier.background(GoldPrimary.copy(alpha = 0.12f))
+                    else -> Modifier.background(c.glassFill, RoundedCornerShape(18.dp))
                 }
             )
-            .clickable(onClick = onClick),
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
             Text(
                 text = DAY_LABELS_SHORT[date.dayOfWeek] ?: "",
                 style = MaterialTheme.typography.labelSmall,
                 fontSize = 9.sp,
-                color = when {
-                    isSelected -> MaterialTheme.colorScheme.onPrimary
-                    isToday -> MaterialTheme.colorScheme.onTertiaryContainer
-                    else -> MaterialTheme.colorScheme.onSurface
-                }
+                color = if (isSelected) OnGold else c.textMid
             )
             Text(
                 text = date.dayOfMonth.toString(),
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Medium
                 ),
-                color = when {
-                    isSelected -> MaterialTheme.colorScheme.onPrimary
-                    isToday -> MaterialTheme.colorScheme.onTertiaryContainer
-                    else -> MaterialTheme.colorScheme.onSurface
-                }
+                color = contentColor
+            )
+            // Session/today dot — fixed slot so all cells align.
+            Box(
+                modifier = Modifier
+                    .size(5.dp)
+                    .clip(CircleShape)
+                    .background(
+                        when {
+                            isSelected -> OnGold.copy(alpha = if (hasSession) 0.9f else 0f)
+                            isToday -> GoldPrimary
+                            hasSession -> c.textMid
+                            else -> Color.Transparent
+                        }
+                    )
             )
         }
     }
 }
 
+/** Section accent per workout type — colorful identity, gold stays reserved for CTA/time. */
+private fun workoutTypeColor(type: WorkoutType): Color = when (type) {
+    WorkoutType.CARDIO -> Tajly.Coral
+    WorkoutType.STRENGTH -> Tajly.Violet
+    WorkoutType.FLEXIBILITY -> Tajly.Teal
+    WorkoutType.HIIT -> Tajly.Pink
+    WorkoutType.YOGA -> Tajly.Green
+    WorkoutType.OTHER -> Tajly.Blue
+}
+
 @Composable
 private fun WorkoutCard(
     schedule: WorkoutSchedule,
+    index: Int,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Card(
+    val c = TajlyTheme.colors
+    val accent = workoutTypeColor(schedule.workoutType)
+
+    // One-time fade + rise on appearance (replays when the day's list changes).
+    var appeared by remember(schedule.id) { mutableStateOf(false) }
+    LaunchedEffect(schedule.id) { appeared = true }
+    val enter by animateFloatAsState(
+        targetValue = if (appeared) 1f else 0f,
+        animationSpec = tween(durationMillis = 320, delayMillis = index * 55),
+        label = "cardEnter"
+    )
+    val interaction = remember { MutableInteractionSource() }
+
+    GlassCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onEdit),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(schedule.color).copy(alpha = 0.1f)
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = schedule.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = schedule.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        TablerIcons.Calendar,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = formatTime(schedule.startTime) + " - " + formatTime(schedule.endTime),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+            .graphicsLayer {
+                alpha = enter
+                translationY = (1f - enter) * 22.dp.toPx()
             }
-            
-            Row {
-                IconButton(onClick = onEdit) {
-                    Icon(TablerIcons.Edit, contentDescription = "Edit")
+            .pressScale(interaction)
+            .clickable(interactionSource = interaction, indication = null, onClick = onEdit),
+        shape = RoundedCornerShape(22.dp)
+    ) {
+        Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+            // Left accent rail — colorful type identity.
+            Box(
+                modifier = Modifier
+                    .padding(vertical = 14.dp)
+                    .padding(start = 14.dp)
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(accent)
+            )
+
+            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Tajly.sectionGlow(accent)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(Res.drawable.ic3d_gym),
+                            contentDescription = null,
+                            modifier = Modifier.size(34.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(14.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = schedule.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = c.textHi
+                        )
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                TablerIcons.Clock,
+                                contentDescription = null,
+                                modifier = Modifier.size(15.dp),
+                                tint = GoldPrimary
+                            )
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(
+                                text = formatTime(schedule.startTime) + " – " + formatTime(schedule.endTime),
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = GoldPrimary
+                            )
+                        }
+                    }
+
+                    // Type chip — quiet, colored by section.
+                    Text(
+                        text = schedule.workoutType.name.lowercase().replaceFirstChar { it.uppercase() },
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = accent,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(accent.copy(alpha = 0.14f))
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
                 }
-                IconButton(onClick = onDelete) {
-                    Icon(TablerIcons.Trash, contentDescription = "Delete")
+
+                if (schedule.description.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = schedule.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = c.textMid
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onEdit, modifier = Modifier.size(36.dp)) {
+                        Icon(TablerIcons.Edit, contentDescription = "Edit", tint = c.textMid, modifier = Modifier.size(18.dp))
+                    }
+                    IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
+                        Icon(TablerIcons.Trash, contentDescription = "Delete", tint = Tajly.Coral, modifier = Modifier.size(18.dp))
+                    }
                 }
             }
         }
@@ -344,7 +542,7 @@ private fun WorkoutScheduleDialog(
     var recurringType by remember { mutableStateOf(schedule?.recurringType ?: RecurringType.NONE) }
     var workoutTypeExpanded by remember { mutableStateOf(false) }
     var recurringTypeExpanded by remember { mutableStateOf(false) }
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
@@ -359,14 +557,14 @@ private fun WorkoutScheduleDialog(
                     label = { Text(languageViewModel.getString(StringKey.TITLE)) },
                     modifier = Modifier.fillMaxWidth()
                 )
-                
+
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
                     label = { Text(languageViewModel.getString(StringKey.DESCRIPTION)) },
                     modifier = Modifier.fillMaxWidth()
                 )
-                
+
                 ExposedDropdownMenuBox(
                     expanded = workoutTypeExpanded,
                     onExpandedChange = { workoutTypeExpanded = it },
@@ -453,7 +651,8 @@ private fun WorkoutScheduleDialog(
             }
         },
         confirmButton = {
-            Button(
+            GoldButton(
+                text = if (schedule == null) languageViewModel.getString(StringKey.ADD) else languageViewModel.getString(StringKey.SAVE),
                 onClick = {
                     val now = org.awi.fitness.utils.currentInstant().toLocalDateTime(TimeZone.currentSystemDefault())
                     val scheduledDateTime = LocalDateTime(
@@ -478,13 +677,11 @@ private fun WorkoutScheduleDialog(
                     )
                     onSave(newSchedule)
                 }
-            ) {
-                Text(if (schedule == null) languageViewModel.getString(StringKey.ADD) else languageViewModel.getString(StringKey.SAVE))
-            }
+            )
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(languageViewModel.getString(StringKey.CANCEL))
+                Text(languageViewModel.getString(StringKey.CANCEL), color = TajlyTheme.colors.textMid)
             }
         }
     )
@@ -492,6 +689,14 @@ private fun WorkoutScheduleDialog(
 
 private enum class ViewMode {
     WEEK, MONTH
+}
+
+private fun Month.pretty(): String =
+    name.lowercase().replaceFirstChar { it.uppercase() }
+
+private fun LocalDate.prettyDay(): String {
+    val dow = dayOfWeek.name.lowercase().replaceFirstChar { it.uppercase() }
+    return "$dow, ${month.pretty()} $dayOfMonth"
 }
 
 private fun formatTime(timestamp: Long): String {

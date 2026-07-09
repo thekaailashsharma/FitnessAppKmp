@@ -17,7 +17,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathFillType
+import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
@@ -264,3 +267,112 @@ private data class BurstParticle(
     val size: Float,
     val color: Color,
 )
+
+/**
+ * District-style draw-on TAJLY logo: construction lines draw in, the chunky
+ * custom letterforms stroke on (via PathMeasure), then fill with solid gold.
+ * Drives [onAnimationComplete] after the sequence (same contract the splash routing expects).
+ * Custom original glyphs — not a trace of any third-party logo.
+ */
+@Composable
+fun TajlyDrawOnLogo(
+    modifier: Modifier = Modifier,
+    onAnimationComplete: () -> Unit = {},
+) {
+    var started by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(120)
+        started = true
+        delay(2900)
+        onAnimationComplete()
+    }
+    val lines by animateFloatAsState(
+        targetValue = if (started) 1f else 0f,
+        animationSpec = tween(700, easing = FastOutSlowInEasing), label = "cl",
+    )
+    val draw by animateFloatAsState(
+        targetValue = if (started) 1f else 0f,
+        animationSpec = tween(1400, delayMillis = 500, easing = FastOutSlowInEasing), label = "draw",
+    )
+    val fill by animateFloatAsState(
+        targetValue = if (started) 1f else 0f,
+        animationSpec = tween(700, delayMillis = 1750, easing = FastOutSlowInEasing), label = "fill",
+    )
+
+    val goldStroke = Brush.linearGradient(listOf(Color(0xFFF4E3B0), TajlyGoldBright, TajlyGold))
+    val goldFill = Brush.linearGradient(listOf(TajlyGoldBright, TajlyGold, Color(0xFFA8873A)))
+
+    Canvas(modifier = modifier.fillMaxWidth().height(168.dp)) {
+        val sx = size.width / 760f
+        val sy = size.height / 220f
+        fun bx(v: Float) = v * sx
+        fun by(v: Float) = v * sy
+
+        // construction lines (draw in first)
+        val cl = arrayOf(
+            floatArrayOf(118f, -34f, 150f, 246f),
+            floatArrayOf(38f, 118f, 744f, 118f),
+            floatArrayOf(-24f, 150f, 788f, 140f),
+            floatArrayOf(430f, -44f, 468f, 254f),
+            floatArrayOf(696f, -20f, 660f, 216f),
+            floatArrayOf(248f, 254f, 222f, 16f),
+            floatArrayOf(566f, 248f, 602f, 24f),
+        )
+        cl.forEach { a ->
+            val s = Offset(bx(a[0]), by(a[1]))
+            val e = Offset(bx(a[2]), by(a[3]))
+            drawLine(
+                color = TajlyGold.copy(alpha = 0.45f * lines),
+                start = s,
+                end = Offset(s.x + (e.x - s.x) * lines, s.y + (e.y - s.y) * lines),
+                strokeWidth = 1.5f,
+            )
+        }
+
+        // chunky letterforms (custom)
+        val letters = buildList {
+            add(Path().apply {
+                moveTo(bx(52f), by(46f)); lineTo(bx(196f), by(46f)); lineTo(bx(196f), by(80f))
+                lineTo(bx(142f), by(80f)); lineTo(bx(142f), by(172f)); lineTo(bx(106f), by(172f))
+                lineTo(bx(106f), by(80f)); lineTo(bx(52f), by(80f)); close()
+            })
+            add(Path().apply {
+                fillType = PathFillType.EvenOdd
+                moveTo(bx(208f), by(172f)); lineTo(bx(262f), by(46f)); lineTo(bx(304f), by(46f))
+                lineTo(bx(358f), by(172f)); lineTo(bx(320f), by(172f)); lineTo(bx(309f), by(140f))
+                lineTo(bx(257f), by(140f)); lineTo(bx(246f), by(172f)); close()
+                moveTo(bx(283f), by(86f)); lineTo(bx(300f), by(128f)); lineTo(bx(266f), by(128f)); close()
+            })
+            add(Path().apply {
+                moveTo(bx(430f), by(46f)); lineTo(bx(464f), by(46f)); lineTo(bx(464f), by(140f))
+                quadraticTo(bx(464f), by(172f), bx(430f), by(172f)); lineTo(bx(404f), by(172f))
+                quadraticTo(bx(376f), by(172f), bx(376f), by(148f)); lineTo(bx(376f), by(134f))
+                lineTo(bx(406f), by(134f)); lineTo(bx(406f), by(146f))
+                quadraticTo(bx(406f), by(150f), bx(412f), by(150f)); lineTo(bx(424f), by(150f))
+                quadraticTo(bx(434f), by(150f), bx(434f), by(140f)); lineTo(bx(434f), by(46f)); close()
+            })
+            add(Path().apply {
+                moveTo(bx(496f), by(46f)); lineTo(bx(530f), by(46f)); lineTo(bx(530f), by(140f))
+                lineTo(bx(592f), by(140f)); lineTo(bx(592f), by(172f)); lineTo(bx(496f), by(172f)); close()
+            })
+            add(Path().apply {
+                moveTo(bx(600f), by(46f)); lineTo(bx(638f), by(46f)); lineTo(bx(670f), by(104f))
+                lineTo(bx(702f), by(46f)); lineTo(bx(740f), by(46f)); lineTo(bx(688f), by(122f))
+                lineTo(bx(688f), by(172f)); lineTo(bx(652f), by(172f)); lineTo(bx(652f), by(122f)); close()
+            })
+        }
+
+        // fill (fades in under the outline)
+        if (fill > 0f) {
+            letters.forEach { drawPath(it, brush = goldFill, alpha = (fill * 0.92f).coerceIn(0f, 1f)) }
+        }
+        // outline draws on
+        val pm = PathMeasure()
+        letters.forEach { path ->
+            pm.setPath(path, false)
+            val seg = Path()
+            pm.getSegment(0f, pm.length * draw, seg, true)
+            drawPath(seg, brush = goldStroke, style = Stroke(width = 2.6f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+        }
+    }
+}

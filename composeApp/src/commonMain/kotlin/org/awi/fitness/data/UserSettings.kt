@@ -4,6 +4,8 @@ import com.russhwolf.settings.Settings
 import com.russhwolf.settings.get
 import com.russhwolf.settings.set
 import kotlinx.coroutines.InternalCoroutinesApi
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -88,12 +90,45 @@ class UserSettings internal constructor(internal val settings: Settings) {
         private const val KEY_USER_BIO = "user_bio"
         private const val KEY_PROFILE_PHOTO_URL = "profile_photo_url"
         private const val KEY_CURRENT_STREAK = "current_streak"
+        private const val KEY_LONGEST_STREAK = "longest_streak"
+        private const val KEY_CACHED_FCM_TOKEN = "cached_fcm_token"
+        private const val KEY_BLOCKED_USERS = "blocked_user_ids"
         private const val KEY_LAST_WORKOUT_DATE = "last_workout_date"
         private const val KEY_TOTAL_XP = "total_xp"
         private const val KEY_USER_LEVEL = "user_level"
+        private const val KEY_WORKOUTS_COMPLETED = "workouts_completed"
+        private const val KEY_CHALLENGES_COMPLETED = "challenges_completed"
+        private const val KEY_EARNED_BADGES = "earned_badges"
+        private const val KEY_CHALLENGE_DAILY_ADVANCES = "challenge_daily_advances"
+
+        /** Single source of truth for XP→level; level = totalXp / XP_PER_LEVEL + 1. */
+        const val XP_PER_LEVEL = 500
+        /** XP granted for completing a daily check-in. */
+        const val CHECK_IN_XP = 20
         private const val KEY_FITNESS_GOAL = "fitness_goal"
         private const val KEY_FITNESS_LEVEL = "fitness_level"
         private const val KEY_WORKOUT_DAYS = "workout_days_per_week"
+        private const val KEY_SOCIAL_LINKS = "social_links"
+        private const val KEY_COMMUNITY_BANNER = "community_banner"
+        private const val KEY_COMMUNITY_INTRO_SEEN = "community_intro_seen"
+        private const val KEY_SCAN_LOG = "scan_log"
+        private const val KEY_BACKDROPS_CONFIG = "backdrops_config"
+        private const val KEY_BACKDROPS_CACHE = "backdrops_cache"
+        private const val KEY_BACKDROPS_LAST_FETCH = "backdrops_last_fetch"
+        private const val KEY_BACKDROPS_SELECTION = "backdrops_selection"
+        private const val KEY_SELECTED_HOME_BACKDROP = "selected_home_backdrop"
+        private const val KEY_PROFILE_HEIGHT_CM = "profile_height_cm"
+        private const val KEY_PROFILE_WEIGHT_KG = "profile_weight_kg"
+        private const val KEY_PROFILE_AGE = "profile_age"
+        private const val KEY_PROFILE_GENDER = "profile_gender"
+        private const val KEY_ONBOARDING_STEP = "onboarding_step"
+        private const val KEY_PREMIUM_LAST_VERIFIED = "premium_last_verified_at"
+        private const val KEY_PREMIUM_GRACE_HOURS = "premium_grace_hours"
+        private const val KEY_SUBCFG_SHOW_REFUND = "subcfg_show_refund"
+        private const val KEY_SUBCFG_SHOW_PLAN_SWITCH = "subcfg_show_plan_switch"
+        private const val KEY_SUBCFG_SHOW_PURCHASE_HISTORY = "subcfg_show_purchase_history"
+        private const val KEY_SUBCFG_SHOW_INVOICES = "subcfg_show_invoices"
+        private const val KEY_SUBCFG_SUPPORT_URL = "subcfg_support_url"
 
         private var instance: UserSettings? = null
 
@@ -182,9 +217,105 @@ class UserSettings internal constructor(internal val settings: Settings) {
             settings[KEY_PROFILE_PHOTO_URL] = value
         }
 
+    /** Community social links (newline-separated: website / handle / other), persisted locally. */
+    var socialLinks: String?
+        get() = settings[KEY_SOCIAL_LINKS]
+        set(value) {
+            settings[KEY_SOCIAL_LINKS] = value
+        }
+
+    /** Chosen community cover banner (drawable name), persisted locally. */
+    var communityBanner: String?
+        get() = settings[KEY_COMMUNITY_BANNER]
+        set(value) {
+            settings[KEY_COMMUNITY_BANNER] = value
+        }
+
+    /** Whether the community "constellation" intro has been shown once. */
+    var communityIntroSeen: Boolean
+        get() = settings[KEY_COMMUNITY_INTRO_SEEN, false]
+        set(value) {
+            settings[KEY_COMMUNITY_INTRO_SEEN] = value
+        }
+
+    /** Locally-journaled AI meal-scan results (JSON array). */
+    var scanLog: String
+        get() = settings[KEY_SCAN_LOG, "[]"]
+        set(value) {
+            settings[KEY_SCAN_LOG] = value
+        }
+
+    // ── Remote-controllable backdrops (additive; degrade to bundled drawables) ──
+
+    /** Cached remote app configuration for backdrops, as JSON (null until first fetch). */
+    var backdropsConfig: String?
+        get() = settings[KEY_BACKDROPS_CONFIG]
+        set(value) {
+            settings[KEY_BACKDROPS_CONFIG] = value
+        }
+
+    /** Cached list of remote backdrops, as a JSON array (defaults to empty). */
+    var backdropsCache: String
+        get() = settings[KEY_BACKDROPS_CACHE, "[]"]
+        set(value) {
+            settings[KEY_BACKDROPS_CACHE] = value
+        }
+
+    /** Epoch millis of the last successful backdrop fetch (0 = never). */
+    var backdropsLastFetch: Long
+        get() = settings[KEY_BACKDROPS_LAST_FETCH, 0L]
+        set(value) {
+            settings[KEY_BACKDROPS_LAST_FETCH] = value
+        }
+
+    /** Memoized per-surface backdrop selection, as a JSON object (defaults to empty). */
+    var backdropsSelection: String
+        get() = settings[KEY_BACKDROPS_SELECTION, "{}"]
+        set(value) {
+            settings[KEY_BACKDROPS_SELECTION] = value
+        }
+
+    private val _selectedHomeBackdropFlow =
+        MutableStateFlow(settings.getStringOrNull(KEY_SELECTED_HOME_BACKDROP))
+
+    /** The user's chosen Home backdrop id, or null when following the theme-aware default. */
+    val selectedHomeBackdropFlow: StateFlow<String?> = _selectedHomeBackdropFlow.asStateFlow()
+
+    /** The bundled drawable id the user picked as their Home backdrop (null = automatic default). */
+    var selectedHomeBackdrop: String?
+        get() = settings.getStringOrNull(KEY_SELECTED_HOME_BACKDROP)
+        set(value) {
+            if (value.isNullOrBlank()) {
+                settings.remove(KEY_SELECTED_HOME_BACKDROP)
+            } else {
+                settings[KEY_SELECTED_HOME_BACKDROP] = value
+            }
+            _selectedHomeBackdropFlow.value = value
+        }
+
     var currentStreak: Int
         get() = settings[KEY_CURRENT_STREAK, 0]
         set(value) { settings[KEY_CURRENT_STREAK] = value }
+
+    /** Best streak ever reached — powers "you're 1 day from your record" push moments. */
+    var longestStreak: Int
+        get() = settings[KEY_LONGEST_STREAK, 0]
+        set(value) { settings[KEY_LONGEST_STREAK] = value }
+
+    /** FCM token handed over from the iOS Firebase SDK (Swift) — read on login to register. */
+    var cachedFcmToken: String?
+        get() = settings[KEY_CACHED_FCM_TOKEN, ""].ifBlank { null }
+        set(value) { settings[KEY_CACHED_FCM_TOKEN] = value ?: "" }
+
+    /** User IDs (emails) the user has blocked — their posts are filtered out of the feed.
+     *  Required for App Store UGC compliance (Guideline 1.2). */
+    var blockedUserIds: Set<String>
+        get() = try { Json.decodeFromString(settings[KEY_BLOCKED_USERS, "[]"]) } catch (_: Exception) { emptySet() }
+        set(value) { settings[KEY_BLOCKED_USERS] = Json.encodeToString(value) }
+
+    fun blockUser(userId: String) {
+        if (userId.isNotBlank()) blockedUserIds = blockedUserIds + userId
+    }
 
     var lastWorkoutDate: String
         get() = settings[KEY_LAST_WORKOUT_DATE, ""]
@@ -198,12 +329,39 @@ class UserSettings internal constructor(internal val settings: Settings) {
         get() = settings[KEY_USER_LEVEL, 1]
         set(value) { settings[KEY_USER_LEVEL] = value }
 
-    fun recordWorkoutCompleted() {
+    /** Total workouts completed (lifetime) — drives the "First Steps" achievement. */
+    var workoutsCompleted: Int
+        get() = settings[KEY_WORKOUTS_COMPLETED, 0]
+        set(value) { settings[KEY_WORKOUTS_COMPLETED] = value }
+
+    /** Total challenges completed (lifetime) — drives challenge achievements. */
+    var challengesCompleted: Int
+        get() = settings[KEY_CHALLENGES_COMPLETED, 0]
+        set(value) { settings[KEY_CHALLENGES_COMPLETED] = value }
+
+    private val _earnedBadgeIds = MutableStateFlow(loadEarnedBadgeIds())
+    /** Earned achievement/badge ids, persisted locally. */
+    val earnedBadgeIdsFlow: StateFlow<Set<String>> = _earnedBadgeIds.asStateFlow()
+
+    val earnedBadgeIds: Set<String>
+        get() = _earnedBadgeIds.value
+
+    private fun loadEarnedBadgeIds(): Set<String> =
+        try { Json.decodeFromString<Set<String>>(settings[KEY_EARNED_BADGES, "[]"]) }
+        catch (_: Exception) { emptySet() }
+
+    /** Recompute level from a single xp-per-level constant. */
+    private fun recomputeLevel() {
+        userLevel = (totalXp / XP_PER_LEVEL) + 1
+    }
+
+    /** Advance the daily activity streak at most once per calendar day. */
+    private fun advanceStreakForToday() {
         val today = org.awi.fitness.utils.todayLocalDate().toString()
         val last = lastWorkoutDate
+        if (last == today) return // already counted today
         val newStreak = when {
             last.isBlank() -> 1
-            last == today -> currentStreak // already recorded today
             else -> {
                 val todayDate = org.awi.fitness.utils.todayLocalDate()
                 val lastDate = try {
@@ -212,21 +370,92 @@ class UserSettings internal constructor(internal val settings: Settings) {
                 if (lastDate != null && todayDate.toEpochDays().toLong() - lastDate.toEpochDays().toLong() == 1L) {
                     currentStreak + 1
                 } else {
-                    1 // streak broken
+                    1 // streak broken / first day
                 }
             }
         }
         currentStreak = newStreak
+        if (newStreak > longestStreak) longestStreak = newStreak
         lastWorkoutDate = today
+    }
+
+    fun recordWorkoutCompleted() {
+        advanceStreakForToday()
+        workoutsCompleted += 1
         // XP for workout: 50 XP base
         totalXp += 50
-        // Level up every 500 XP
-        userLevel = (totalXp / 500) + 1
+        recomputeLevel()
+        onStatsChanged()
     }
 
     fun recordXpEarned(xp: Int) {
         totalXp += xp
-        userLevel = (totalXp / 500) + 1
+        recomputeLevel()
+        onStatsChanged()
+    }
+
+    /** Called when a challenge is completed — counts it and awards its XP via [recordXpEarned]. */
+    fun recordChallengeCompleted(xpReward: Int) {
+        challengesCompleted += 1
+        recordXpEarned(xpReward) // also recomputes level, evaluates badges, syncs
+    }
+
+    /** Daily check-in reward: counts today toward the streak and grants XP. */
+    fun recordCheckInReward() {
+        advanceStreakForToday()
+        recordXpEarned(CHECK_IN_XP) // grants XP, recomputes level, evaluates badges, syncs
+    }
+
+    /**
+     * Award any newly-earned achievement badges from current real stats.
+     * Returns the ids awarded this call. Idempotent — already-earned ids are skipped.
+     */
+    fun evaluateBadges(): List<String> {
+        val stats = org.awi.fitness.model.AchievementStats(
+            totalXp = totalXp,
+            level = userLevel,
+            currentStreak = currentStreak,
+            workoutsCompleted = workoutsCompleted,
+            challengesCompleted = challengesCompleted
+        )
+        val current = _earnedBadgeIds.value
+        val newly = org.awi.fitness.model.AchievementCatalog.all
+            .filter { it.badge.id !in current && it.isEarned(stats) }
+            .map { it.badge.id }
+        if (newly.isNotEmpty()) {
+            val updated = current + newly
+            _earnedBadgeIds.value = updated
+            settings[KEY_EARNED_BADGES] = Json.encodeToString(updated)
+        }
+        return newly
+    }
+
+    // Per-challenge, per-day advance guard for day-based (streak) challenges.
+    private fun loadChallengeDailyAdvances(): MutableMap<String, String> =
+        try { Json.decodeFromString<Map<String, String>>(settings[KEY_CHALLENGE_DAILY_ADVANCES, "{}"]).toMutableMap() }
+        catch (_: Exception) { mutableMapOf() }
+
+    /** True if this challenge has NOT yet been advanced today (day-based challenges only). */
+    fun canAdvanceChallengeToday(challengeId: String): Boolean {
+        val today = org.awi.fitness.utils.todayLocalDate().toString()
+        return loadChallengeDailyAdvances()[challengeId] != today
+    }
+
+    /** Mark a day-based challenge as advanced for today. */
+    fun markChallengeAdvancedToday(challengeId: String) {
+        val today = org.awi.fitness.utils.todayLocalDate().toString()
+        val map = loadChallengeDailyAdvances()
+        map[challengeId] = today
+        settings[KEY_CHALLENGE_DAILY_ADVANCES] = Json.encodeToString(map)
+    }
+
+    // Fire whenever XP / level / streak change: award badges + best-effort sync to Firestore.
+    private val statsScope = kotlinx.coroutines.MainScope()
+    private fun onStatsChanged() {
+        evaluateBadges()
+        statsScope.launch {
+            runCatching { org.awi.fitness.repository.ChallengesRepository().syncStatsToFirestore() }
+        }
     }
 
     // Fitness preferences set during onboarding — used to generate plan in background
@@ -241,6 +470,62 @@ class UserSettings internal constructor(internal val settings: Settings) {
     var workoutDaysPerWeek: Int
         get() = settings[KEY_WORKOUT_DAYS, 3]
         set(value) { settings[KEY_WORKOUT_DAYS] = value }
+
+    // Physical stats captured in onboarding — used to prefill the calorie calculator and profile.
+    //    0 / "" means "not set yet".
+    var profileHeightCm: Int
+        get() = settings[KEY_PROFILE_HEIGHT_CM, 0]
+        set(value) { settings[KEY_PROFILE_HEIGHT_CM] = value }
+
+    var profileWeightKg: Float
+        get() = settings[KEY_PROFILE_WEIGHT_KG, 0f]
+        set(value) { settings[KEY_PROFILE_WEIGHT_KG] = value }
+
+    var profileAge: Int
+        get() = settings[KEY_PROFILE_AGE, 0]
+        set(value) { settings[KEY_PROFILE_AGE] = value }
+
+    /** "MALE" / "FEMALE" — empty when not set. */
+    var profileGender: String
+        get() = settings[KEY_PROFILE_GENDER, ""]
+        set(value) { settings[KEY_PROFILE_GENDER] = value }
+
+    /** Resume point for an unfinished onboarding (0 when not started / already done). */
+    var onboardingStep: Int
+        get() = settings[KEY_ONBOARDING_STEP, 0]
+        set(value) { settings[KEY_ONBOARDING_STEP] = value }
+
+    /** Epoch millis of the last time premium was confirmed active online — drives the offline grace window. */
+    var premiumLastVerifiedAt: Long
+        get() = settings[KEY_PREMIUM_LAST_VERIFIED, 0L]
+        set(value) { settings[KEY_PREMIUM_LAST_VERIFIED] = value }
+
+    /** How long (hours) to trust the last online verification when offline before locking. Remote-configurable. */
+    var premiumGraceHours: Int
+        get() = settings[KEY_PREMIUM_GRACE_HOURS, 48]
+        set(value) { settings[KEY_PREMIUM_GRACE_HOURS] = value }
+
+    // Subscription-management UI flags — cached from Firestore config/subscription (server-driven).
+    //    Default to visible so the screen is fully functional before the first config fetch.
+    var subCfgShowRefund: Boolean
+        get() = settings[KEY_SUBCFG_SHOW_REFUND, true]
+        set(value) { settings[KEY_SUBCFG_SHOW_REFUND] = value }
+
+    var subCfgShowPlanSwitch: Boolean
+        get() = settings[KEY_SUBCFG_SHOW_PLAN_SWITCH, true]
+        set(value) { settings[KEY_SUBCFG_SHOW_PLAN_SWITCH] = value }
+
+    var subCfgShowPurchaseHistory: Boolean
+        get() = settings[KEY_SUBCFG_SHOW_PURCHASE_HISTORY, true]
+        set(value) { settings[KEY_SUBCFG_SHOW_PURCHASE_HISTORY] = value }
+
+    var subCfgShowInvoices: Boolean
+        get() = settings[KEY_SUBCFG_SHOW_INVOICES, true]
+        set(value) { settings[KEY_SUBCFG_SHOW_INVOICES] = value }
+
+    var subCfgSupportUrl: String
+        get() = settings[KEY_SUBCFG_SUPPORT_URL, ""]
+        set(value) { settings[KEY_SUBCFG_SUPPORT_URL] = value }
 
     var appleIdentityToken: String?
         get() = settings[KEY_APPLE_IDENTITY_TOKEN]
@@ -507,6 +792,12 @@ class UserSettings internal constructor(internal val settings: Settings) {
         val preservedOnboarding = hasCompletedOnboarding
         val preservedDark = isDarkTheme
         val preservedLang = language.value
+        // Backdrops are device-level and survive logout
+        val preservedBackdropsConfig = backdropsConfig
+        val preservedBackdropsCache = backdropsCache
+        val preservedBackdropsLastFetch = backdropsLastFetch
+        val preservedBackdropsSelection = backdropsSelection
+        val preservedSelectedHomeBackdrop = selectedHomeBackdrop
 
         settings.clear()
 
@@ -514,6 +805,11 @@ class UserSettings internal constructor(internal val settings: Settings) {
         hasCompletedOnboarding = preservedOnboarding
         if (preservedDark != null) isDarkTheme = preservedDark
         setLanguage(preservedLang)
+        backdropsConfig = preservedBackdropsConfig
+        backdropsCache = preservedBackdropsCache
+        backdropsLastFetch = preservedBackdropsLastFetch
+        backdropsSelection = preservedBackdropsSelection
+        selectedHomeBackdrop = preservedSelectedHomeBackdrop
 
         // Clear auth state
         authToken = null
@@ -535,5 +831,6 @@ class UserSettings internal constructor(internal val settings: Settings) {
         selectedAvatarId = null
         _dailyCheckIns.value = emptyList()
         lastCheckInDate = 0L
+        _earnedBadgeIds.value = emptySet()
     }
 }
