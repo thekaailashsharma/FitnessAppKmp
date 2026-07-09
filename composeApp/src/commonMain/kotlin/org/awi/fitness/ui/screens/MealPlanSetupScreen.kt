@@ -1,4 +1,5 @@
 package org.awi.fitness.ui.screens
+import org.awi.fitness.viewmodel.LocalLanguageViewModel
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -365,10 +366,11 @@ fun MealPlanSetupScreen(
 /** Slim gold segmented tracker for the three choice steps. */
 @Composable
 private fun WizardProgress(stepsDone: Int, totalSteps: Int) {
+    val lang = LocalLanguageViewModel.current
     val c = TajlyTheme.colors
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "Step ${stepsDone.coerceIn(1, totalSteps)} of $totalSteps".uppercase(),
+            text = "${lang.getString(StringKey.MEALX_STEP)} ${stepsDone.coerceIn(1, totalSteps)} ${lang.getString(StringKey.MEALX_OF)} $totalSteps".uppercase(),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.SemiBold,
             color = GoldBright

@@ -1,4 +1,6 @@
 package org.awi.fitness.ui.screens.community
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.viewmodel.LocalLanguageViewModel
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -128,7 +130,7 @@ class FindFriendsScreen : Screen {
                     }
                     Spacer(Modifier.width(12.dp))
                     Text(
-                        text = "Find Friends",
+                        text = LocalLanguageViewModel.current.getString(StringKey.FIND_FRIENDS),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = c.textHi,
@@ -141,7 +143,7 @@ class FindFriendsScreen : Screen {
                     value = findFriendsState.searchQuery,
                     onValueChange = { viewModel.updateSearchQuery(it) },
                     placeholder = {
-                        Text("Search for friends…", color = c.textLow)
+                        Text(LocalLanguageViewModel.current.getString(StringKey.CMX_SEARCH_FOR_FRIENDS), color = c.textLow)
                     },
                     leadingIcon = {
                         Icon(
@@ -228,7 +230,7 @@ class FindFriendsScreen : Screen {
                             exit = fadeOut()
                         ) {
                             if (findFriendsState.searchResults.isEmpty()) {
-                                FriendsEmpty("No users found matching '${findFriendsState.searchQuery}'")
+                                FriendsEmpty("${LocalLanguageViewModel.current.getString(StringKey.NO_USERS_FOUND_MATCHING)} '${findFriendsState.searchQuery}'")
                             } else {
                                 UserList(
                                     users = findFriendsState.searchResults,
@@ -252,9 +254,9 @@ class FindFriendsScreen : Screen {
                                 else -> findFriendsState.suggestedUsers
                             }
                             val emptyMessage = when (findFriendsState.activeTab) {
-                                "friends" -> "You're not following anyone yet"
-                                "suggested" -> "No suggested users at the moment"
-                                else -> "No users found"
+                                "friends" -> LocalLanguageViewModel.current.getString(StringKey.NOT_FOLLOWING_ANYONE_YET)
+                                "suggested" -> LocalLanguageViewModel.current.getString(StringKey.NO_SUGGESTED_USERS)
+                                else -> LocalLanguageViewModel.current.getString(StringKey.NO_USERS_FOUND)
                             }
                             if (users.isEmpty()) {
                                 FriendsEmpty(emptyMessage)

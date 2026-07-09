@@ -1,4 +1,5 @@
 package org.awi.fitness.ui.screens
+import org.awi.fitness.viewmodel.LocalLanguageViewModel
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -93,7 +94,7 @@ class WorkoutSchedulerScreen : Screen {
                     containerColor = Color.Transparent,
                     topBar = {
                         TopAppBar(
-                            title = { Text("Workout Schedule", fontWeight = FontWeight.Bold) },
+                            title = { Text(LocalLanguageViewModel.current.getString(StringKey.WORKOUT_SCHEDULE), fontWeight = FontWeight.Bold) },
                             navigationIcon = {
                                 IconButton(onClick = { navigator.pop() }) {
                                     Icon(
@@ -131,8 +132,8 @@ class WorkoutSchedulerScreen : Screen {
 
                         if (schedules.isEmpty()) {
                             EmptyState(
-                                title = "No workouts scheduled",
-                                subtitle = "Tap + to plan a session for this day.",
+                                title = LocalLanguageViewModel.current.getString(StringKey.WKX_NO_WORKOUTS_SCHEDULED),
+                                subtitle = LocalLanguageViewModel.current.getString(StringKey.WKX_TAP_TO_PLAN),
                                 modifier = Modifier.fillMaxWidth().weight(1f),
                                 icon = {
                                     Image(
@@ -143,7 +144,7 @@ class WorkoutSchedulerScreen : Screen {
                                 },
                                 cta = {
                                     GoldButton(
-                                        text = "Add Workout",
+                                        text = LocalLanguageViewModel.current.getString(StringKey.ADD_WORKOUT),
                                         onClick = { showAddDialog = true }
                                     )
                                 }
@@ -158,7 +159,7 @@ class WorkoutSchedulerScreen : Screen {
                             ) {
                                 item {
                                     Text(
-                                        text = "${selectedDate.prettyDay()} · ${schedules.size} ${if (schedules.size == 1) "session" else "sessions"}",
+                                        text = "${selectedDate.prettyDay()} · ${schedules.size} ${if (schedules.size == 1) LocalLanguageViewModel.current.getString(StringKey.WKX_SESSION) else LocalLanguageViewModel.current.getString(StringKey.WKX_SESSIONS)}",
                                         style = MaterialTheme.typography.labelLarge,
                                         fontWeight = FontWeight.SemiBold,
                                         color = c.textMid
@@ -231,8 +232,8 @@ private fun CalendarHeader(
                 Column {
                     Text(
                         text = when (viewMode) {
-                            ViewMode.WEEK -> "Week of"
-                            ViewMode.MONTH -> "Month of"
+                            ViewMode.WEEK -> LocalLanguageViewModel.current.getString(StringKey.WKX_WEEK_OF)
+                            ViewMode.MONTH -> LocalLanguageViewModel.current.getString(StringKey.WKX_MONTH_OF)
                         }.uppercase(),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
@@ -260,7 +261,7 @@ private fun CalendarHeader(
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        "Today",
+                        LocalLanguageViewModel.current.getString(StringKey.TODAY),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold,
                         color = GoldPrimary
@@ -271,8 +272,8 @@ private fun CalendarHeader(
             Spacer(Modifier.height(14.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                GlassChip(text = "Week", selected = viewMode == ViewMode.WEEK, onClick = { onViewModeChange(ViewMode.WEEK) })
-                GlassChip(text = "Month", selected = viewMode == ViewMode.MONTH, onClick = { onViewModeChange(ViewMode.MONTH) })
+                GlassChip(text = LocalLanguageViewModel.current.getString(StringKey.WKX_WEEK), selected = viewMode == ViewMode.WEEK, onClick = { onViewModeChange(ViewMode.WEEK) })
+                GlassChip(text = LocalLanguageViewModel.current.getString(StringKey.WKX_MONTH), selected = viewMode == ViewMode.MONTH, onClick = { onViewModeChange(ViewMode.MONTH) })
             }
 
             Spacer(Modifier.height(14.dp))

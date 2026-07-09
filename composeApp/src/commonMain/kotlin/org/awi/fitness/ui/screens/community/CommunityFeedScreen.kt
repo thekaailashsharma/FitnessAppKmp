@@ -1,4 +1,6 @@
 package org.awi.fitness.ui.screens.community
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.viewmodel.LocalLanguageViewModel
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -199,7 +201,7 @@ class CommunityFeedScreen : Screen {
                                     Box(Modifier.fillParentMaxHeight(0.7f)) {
                                         CommunityErrorState(
                                             topInset = 0.dp,
-                                            message = state.error ?: "Please try again.",
+                                            message = state.error ?: LocalLanguageViewModel.current.getString(StringKey.CMX_PLEASE_TRY_AGAIN),
                                             onRetry = {
                                                 scope.launch { viewModel.loadCommunityFeed(selectedTab.filter) }
                                             },
@@ -311,23 +313,23 @@ private fun CommunityHero(
             // ---- Top row: label + action icons over the photo ----
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "TAJLY COMMUNITY",
+                    text = LocalLanguageViewModel.current.getString(StringKey.CMX_TAJLY_COMMUNITY),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = Color.White.copy(alpha = 0.85f),
                     modifier = Modifier.weight(1f),
                 )
                 HeroIconButton(onClick = onIntro) {
-                    Icon(TablerIcons.InfoCircle, "About the community", tint = Color.White, modifier = Modifier.size(20.dp))
+                    Icon(TablerIcons.InfoCircle, LocalLanguageViewModel.current.getString(StringKey.CMX_ABOUT_COMMUNITY), tint = Color.White, modifier = Modifier.size(20.dp))
                 }
                 Spacer(Modifier.width(8.dp))
                 HeroIconButton(onClick = onFindPeople) {
-                    Icon(TablerIcons.Users, "Find people", tint = Color.White, modifier = Modifier.size(20.dp))
+                    Icon(TablerIcons.Users, LocalLanguageViewModel.current.getString(StringKey.CMX_FIND_PEOPLE), tint = Color.White, modifier = Modifier.size(20.dp))
                 }
                 Spacer(Modifier.width(8.dp))
                 Box {
                     HeroIconButton(onClick = onActivity) {
-                        Icon(TablerIcons.Bell, "Activity", tint = Color.White, modifier = Modifier.size(20.dp))
+                        Icon(TablerIcons.Bell, LocalLanguageViewModel.current.getString(StringKey.CMX_ACTIVITY), tint = Color.White, modifier = Modifier.size(20.dp))
                     }
                     if (unreadCount > 0) {
                         Box(
@@ -361,14 +363,14 @@ private fun CommunityHero(
 
             // ---- Motivational copy (look only, not a feature) ----
             Text(
-                text = "Your crew",
+                text = LocalLanguageViewModel.current.getString(StringKey.CMX_YOUR_CREW),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = "Show up. Cheer each other on. Grow together.",
+                text = LocalLanguageViewModel.current.getString(StringKey.CMX_COMMUNITY_TAGLINE),
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.White.copy(alpha = 0.82f),
             )
@@ -445,6 +447,7 @@ private data class EmptyStateSpec(
     val secondaryAction: (() -> Unit)?,
 )
 
+@Composable
 private fun emptyStateFor(
     tab: CommunityFeedTab,
     emptyMessage: String?,
@@ -454,29 +457,29 @@ private fun emptyStateFor(
     CommunityFeedTab.FOR_YOU -> EmptyStateSpec(
         lottie = "lottie_running.json",
         glow = Tajly.Teal,
-        title = "Your community starts here",
-        message = "Share a workout win, a progress photo, or a note that keeps someone going. Or find people to follow.",
-        primaryLabel = "Share your first post",
+        title = LocalLanguageViewModel.current.getString(StringKey.CMX_EMPTY_FORYOU_TITLE),
+        message = LocalLanguageViewModel.current.getString(StringKey.CMX_EMPTY_FORYOU_MSG),
+        primaryLabel = LocalLanguageViewModel.current.getString(StringKey.CMX_SHARE_FIRST_POST),
         primaryAction = onCreate,
-        secondaryLabel = "Find people to follow",
+        secondaryLabel = LocalLanguageViewModel.current.getString(StringKey.CMX_FIND_PEOPLE_TO_FOLLOW),
         secondaryAction = onFindPeople,
     )
     CommunityFeedTab.FOLLOWING -> EmptyStateSpec(
         lottie = "lottie_heart.json",
         glow = Tajly.Pink,
-        title = "Fill your feed with people you follow",
-        message = emptyMessage ?: "Follow members and their workouts, wins and milestones will show up right here.",
-        primaryLabel = "Find people to follow",
+        title = LocalLanguageViewModel.current.getString(StringKey.CMX_EMPTY_FOLLOWING_TITLE),
+        message = emptyMessage ?: LocalLanguageViewModel.current.getString(StringKey.CMX_EMPTY_FOLLOWING_MSG),
+        primaryLabel = LocalLanguageViewModel.current.getString(StringKey.CMX_FIND_PEOPLE_TO_FOLLOW),
         primaryAction = onFindPeople,
-        secondaryLabel = "Share a post",
+        secondaryLabel = LocalLanguageViewModel.current.getString(StringKey.CMX_SHARE_A_POST),
         secondaryAction = onCreate,
     )
     CommunityFeedTab.YOU -> EmptyStateSpec(
         lottie = "lottie_trophy.json",
         glow = Tajly.Violet,
-        title = "You haven't posted yet",
-        message = "Share your first workout or milestone — the community loves to cheer new wins on.",
-        primaryLabel = "Create your first post",
+        title = LocalLanguageViewModel.current.getString(StringKey.CMX_EMPTY_YOU_TITLE),
+        message = LocalLanguageViewModel.current.getString(StringKey.CMX_EMPTY_YOU_MSG),
+        primaryLabel = LocalLanguageViewModel.current.getString(StringKey.CMX_CREATE_FIRST_POST),
         primaryAction = onCreate,
         secondaryLabel = null,
         secondaryAction = null,
@@ -563,7 +566,7 @@ private fun CommunityEmptyState(
                 users = suggestedMembers,
                 onOpenProfile = onOpenProfile,
                 onFollow = onFollow,
-                title = "People to follow",
+                title = LocalLanguageViewModel.current.getString(StringKey.CMX_PEOPLE_TO_FOLLOW),
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
         }
@@ -582,7 +585,7 @@ private fun CommunityErrorState(
         contentAlignment = Alignment.Center,
     ) {
         EmptyState(
-            title = "Couldn't load the feed",
+            title = LocalLanguageViewModel.current.getString(StringKey.CMX_COULDNT_LOAD_FEED),
             subtitle = message,
             icon = {
                 Box(
@@ -595,7 +598,7 @@ private fun CommunityErrorState(
                     LottieAnim("lottie_empty_box.json", Modifier.size(96.dp))
                 }
             },
-            cta = { GoldButton(text = "Retry", onClick = onRetry) },
+            cta = { GoldButton(text = LocalLanguageViewModel.current.getString(StringKey.RETRY), onClick = onRetry) },
         )
     }
 }

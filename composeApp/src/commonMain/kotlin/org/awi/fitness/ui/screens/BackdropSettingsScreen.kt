@@ -1,4 +1,6 @@
 package org.awi.fitness.ui.screens
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.viewmodel.LocalLanguageViewModel
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -82,7 +84,7 @@ class BackdropSettingsScreen : Screen {
                         TopAppBar(
                             title = {
                                 Text(
-                                    text = "Backdrop",
+                                    text = LocalLanguageViewModel.current.getString(StringKey.BACKDROP),
                                     style = MaterialTheme.typography.titleLarge,
                                     color = c.textHi
                                 )
@@ -110,7 +112,7 @@ class BackdropSettingsScreen : Screen {
                     ) {
                         item(span = { GridItemSpan(maxLineSpan) }) {
                             Text(
-                                text = "Pick the image that greets you on Home.",
+                                text = LocalLanguageViewModel.current.getString(StringKey.BACKDROP_SUBTITLE),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = c.textMid,
                                 modifier = Modifier.padding(bottom = 4.dp)

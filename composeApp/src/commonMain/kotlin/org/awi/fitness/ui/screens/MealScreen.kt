@@ -295,7 +295,7 @@ private fun MealHeader(
     ) {
         Column {
             Text(
-                text = "NUTRITION",
+                text = languageViewModel.getString(StringKey.MEALX_NUTRITION),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = Tajly.Champagne
@@ -423,6 +423,7 @@ private fun GlassActionButton(
 /** Compact "Scan a meal" pill — slim so it doesn't dominate the meal list. Opens the AI flow. */
 @Composable
 private fun ScanMealEntry(onClick: () -> Unit) {
+    val lang = LocalLanguageViewModel.current
     val interaction = remember { MutableInteractionSource() }
     Row(
         modifier = Modifier
@@ -442,14 +443,14 @@ private fun ScanMealEntry(onClick: () -> Unit) {
         )
         Spacer(Modifier.width(10.dp))
         Text(
-            text = "Scan a meal",
+            text = lang.getString(StringKey.MEALX_SCAN_A_MEAL),
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
             color = OnGold,
             modifier = Modifier.weight(1f)
         )
         Text(
-            text = "AI",
+            text = lang.getString(StringKey.MEALX_AI),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.ExtraBold,
             color = OnGold.copy(alpha = 0.65f)
@@ -514,7 +515,7 @@ private fun DayFuelCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "TODAY'S FUEL",
+                    text = languageViewModel.getString(StringKey.MEALX_TODAYS_FUEL),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = c.textMid
@@ -535,18 +536,18 @@ private fun DayFuelCard(
                     )
                 }
                 Text(
-                    text = "$remaining kcal remaining",
+                    text = "$remaining ${languageViewModel.getString(StringKey.KCAL)} ${languageViewModel.getString(StringKey.MEALX_REMAINING)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = c.textLow
                 )
 
                 Spacer(Modifier.height(14.dp))
 
-                MacroBar("Protein", macros.consumedProtein, macros.targetProtein, Tajly.Blue)
+                MacroBar(languageViewModel.getString(StringKey.MEALX_PROTEIN), macros.consumedProtein, macros.targetProtein, Tajly.Blue)
                 Spacer(Modifier.height(8.dp))
-                MacroBar("Carbs", macros.consumedCarbs, macros.targetCarbs, Tajly.Green)
+                MacroBar(languageViewModel.getString(StringKey.MEALX_CARBS), macros.consumedCarbs, macros.targetCarbs, Tajly.Green)
                 Spacer(Modifier.height(8.dp))
-                MacroBar("Fat", macros.consumedFat, macros.targetFat, Tajly.Violet)
+                MacroBar(languageViewModel.getString(StringKey.MEALX_FAT), macros.consumedFat, macros.targetFat, Tajly.Violet)
             }
         }
     }
@@ -820,6 +821,7 @@ private fun MealCard(
 /** Scanned meals logged via the AI meal-scan — shown per day and counted in the day's fuel. */
 @Composable
 private fun ScannedMealsSection(scannedMeals: List<ScannedMealEntry>) {
+    val lang = LocalLanguageViewModel.current
     val c = TajlyTheme.colors
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -841,7 +843,7 @@ private fun ScannedMealsSection(scannedMeals: List<ScannedMealEntry>) {
                 )
             }
             Text(
-                text = "Scanned",
+                text = lang.getString(StringKey.MEALX_SCANNED),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = c.textHi,
@@ -883,7 +885,7 @@ private fun ScannedMealsSection(scannedMeals: List<ScannedMealEntry>) {
                     Spacer(Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "SCANNED",
+                            text = lang.getString(StringKey.MEALX_SCANNED).uppercase(),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.SemiBold,
                             color = Tajly.Champagne
@@ -1051,7 +1053,8 @@ private fun DaySelector(
     onDaySelected: (Int) -> Unit
 ) {
     val c = TajlyTheme.colors
-    val dayLabels = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+    val lang = LocalLanguageViewModel.current
+    val dayLabels = listOf(lang.getString(StringKey.MONDAY), lang.getString(StringKey.TUESDAY), lang.getString(StringKey.WEDNESDAY), lang.getString(StringKey.THURSDAY), lang.getString(StringKey.FRIDAY), lang.getString(StringKey.SATURDAY), lang.getString(StringKey.SUNDAY))
     val today = org.awi.fitness.utils.todayLocalDate()
     val todayDayOfWeek = today.dayOfWeek.ordinal + 1
 

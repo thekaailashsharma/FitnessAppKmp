@@ -1,4 +1,6 @@
 package org.awi.fitness.viewmodel
+import org.awi.fitness.data.tr
+import org.awi.fitness.data.StringKey
 
 import cafe.adriel.voyager.core.model.StateScreenModel
 import kotlinx.coroutines.CoroutineScope
@@ -59,7 +61,7 @@ class AvatarViewModel(
             } catch (e: Exception) {
                 mutableState.update { currentState ->
                     currentState.copy(
-                        error = "Failed to initialize avatar: ${e.message}",
+                        error = "${tr(StringKey.VME_INIT_AVATAR_FAILED)}: ${e.message}",
                         isLoading = false
                     )
                 }
@@ -127,7 +129,7 @@ class AvatarViewModel(
             } catch (e: Exception) {
                 mutableState.update { currentState ->
                     currentState.copy(
-                        error = "Failed to send message: ${e.message}",
+                        error = "${tr(StringKey.VME_SEND_MESSAGE_FAILED)}: ${e.message}",
                         isLoading = false,
                         conversationState = currentState.conversationState.copy(isTyping = false)
                     )

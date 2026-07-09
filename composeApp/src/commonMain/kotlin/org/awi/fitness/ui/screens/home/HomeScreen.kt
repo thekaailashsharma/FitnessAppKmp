@@ -220,8 +220,8 @@ class HomeScreen : Screen {
                 weeklyConsumed.toFloat() / (caloriesTarget * 7) else 0f
         }.coerceIn(0f, 1f)
         val heroLabel = when (timeframe) {
-            HomeTimeframe.TODAY -> "Daily target"
-            HomeTimeframe.WEEK -> "Consumed this week"
+            HomeTimeframe.TODAY -> languageViewModel.getString(StringKey.HOMEX_DAILY_TARGET)
+            HomeTimeframe.WEEK -> languageViewModel.getString(StringKey.HOMEX_CONSUMED_THIS_WEEK)
         }
 
         val activeChallenges = challengeState.activeChallenges
@@ -230,16 +230,16 @@ class HomeScreen : Screen {
 
         // Swipe-deck cards — only those backed by real data/features.
         val stackCards = buildList {
-            add(StackCard(card_move_res(), "Today's session", "Your body keeps score. Show up.", "Start today's workout") { org.awi.fitness.navigation.CoachNav.open("TRAIN") })
-            add(StackCard(card_coach_res(), "Your coach", "Stuck? Ask me anything, right now.", "Talk to your coach") { navigator.push(AvatarScreen(ConversationTrigger.MANUAL)) })
-            add(StackCard(card_fuel_res(), "Fuel", "Great days are built on great plates.", "Check today's meals") { org.awi.fitness.navigation.CoachNav.openMeals() })
+            add(StackCard(card_move_res(), languageViewModel.getString(StringKey.HOMEX_TODAYS_SESSION), languageViewModel.getString(StringKey.HOMEX_STACK_MOVE_SUB), languageViewModel.getString(StringKey.HOMEX_START_TODAYS_WORKOUT)) { org.awi.fitness.navigation.CoachNav.open("TRAIN") })
+            add(StackCard(card_coach_res(), languageViewModel.getString(StringKey.HOMEX_YOUR_COACH), languageViewModel.getString(StringKey.HOMEX_STACK_COACH_SUB), languageViewModel.getString(StringKey.HOMEX_TALK_TO_COACH)) { navigator.push(AvatarScreen(ConversationTrigger.MANUAL)) })
+            add(StackCard(card_fuel_res(), languageViewModel.getString(StringKey.HOMEX_FUEL), languageViewModel.getString(StringKey.HOMEX_STACK_FUEL_SUB), languageViewModel.getString(StringKey.HOMEX_CHECK_TODAYS_MEALS)) { org.awi.fitness.navigation.CoachNav.openMeals() })
             if (firstChallenge != null) {
                 val prog = challengeState.userProgress[firstChallenge.id]?.let { pr ->
                     if (pr.targetValue > 0) (pr.currentValue * 100 / pr.targetValue) else 0
                 } ?: 0
-                add(StackCard(card_compete_res(), "Challenge", "You're $prog% there. Don't stop now.", "Continue the challenge") { navigator.push(ChallengeDetailScreen(firstChallenge)) })
+                add(StackCard(card_compete_res(), languageViewModel.getString(StringKey.HOMEX_CHALLENGE), "${languageViewModel.getString(StringKey.HOMEX_CHALLENGE_PROGRESS_PRE)} $prog% ${languageViewModel.getString(StringKey.HOMEX_CHALLENGE_PROGRESS_POST)}", languageViewModel.getString(StringKey.HOMEX_CONTINUE_CHALLENGE)) { navigator.push(ChallengeDetailScreen(firstChallenge)) })
             }
-            add(StackCard(card_streak_res(), "Streak", if (currentStreak > 0) "$currentStreak days. Protect the flame." else "Start your streak today.", "Keep the streak alive") { org.awi.fitness.navigation.CoachNav.open("TRAIN") })
+            add(StackCard(card_streak_res(), languageViewModel.getString(StringKey.STREAK), if (currentStreak > 0) "$currentStreak ${languageViewModel.getString(StringKey.HOMEX_STREAK_DAYS_PROTECT)}" else languageViewModel.getString(StringKey.HOMEX_START_STREAK_TODAY), languageViewModel.getString(StringKey.HOMEX_KEEP_STREAK_ALIVE)) { org.awi.fitness.navigation.CoachNav.open("TRAIN") })
         }
 
         ProvideGlass {
@@ -279,7 +279,7 @@ class HomeScreen : Screen {
                         }
                         item {
                             Column {
-                                SectionHead(hp, "For you today", "swipe →")
+                                SectionHead(hp, languageViewModel.getString(StringKey.HOMEX_FOR_YOU_TODAY), languageViewModel.getString(StringKey.HOMEX_SWIPE))
                                 Spacer(Modifier.height(10.dp))
                                 MotivationStack(stackCards)
                             }
@@ -311,9 +311,9 @@ class HomeScreen : Screen {
                                 Icon(TablerIcons.Scan, contentDescription = null, tint = OnGold, modifier = Modifier.size(24.dp))
                                 Spacer(Modifier.width(14.dp))
                                 Column(Modifier.weight(1f)) {
-                                    Text("Scan a meal", style = MaterialTheme.typography.titleMedium,
+                                    Text(languageViewModel.getString(StringKey.HOMEX_SCAN_A_MEAL), style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.ExtraBold, color = OnGold)
-                                    Text("Snap your plate — AI reads the macros",
+                                    Text(languageViewModel.getString(StringKey.HOMEX_SCAN_SUB),
                                         style = MaterialTheme.typography.bodySmall, color = OnGold.copy(alpha = 0.75f))
                                 }
                                 Icon(TablerIcons.ArrowUpRight, contentDescription = null, tint = OnGold, modifier = Modifier.size(20.dp))
@@ -331,13 +331,13 @@ class HomeScreen : Screen {
                         if (activeChallenges.isNotEmpty()) {
                             item {
                                 Column {
-                                    SectionHead(hp, "Active challenges", "")
+                                    SectionHead(hp, languageViewModel.getString(StringKey.HOMEX_ACTIVE_CHALLENGES), "")
                                     Spacer(Modifier.height(10.dp))
                                     LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                         itemsIndexed(activeChallenges) { i, ch ->
                                             val pr = challengeState.userProgress[ch.id]
                                             val frac = if (pr != null && pr.targetValue > 0) pr.currentValue.toFloat() / pr.targetValue else 0f
-                                            ChallengeImageCard(ch.title, "${(frac.coerceIn(0f, 1f) * 100).roundToInt()}% complete",
+                                            ChallengeImageCard(ch.title, "${(frac.coerceIn(0f, 1f) * 100).roundToInt()}% ${languageViewModel.getString(StringKey.HOMEX_COMPLETE)}",
                                                 frac.coerceIn(0f, 1f), ch.imageUrl, challengeFallback(i)) { navigator.push(ChallengeDetailScreen(ch)) }
                                         }
                                     }
@@ -348,7 +348,7 @@ class HomeScreen : Screen {
                         communityState.posts.firstOrNull()?.let { post ->
                             item {
                                 Column {
-                                    SectionHead(hp, "From the community", "See the feed", onAction = { navigator.push(CommunityFeedScreen()) })
+                                    SectionHead(hp, languageViewModel.getString(StringKey.HOMEX_FROM_COMMUNITY), languageViewModel.getString(StringKey.HOMEX_SEE_THE_FEED), onAction = { navigator.push(CommunityFeedScreen()) })
                                     Spacer(Modifier.height(10.dp))
                                     CommunityHighlight(hp, post.userName, post.content, post.imageUrl, post.likes,
                                         activityState.unreadCount) { navigator.push(PostDetailScreen(post.id)) }
@@ -441,8 +441,8 @@ private fun HeroSection(
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-            TimeframeText("Today", timeframe == HomeTimeframe.TODAY) { onTimeframe(HomeTimeframe.TODAY) }
-            TimeframeText("This week", timeframe == HomeTimeframe.WEEK) { onTimeframe(HomeTimeframe.WEEK) }
+            TimeframeText(lang.getString(StringKey.TODAY), timeframe == HomeTimeframe.TODAY) { onTimeframe(HomeTimeframe.TODAY) }
+            TimeframeText(lang.getString(StringKey.HOME_FILTER_THIS_WEEK), timeframe == HomeTimeframe.WEEK) { onTimeframe(HomeTimeframe.WEEK) }
         }
 
         if (hasTarget) {
@@ -462,15 +462,15 @@ private fun HeroSection(
             // Honest empty state — no confident fake 2,000 target. Prompt to set a real goal.
             GlassCard(goldTint = true, modifier = Modifier.fillMaxWidth().clickable(onClick = onSetGoal)) {
                 Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("No calorie goal yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = c.textHi)
-                    Text("Set your goal to see your real daily target and track how you're doing.", style = MaterialTheme.typography.bodyMedium, color = c.textMid)
-                    GoldButton(text = "Set your goal", onClick = onSetGoal)
+                    Text(lang.getString(StringKey.HOMEX_NO_CALORIE_GOAL), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = c.textHi)
+                    Text(lang.getString(StringKey.HOMEX_SET_GOAL_DESC), style = MaterialTheme.typography.bodyMedium, color = c.textMid)
+                    GoldButton(text = lang.getString(StringKey.HOMEX_SET_YOUR_GOAL), onClick = onSetGoal)
                 }
             }
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            StatRow(TablerIcons.Flame, "Consumed", "${consumed.grouped()} ${lang.getString(StringKey.KCAL)}")
+            StatRow(TablerIcons.Flame, lang.getString(StringKey.HOME_CONSUMED), "${consumed.grouped()} ${lang.getString(StringKey.KCAL)}")
             if (hasStats) {
                 StatRow(TablerIcons.Heart, "BMR", "${bmr.roundToInt().grouped()} ${lang.getString(StringKey.KCAL)}")
                 StatRow(TablerIcons.Activity, "TDEE", "${tdee.roundToInt().grouped()} ${lang.getString(StringKey.KCAL)}")
@@ -596,22 +596,22 @@ private fun TodaysPlanCard(
     GlassCard(modifier = modifier.fillMaxWidth().height(196.dp).clickable(onClick = onStart), goldTint = true, tier = GlassTier.Hero) {
         Column(Modifier.fillMaxSize().padding(20.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-                Text("Today's plan".uppercase(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = GoldBright)
+                Text(lang.getString(StringKey.HOME_TODAYS_PLAN).uppercase(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = GoldBright)
                 GoldButton(text = lang.getString(StringKey.START_WORKOUT), onClick = onStart)
             }
             Spacer(Modifier.weight(1f))
             if (upcoming != null) {
-                Text("Next session".uppercase(), style = MaterialTheme.typography.labelSmall, color = c.textMid)
+                Text(lang.getString(StringKey.HOME_NEXT_SESSION).uppercase(), style = MaterialTheme.typography.labelSmall, color = c.textMid)
                 Text(upcoming.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = c.textHi, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text("${formatTime(upcoming.startTime)} – ${formatTime(upcoming.endTime)}", style = MaterialTheme.typography.bodySmall, color = c.textMid)
             } else {
                 Text(lang.getString(StringKey.REST_DAY_TODAY), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = c.textHi)
-                Text("Plan your week", style = MaterialTheme.typography.bodySmall, color = c.textMid)
+                Text(lang.getString(StringKey.HOMEX_PLAN_YOUR_WEEK), style = MaterialTheme.typography.bodySmall, color = c.textMid)
             }
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PlanChip(TablerIcons.Leaf, "Nutrition", if (hasMealPlan && totalMeals > 0) "$mealsEaten/$totalMeals" else "—", onNutrition)
-                PlanChip(TablerIcons.Bolt, "Meals", if (hasMealPlan) "Plan" else "Set up", onMeals)
+                PlanChip(TablerIcons.Leaf, lang.getString(StringKey.HOME_NUTRITION), if (hasMealPlan && totalMeals > 0) "$mealsEaten/$totalMeals" else "—", onNutrition)
+                PlanChip(TablerIcons.Bolt, lang.getString(StringKey.MEALS), if (hasMealPlan) lang.getString(StringKey.HOME_FILTER_PLAN) else lang.getString(StringKey.HOMEX_SET_UP), onMeals)
             }
         }
     }
@@ -634,14 +634,15 @@ private fun BentoGrid(
     modifier: Modifier, planCount: Int, mealsEaten: Int, totalMeals: Int, challengeCount: Int,
     onCoach: () -> Unit, onWorkouts: () -> Unit, onNutrition: () -> Unit, onChallenges: () -> Unit
 ) {
+    val lang = LocalLanguageViewModel.current
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            BentoTileCard(Modifier.weight(1f), TablerIcons.Bolt, GoldBright, "Ask your coach", "Powered by AI", onCoach)
-            BentoTileCard(Modifier.weight(1f), TablerIcons.Activity, Tajly.Green, "Your workouts", "$planCount plans", onWorkouts)
+            BentoTileCard(Modifier.weight(1f), TablerIcons.Bolt, GoldBright, lang.getString(StringKey.HOMEX_ASK_YOUR_COACH), lang.getString(StringKey.HOMEX_POWERED_BY_AI), onCoach)
+            BentoTileCard(Modifier.weight(1f), TablerIcons.Activity, Tajly.Green, lang.getString(StringKey.HOMEX_YOUR_WORKOUTS), "$planCount ${lang.getString(StringKey.HOMEX_PLANS)}", onWorkouts)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            BentoTileCard(Modifier.weight(1f), TablerIcons.Leaf, Tajly.Teal, "Today's nutrition", if (totalMeals > 0) "$mealsEaten/$totalMeals today" else "Set up", onNutrition)
-            BentoTileCard(Modifier.weight(1f), TablerIcons.Trophy, Tajly.Violet, "Your challenges", if (challengeCount > 0) "$challengeCount active" else "Join one", onChallenges)
+            BentoTileCard(Modifier.weight(1f), TablerIcons.Leaf, Tajly.Teal, lang.getString(StringKey.HOMEX_TODAYS_NUTRITION), if (totalMeals > 0) "$mealsEaten/$totalMeals ${lang.getString(StringKey.HOMEX_TODAY_LOWER)}" else lang.getString(StringKey.HOMEX_SET_UP), onNutrition)
+            BentoTileCard(Modifier.weight(1f), TablerIcons.Trophy, Tajly.Violet, lang.getString(StringKey.HOMEX_YOUR_CHALLENGES), if (challengeCount > 0) "$challengeCount ${lang.getString(StringKey.ACTIVE).lowercase()}" else lang.getString(StringKey.HOMEX_JOIN_ONE), onChallenges)
         }
     }
 }
@@ -666,10 +667,11 @@ private fun BentoTileCard(modifier: Modifier, icon: ImageVector, accent: Color, 
 @Composable
 private fun NutritionWidget(modifier: Modifier, mealsEaten: Int, totalMeals: Int, ring: Float, p: Int, cbs: Int, f: Int, hasPlan: Boolean, onClick: () -> Unit) {
     val c = TajlyTheme.colors
+    val lang = LocalLanguageViewModel.current
     GlassCard(modifier = modifier.height(150.dp).clickable(onClick = onClick)) {
         Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.SpaceBetween) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-                Text("Nutrition", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = c.textHi)
+                Text(lang.getString(StringKey.HOME_NUTRITION), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = c.textHi)
                 WidgetArrow()
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -678,7 +680,7 @@ private fun NutritionWidget(modifier: Modifier, mealsEaten: Int, totalMeals: Int
                 }
                 if (hasPlan) Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     MacroLine("P", p); MacroLine("C", cbs); MacroLine("F", f)
-                } else Text("Set up a meal plan", style = MaterialTheme.typography.bodySmall, color = c.textMid)
+                } else Text(lang.getString(StringKey.HOMEX_SET_UP_MEAL_PLAN), style = MaterialTheme.typography.bodySmall, color = c.textMid)
             }
         }
     }
@@ -696,11 +698,12 @@ private fun MacroLine(k: String, v: Int) {
 @Composable
 private fun StreakWidget(modifier: Modifier, streak: Int, level: Int, xp: Int, onClick: () -> Unit) {
     val c = TajlyTheme.colors
+    val lang = LocalLanguageViewModel.current
     val xpInto = xp % 500
     GlassCard(modifier = modifier.height(150.dp).clickable(onClick = onClick)) {
         Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.SpaceBetween) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-                Text("Day streak", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = c.textHi)
+                Text(lang.getString(StringKey.COMMUNITY_DAY_STREAK), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = c.textHi)
                 WidgetArrow()
             }
             Column {
@@ -708,7 +711,7 @@ private fun StreakWidget(modifier: Modifier, streak: Int, level: Int, xp: Int, o
                     Text("$streak", style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold), color = c.textHi)
                     LottieAnim("lottie_flame.json", Modifier.size(40.dp).padding(bottom = 4.dp))
                 }
-                Text("Level $level · $xpInto/500 XP", style = MaterialTheme.typography.labelSmall, color = c.textMid)
+                Text("${lang.getString(StringKey.LEVEL)} $level · $xpInto/500 XP", style = MaterialTheme.typography.labelSmall, color = c.textMid)
                 Spacer(Modifier.height(5.dp))
                 Box(Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(3.dp)).background(c.hairStrong)) {
                     Box(Modifier.fillMaxWidth(xpInto / 500f).fillMaxHeight().clip(RoundedCornerShape(3.dp)).background(Tajly.GoldGradient))
@@ -734,12 +737,13 @@ private fun WidgetArrow() {
 @Composable
 private fun WeekStrip(modifier: Modifier, dayNums: List<Int>, done: List<Boolean>, todayDow: Int, onClick: () -> Unit) {
     val c = TajlyTheme.colors
+    val lang = LocalLanguageViewModel.current
     val labels = listOf("M", "T", "W", "T", "F", "S", "S")
     val activeCount = done.count { it }
     GlassCard(modifier = modifier.fillMaxWidth().clickable(onClick = onClick)) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("This week".uppercase(), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = c.textHi)
+                Text(lang.getString(StringKey.HOME_FILTER_THIS_WEEK).uppercase(), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = c.textHi)
             }
             Spacer(Modifier.height(14.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -812,13 +816,14 @@ private fun ChallengeImageCard(title: String, subtitle: String, frac: Float, ima
 @Composable
 private fun CommunityHighlight(modifier: Modifier, name: String, text: String, imageUrl: String?, likes: Int, unread: Int, onClick: () -> Unit) {
     val c = TajlyTheme.colors
+    val lang = LocalLanguageViewModel.current
     GlassCard(modifier = modifier.fillMaxWidth().clickable(onClick = onClick)) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(Modifier.size(36.dp).clip(CircleShape).background(Tajly.GoldGradient))
                 Text(name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = c.textHi, modifier = Modifier.weight(1f))
                 if (unread > 0) Box(Modifier.clip(RoundedCornerShape(8.dp)).background(Tajly.GoldGradient).padding(horizontal = 8.dp, vertical = 3.dp)) {
-                    Text("$unread new", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = OnGold)
+                    Text("$unread ${lang.getString(StringKey.HOMEX_NEW)}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = OnGold)
                 }
             }
             Text(text, style = MaterialTheme.typography.bodyMedium, color = c.textHi, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -869,15 +874,16 @@ private fun EditorialRow(modifier: Modifier, ic3d: DrawableResource?, icon: Imag
 // ── Wellness tips card (image backdrop) ──
 @Composable
 private fun TipsCard(modifier: Modifier, count: Int, title: String, onClick: () -> Unit) {
+    val lang = LocalLanguageViewModel.current
     Box(modifier.fillMaxWidth().height(130.dp).clip(RoundedCornerShape(24.dp)).clickable(onClick = onClick)) {
         Image(painterResource(Res.drawable.card_yoga), null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Color.Black.copy(alpha = 0.72f), Color.Black.copy(alpha = 0.28f)))))
         Row(Modifier.fillMaxSize().padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Daily wellness".uppercase(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = GoldBright)
+                Text(lang.getString(StringKey.HOMEX_DAILY_WELLNESS).uppercase(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = GoldBright)
                 Spacer(Modifier.height(4.dp))
                 Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
-                Text("$count tips for today · swipe through", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.85f))
+                Text("$count ${lang.getString(StringKey.HOMEX_TIPS_FOR_TODAY)}", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.85f))
             }
             Icon(TablerIcons.ChevronRight, null, tint = Color.White, modifier = Modifier.size(22.dp))
         }
@@ -887,14 +893,15 @@ private fun TipsCard(modifier: Modifier, count: Int, title: String, onClick: () 
 // ── Premium band ──
 @Composable
 private fun PremiumBand(modifier: Modifier, onClick: () -> Unit) {
+    val lang = LocalLanguageViewModel.current
     GlassCard(modifier = modifier.fillMaxWidth().height(150.dp).clickable(onClick = onClick), tier = GlassTier.Hero) {
         Image(painterResource(Res.drawable.tex_gold_2), null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Color.Black.copy(alpha = 0.72f), Color.Black.copy(alpha = 0.35f)))))
         Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.Center) {
-            Text("Unlock Tajly Premium", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
-            Text("Unlimited AI plans, coaching & challenges", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.85f))
+            Text(lang.getString(StringKey.HOMEX_UNLOCK_PREMIUM), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
+            Text(lang.getString(StringKey.HOMEX_PREMIUM_SUB), style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.85f))
             Spacer(Modifier.height(12.dp))
-            GoldButton(text = "Go Premium", onClick = onClick)
+            GoldButton(text = lang.getString(StringKey.GO_PREMIUM), onClick = onClick)
         }
     }
 }

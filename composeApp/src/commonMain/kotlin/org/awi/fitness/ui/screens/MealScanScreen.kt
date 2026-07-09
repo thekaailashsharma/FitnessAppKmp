@@ -1,4 +1,6 @@
 package org.awi.fitness.ui.screens
+import org.awi.fitness.viewmodel.LocalLanguageViewModel
+import org.awi.fitness.data.StringKey
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
@@ -105,6 +107,7 @@ class MealScanScreen : Screen {
 
     @Composable
     override fun Content() {
+        val lang = LocalLanguageViewModel.current
         val navigator = LocalNavigator.currentOrThrow
         val scope = rememberCoroutineScope()
         val repository = remember { GeminiRepository() }
@@ -138,13 +141,13 @@ class MealScanScreen : Screen {
                 Spacer(Modifier.height(8.dp))
 
                 Text(
-                    text = "Meal Scan",
+                    text = lang.getString(StringKey.MEALX_MEAL_SCAN_TITLE),
                     color = TajlyTheme.colors.textHi,
                     fontSize = 30.sp,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Point at your plate — AI reads the nutrition.",
+                    text = lang.getString(StringKey.MEALX_MEAL_SCAN_SUBTITLE),
                     color = TajlyTheme.colors.textMid,
                     style = MaterialTheme.typography.bodyMedium,
                 )
@@ -220,6 +223,7 @@ private fun TopBar(onBack: () -> Unit) {
 /** Cinematic viewfinder: rounded corner brackets + a gold scan line that sweeps while analyzing. */
 @Composable
 private fun Viewfinder(imageBytes: ByteArray?, analyzing: Boolean) {
+    val lang = LocalLanguageViewModel.current
     val transition = rememberInfiniteTransition(label = "scan")
     val scanY by transition.animateFloat(
         initialValue = 0f,
@@ -294,14 +298,14 @@ private fun Viewfinder(imageBytes: ByteArray?, analyzing: Boolean) {
                     Text("🍽️", fontSize = 40.sp)
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        text = "Snap or pick a photo of your plate",
+                        text = lang.getString(StringKey.MEALX_SNAP_PHOTO),
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleMedium,
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "AI reads the calories & macros for you.",
+                        text = lang.getString(StringKey.MEALX_AI_READS_MACROS),
                         color = Color.White.copy(alpha = 0.75f),
                         style = MaterialTheme.typography.bodySmall,
                     )
@@ -316,7 +320,7 @@ private fun Viewfinder(imageBytes: ByteArray?, analyzing: Boolean) {
                         .padding(horizontal = 12.dp, vertical = 5.dp),
                 ) {
                     Text(
-                        "AI POWERED",
+                        lang.getString(StringKey.MEALX_AI_POWERED),
                         color = OnGold,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.ExtraBold,
@@ -329,8 +333,9 @@ private fun Viewfinder(imageBytes: ByteArray?, analyzing: Boolean) {
 
 @Composable
 private fun IdleActions(onPick: () -> Unit) {
+    val lang = LocalLanguageViewModel.current
     GoldButton(
-        text = "Take / choose a photo",
+        text = lang.getString(StringKey.MEALX_TAKE_CHOOSE_PHOTO),
         onClick = onPick,
         modifier = Modifier.fillMaxWidth(),
     )
@@ -338,6 +343,7 @@ private fun IdleActions(onPick: () -> Unit) {
 
 @Composable
 private fun AnalyzingBlock() {
+    val lang = LocalLanguageViewModel.current
     GlassCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(20.dp),
@@ -347,7 +353,7 @@ private fun AnalyzingBlock() {
             LottieAnim("lottie_loading.json", Modifier.size(64.dp))
             Spacer(Modifier.width(14.dp))
             Text(
-                text = "Reading your plate…",
+                text = lang.getString(StringKey.MEALX_READING_PLATE),
                 color = TajlyTheme.colors.textHi,
                 fontWeight = FontWeight.Medium,
             )
@@ -357,10 +363,11 @@ private fun AnalyzingBlock() {
 
 @Composable
 private fun ErrorBlock(onRetry: () -> Unit) {
+    val lang = LocalLanguageViewModel.current
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         GlassCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp)) {
             Text(
-                text = "Couldn't read that — try another photo",
+                text = lang.getString(StringKey.MEALX_SCAN_ERROR),
                 color = TajlyTheme.colors.textHi,
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
@@ -368,7 +375,7 @@ private fun ErrorBlock(onRetry: () -> Unit) {
             )
         }
         Spacer(Modifier.height(14.dp))
-        GoldButton(text = "Try again", onClick = onRetry, modifier = Modifier.fillMaxWidth())
+        GoldButton(text = lang.getString(StringKey.RETRY), onClick = onRetry, modifier = Modifier.fillMaxWidth())
     }
 }
 
@@ -379,6 +386,7 @@ private fun ResultBlock(
     onSave: () -> Unit,
     onScanAnother: () -> Unit,
 ) {
+    val lang = LocalLanguageViewModel.current
     AnimatedVisibility(visible = true, enter = fadeIn(), exit = fadeOut()) {
         Column {
             GlassCard(
@@ -430,9 +438,9 @@ private fun ResultBlock(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly,
                     ) {
-                        MacroPill("Protein", meal.protein, Tajly.Teal)
-                        MacroPill("Carbs", meal.carbs, GoldPrimary)
-                        MacroPill("Fat", meal.fat, Tajly.Coral)
+                        MacroPill(lang.getString(StringKey.MEALX_PROTEIN), meal.protein, Tajly.Teal)
+                        MacroPill(lang.getString(StringKey.MEALX_CARBS), meal.carbs, GoldPrimary)
+                        MacroPill(lang.getString(StringKey.MEALX_FAT), meal.fat, Tajly.Coral)
                     }
                 }
             }
@@ -454,7 +462,7 @@ private fun ResultBlock(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "Saved to journal",
+                            text = lang.getString(StringKey.MEALX_SAVED_TO_JOURNAL),
                             color = TajlyTheme.colors.textHi,
                             fontWeight = FontWeight.Medium,
                         )
@@ -462,13 +470,13 @@ private fun ResultBlock(
                 }
                 Spacer(Modifier.height(12.dp))
                 GoldButton(
-                    text = "Scan another",
+                    text = lang.getString(StringKey.MEALX_SCAN_ANOTHER),
                     onClick = onScanAnother,
                     modifier = Modifier.fillMaxWidth(),
                 )
             } else {
                 GoldButton(
-                    text = "Save to journal",
+                    text = lang.getString(StringKey.MEALX_SAVE_TO_JOURNAL),
                     onClick = onSave,
                     modifier = Modifier.fillMaxWidth(),
                 )

@@ -1,4 +1,6 @@
 package org.awi.fitness.ui.screens.community
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.viewmodel.LocalLanguageViewModel
 
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -117,7 +119,7 @@ class ActivityScreen : Screen {
                     }
                     Spacer(Modifier.width(12.dp))
                     Text(
-                        text = "Activity",
+                        text = LocalLanguageViewModel.current.getString(StringKey.CMX_ACTIVITY),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = c.textHi,
@@ -135,7 +137,7 @@ class ActivityScreen : Screen {
                     activityState.error != null -> {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
-                                text = activityState.error ?: "Unknown error",
+                                text = activityState.error ?: LocalLanguageViewModel.current.getString(StringKey.CMX_UNKNOWN_ERROR),
                                 color = MaterialTheme.colorScheme.error
                             )
                         }
@@ -143,8 +145,8 @@ class ActivityScreen : Screen {
 
                     activityState.notifications.isEmpty() -> {
                         CommunityEmptyState(
-                            title = "No activity yet",
-                            message = "Kudos, comments and new followers will show up here.",
+                            title = LocalLanguageViewModel.current.getString(StringKey.NO_ACTIVITY_YET),
+                            message = LocalLanguageViewModel.current.getString(StringKey.CMX_NO_ACTIVITY_MESSAGE),
                             modifier = Modifier.fillMaxSize()
                         )
                     }
@@ -282,7 +284,7 @@ fun NotificationItem(
                 when (notification.type) {
                     CommunityActivityType.LIKE -> {
                         Text(
-                            text = "${notification.userName} cheered your post",
+                            text = "${notification.userName} ${LocalLanguageViewModel.current.getString(StringKey.CMX_CHEERED_YOUR_POST)}",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.SemiBold,
                             color = c.textHi,
@@ -298,7 +300,7 @@ fun NotificationItem(
                     }
                     CommunityActivityType.COMMENT -> {
                         Text(
-                            text = "${notification.userName} commented on your post",
+                            text = "${notification.userName} ${LocalLanguageViewModel.current.getString(StringKey.COMMENTED_ON_YOUR_POST)}",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.SemiBold,
                             color = c.textHi,
@@ -314,7 +316,7 @@ fun NotificationItem(
                     }
                     CommunityActivityType.FOLLOW -> {
                         Text(
-                            text = "${notification.userName} started following you",
+                            text = "${notification.userName} ${LocalLanguageViewModel.current.getString(StringKey.CMX_STARTED_FOLLOWING_YOU)}",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.SemiBold,
                             color = c.textHi,
@@ -322,7 +324,7 @@ fun NotificationItem(
                     }
                     CommunityActivityType.CHALLENGE_INVITE -> {
                         Text(
-                            text = "You're invited to a challenge",
+                            text = LocalLanguageViewModel.current.getString(StringKey.CMX_CHALLENGE_INVITE),
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.SemiBold,
                             color = c.textHi,
@@ -337,26 +339,26 @@ fun NotificationItem(
                     }
                     CommunityActivityType.BADGE_EARNED -> {
                         Text(
-                            text = "You've earned the '${notification.targetContent}' badge!",
+                            text = "${LocalLanguageViewModel.current.getString(StringKey.EARNED_BADGE)} '${notification.targetContent}' ${LocalLanguageViewModel.current.getString(StringKey.CMX_BADGE_SUFFIX)}",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.SemiBold,
                             color = c.textHi,
                         )
                         Text(
-                            text = "Congratulations!",
+                            text = LocalLanguageViewModel.current.getString(StringKey.CONGRATULATIONS),
                             style = MaterialTheme.typography.bodyMedium,
                             color = c.textMid,
                         )
                     }
                     CommunityActivityType.STREAK_MILESTONE -> {
                         Text(
-                            text = "You're on a ${notification.targetContent}!",
+                            text = "${LocalLanguageViewModel.current.getString(StringKey.ON_A_STREAK)} ${notification.targetContent}!",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.SemiBold,
                             color = c.textHi,
                         )
                         Text(
-                            text = "Keep it up!",
+                            text = LocalLanguageViewModel.current.getString(StringKey.KEEP_IT_UP),
                             style = MaterialTheme.typography.bodyMedium,
                             color = c.textMid,
                         )
@@ -383,7 +385,7 @@ fun NotificationItem(
                     ) {
                         // Primary CTA: Accept (gold). Decline demoted to glass pill.
                         GoldButton(
-                            text = "Accept",
+                            text = LocalLanguageViewModel.current.getString(StringKey.ACCEPT),
                             onClick = {
                                 scope.launch {
                                     notification.targetId.takeIf { it.isNotBlank() }?.let { challengeId ->
@@ -395,7 +397,7 @@ fun NotificationItem(
                             modifier = Modifier.weight(1f),
                         )
                         GlassTextPill(
-                            text = "Decline",
+                            text = LocalLanguageViewModel.current.getString(StringKey.DECLINE),
                             onClick = {
                                 scope.launch {
                                     viewModel.markNotificationAsRead(notification.id)

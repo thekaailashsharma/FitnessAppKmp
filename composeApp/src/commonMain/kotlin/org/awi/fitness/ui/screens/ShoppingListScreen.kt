@@ -1,4 +1,5 @@
 package org.awi.fitness.ui.screens
+import org.awi.fitness.viewmodel.LocalLanguageViewModel
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -163,6 +164,7 @@ class ShoppingListScreen(
 
 @Composable
 private fun ShoppingProgressCard(checked: Int, total: Int, progress: Float) {
+    val lang = LocalLanguageViewModel.current
     val c = TajlyTheme.colors
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
@@ -176,20 +178,20 @@ private fun ShoppingProgressCard(checked: Int, total: Int, progress: Float) {
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "Your list".uppercase(),
+                    text = lang.getString(StringKey.MEALX_YOUR_LIST).uppercase(),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = GoldBright
                 )
                 Text(
-                    text = "$checked of $total gathered",
+                    text = "$checked ${lang.getString(StringKey.MEALX_OF)} $total ${lang.getString(StringKey.MEALX_GATHERED)}",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = c.textHi
                 )
                 Text(
-                    text = if (total > 0 && checked == total) "All set — you're ready to cook"
-                    else "Tap an item to check it off",
+                    text = if (total > 0 && checked == total) lang.getString(StringKey.MEALX_ALL_SET)
+                    else lang.getString(StringKey.MEALX_TAP_TO_CHECK),
                     style = MaterialTheme.typography.bodySmall,
                     color = c.textMid
                 )
@@ -258,6 +260,7 @@ private fun ShoppingItem(
 
 @Composable
 private fun EmptyShoppingState() {
+    val lang = LocalLanguageViewModel.current
     val c = TajlyTheme.colors
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -277,13 +280,13 @@ private fun EmptyShoppingState() {
             )
         }
         Text(
-            text = "No shopping list yet",
+            text = lang.getString(StringKey.MEALX_NO_SHOPPING_LIST),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = c.textHi
         )
         Text(
-            text = "This plan doesn't have ingredients to gather.",
+            text = lang.getString(StringKey.MEALX_NO_INGREDIENTS),
             style = MaterialTheme.typography.bodyMedium,
             color = c.textMid
         )

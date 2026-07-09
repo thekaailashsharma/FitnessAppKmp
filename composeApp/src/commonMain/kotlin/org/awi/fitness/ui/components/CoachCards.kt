@@ -1,4 +1,7 @@
 package org.awi.fitness.ui.components
+import org.awi.fitness.data.tr
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.viewmodel.LocalLanguageViewModel
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -44,6 +47,7 @@ fun CoachCardView(
     modifier: Modifier = Modifier,
 ) {
     val s = remember { UserSettings.getInstance() }
+    val lang = LocalLanguageViewModel.current
     when (card.type) {
         CoachCardType.STREAK -> {
             val streak = s.currentStreak
@@ -52,8 +56,8 @@ fun CoachCardView(
                 emoji = "🔥",
                 progress = if (best > 0) streak.toFloat() / best else 0f,
                 big = "$streak",
-                unit = if (streak == 1) "day streak" else "day streak",
-                sub = if (best > streak) "Your best is $best — go beat it" else "This is your best ever",
+                unit = lang.getString(StringKey.CC_DAY_STREAK),
+                sub = if (best > streak) "${lang.getString(StringKey.CC_YOUR_BEST_PRE)} $best ${lang.getString(StringKey.CC_YOUR_BEST_POST)}" else lang.getString(StringKey.CC_BEST_EVER),
                 modifier = modifier,
             )
         }
@@ -64,8 +68,8 @@ fun CoachCardView(
                 emoji = "⚡",
                 progress = into / 500f,
                 big = "Lv $lvl",
-                unit = "level",
-                sub = "${500 - into} XP to Level ${lvl + 1}",
+                unit = lang.getString(StringKey.CC_LEVEL_UNIT),
+                sub = "${500 - into} ${lang.getString(StringKey.CC_XP_TO_LEVEL)} ${lvl + 1}",
                 modifier = modifier,
             )
         }
@@ -74,59 +78,59 @@ fun CoachCardView(
         CoachCardType.QUICK_ACTIONS -> QuickActionsCard(onAction, modifier)
         CoachCardType.WORKOUT_SUGGESTION -> ActionCard(
             emoji = "🏋️",
-            title = card.title.ifBlank { "Today's session" },
-            subtitle = card.subtitle.ifBlank { "A focused workout, tuned to your goal" },
-            cta = card.cta.ifBlank { "Start workout" },
+            title = card.title.ifBlank { lang.getString(StringKey.CC_WORKOUT_TITLE) },
+            subtitle = card.subtitle.ifBlank { lang.getString(StringKey.CC_WORKOUT_SUB) },
+            cta = card.cta.ifBlank { lang.getString(StringKey.START_WORKOUT) },
             action = card.action.ifBlank { "workout" }, onAction = onAction, modifier = modifier,
         )
         CoachCardType.MEAL_SUGGESTION -> ActionCard(
             emoji = "🥗",
-            title = card.title.ifBlank { "Fuel up right" },
-            subtitle = card.subtitle.ifBlank { "See meal ideas built around your goal" },
-            cta = card.cta.ifBlank { "Open meals" },
+            title = card.title.ifBlank { lang.getString(StringKey.CC_MEAL_TITLE) },
+            subtitle = card.subtitle.ifBlank { lang.getString(StringKey.CC_MEAL_SUB) },
+            cta = card.cta.ifBlank { lang.getString(StringKey.CC_OPEN_MEALS) },
             action = card.action.ifBlank { "meals" }, onAction = onAction, modifier = modifier,
         )
         CoachCardType.CHALLENGE -> ActionCard(
             emoji = "🏆",
-            title = card.title.ifBlank { "Take on a challenge" },
-            subtitle = card.subtitle.ifBlank { "A little competition keeps it fun" },
-            cta = card.cta.ifBlank { "View challenges" },
+            title = card.title.ifBlank { lang.getString(StringKey.CC_CHAL_TITLE) },
+            subtitle = card.subtitle.ifBlank { lang.getString(StringKey.CC_CHAL_SUB) },
+            cta = card.cta.ifBlank { lang.getString(StringKey.CC_VIEW_CHALLENGES) },
             action = card.action.ifBlank { "challenges" }, onAction = onAction, modifier = modifier,
         )
         CoachCardType.HYDRATION -> InfoCard(
             emoji = "💧",
-            title = card.title.ifBlank { "Hydration check" },
-            body = card.subtitle.ifBlank { "A glass of water now keeps your energy steady this afternoon." },
+            title = card.title.ifBlank { lang.getString(StringKey.CC_HYDRATION_TITLE) },
+            body = card.subtitle.ifBlank { lang.getString(StringKey.CC_HYDRATION_BODY) },
             modifier = modifier,
         )
         CoachCardType.BREATHE -> InfoCard(
             emoji = "🌬️",
-            title = card.title.ifBlank { "One slow breath" },
-            body = card.subtitle.ifBlank { "In for 4, hold for 4, out for 6. Three rounds. Notice the settle." },
+            title = card.title.ifBlank { lang.getString(StringKey.CC_BREATHE_TITLE) },
+            body = card.subtitle.ifBlank { lang.getString(StringKey.CC_BREATHE_BODY) },
             modifier = modifier,
         )
         CoachCardType.TIP -> InfoCard(
             emoji = "💡",
-            title = card.title.ifBlank { "Coach tip" },
-            body = card.subtitle.ifBlank { "Consistency beats intensity. Small and repeatable wins." },
+            title = card.title.ifBlank { lang.getString(StringKey.CC_TIP_TITLE) },
+            body = card.subtitle.ifBlank { lang.getString(StringKey.CC_TIP_BODY) },
             modifier = modifier,
         )
         CoachCardType.GOAL -> InfoCard(
             emoji = "🎯",
-            title = "Your goal",
+            title = lang.getString(StringKey.CC_YOUR_GOAL),
             body = card.subtitle.ifBlank { goalWords(s.fitnessGoal) },
             modifier = modifier,
         )
         CoachCardType.MOTIVATION -> InfoCard(
             emoji = "✨",
-            title = card.title.ifBlank { "For today" },
-            body = card.subtitle.ifBlank { "The only bad workout is the one that didn't happen." },
+            title = card.title.ifBlank { lang.getString(StringKey.CC_MOTIVATION_TITLE) },
+            body = card.subtitle.ifBlank { lang.getString(StringKey.CC_MOTIVATION_BODY) },
             modifier = modifier,
         )
         CoachCardType.CELEBRATION -> InfoCard(
             emoji = "🎉",
-            title = card.title.ifBlank { "That's a win" },
-            body = card.subtitle.ifBlank { "You showed up — that's the whole game. Proud of you." },
+            title = card.title.ifBlank { lang.getString(StringKey.CC_CELEBRATION_TITLE) },
+            body = card.subtitle.ifBlank { lang.getString(StringKey.CC_CELEBRATION_BODY) },
             accent = true,
             modifier = modifier,
         )
@@ -134,11 +138,11 @@ fun CoachCardView(
 }
 
 private fun goalWords(g: String): String = when (g.uppercase()) {
-    "WEIGHT_LOSS" -> "Lose weight — lighter, stronger, steadier."
-    "MUSCLE_GAIN" -> "Build muscle — get stronger and more defined."
-    "ENDURANCE" -> "Build endurance — move more, every day."
-    "FLEXIBILITY" -> "Move freely — mobility and calm."
-    else -> "Get fitter — one steady step at a time."
+    "WEIGHT_LOSS" -> tr(StringKey.CC_GOAL_WEIGHT_LOSS)
+    "MUSCLE_GAIN" -> tr(StringKey.CC_GOAL_MUSCLE)
+    "ENDURANCE" -> tr(StringKey.CC_GOAL_ENDURANCE)
+    "FLEXIBILITY" -> tr(StringKey.CC_GOAL_FLEXIBILITY)
+    else -> tr(StringKey.CC_GOAL_GENERIC)
 }
 
 @Composable
@@ -214,6 +218,7 @@ private fun InfoCard(emoji: String, title: String, body: String, accent: Boolean
 @Composable
 private fun WeightCard(s: UserSettings, modifier: Modifier) {
     val c = TajlyTheme.colors
+    val lang = LocalLanguageViewModel.current
     val weighIns = s.weighIns.value
     val start = weighIns.firstOrNull()?.weight ?: s.profileWeightKg.takeIf { it > 0f }
     val current = weighIns.lastOrNull()?.weight ?: s.profileWeightKg.takeIf { it > 0f }
@@ -225,18 +230,18 @@ private fun WeightCard(s: UserSettings, modifier: Modifier) {
         ) {
             EmojiChip("📈", accent = true)
             Column(modifier = Modifier.weight(1f)) {
-                Text("Your progress", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = c.textHi)
+                Text(lang.getString(StringKey.CC_YOUR_PROGRESS), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = c.textHi)
                 if (start != null && current != null) {
                     val delta = start - current
                     val txt = when {
-                        delta >= 0.5f -> "Down ${delta.toInt()}kg since you started 💪"
-                        delta <= -0.5f -> "Up ${(-delta).toInt()}kg of work in"
-                        else -> "Holding steady — consistency is the win"
+                        delta >= 0.5f -> "${lang.getString(StringKey.CC_DOWN_PRE)} ${delta.toInt()}kg ${lang.getString(StringKey.CC_SINCE_STARTED)} 💪"
+                        delta <= -0.5f -> "${lang.getString(StringKey.CC_UP_PRE)} ${(-delta).toInt()}kg ${lang.getString(StringKey.CC_OF_WORK_IN)}"
+                        else -> lang.getString(StringKey.CC_HOLDING_STEADY)
                     }
                     Text(txt, style = MaterialTheme.typography.bodySmall, color = c.textMid)
-                    Text("Start ${start.toInt()}kg · Now ${current.toInt()}kg", style = MaterialTheme.typography.labelSmall, color = c.textLow)
+                    Text("${lang.getString(StringKey.CC_START_LABEL)} ${start.toInt()}kg · ${lang.getString(StringKey.CC_NOW_LABEL)} ${current.toInt()}kg", style = MaterialTheme.typography.labelSmall, color = c.textLow)
                 } else {
-                    Text("Log a weigh-in to see your trend here", style = MaterialTheme.typography.bodySmall, color = c.textMid)
+                    Text(lang.getString(StringKey.CC_LOG_WEIGH_IN), style = MaterialTheme.typography.bodySmall, color = c.textMid)
                 }
             }
         }
@@ -246,10 +251,11 @@ private fun WeightCard(s: UserSettings, modifier: Modifier) {
 @Composable
 private fun WeekCard(s: UserSettings, modifier: Modifier) {
     val c = TajlyTheme.colors
+    val lang = LocalLanguageViewModel.current
     val done = s.currentStreak.coerceIn(0, 7)
     GlassCard(modifier = modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("This week", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = c.textHi)
+            Text(lang.getString(StringKey.HOME_FILTER_THIS_WEEK), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = c.textHi)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val days = listOf("M", "T", "W", "T", "F", "S", "S")
                 days.forEachIndexed { i, d ->
@@ -271,13 +277,14 @@ private fun WeekCard(s: UserSettings, modifier: Modifier) {
 @Composable
 private fun QuickActionsCard(onAction: (String) -> Unit, modifier: Modifier) {
     val c = TajlyTheme.colors
+    val lang = LocalLanguageViewModel.current
     GlassCard(modifier = modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Quick actions", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = c.textHi)
+            Text(lang.getString(StringKey.CC_QUICK_ACTIONS), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = c.textHi)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                GlassChip(text = "🏋️ Workout", selected = false, onClick = { onAction("workout") })
-                GlassChip(text = "🥗 Meals", selected = false, onClick = { onAction("meals") })
-                GlassChip(text = "🏆 Challenges", selected = false, onClick = { onAction("challenges") })
+                GlassChip(text = "🏋️ ${lang.getString(StringKey.WORKOUTS)}", selected = false, onClick = { onAction("workout") })
+                GlassChip(text = "🥗 ${lang.getString(StringKey.MEALS)}", selected = false, onClick = { onAction("meals") })
+                GlassChip(text = "🏆 ${lang.getString(StringKey.CHALLENGES)}", selected = false, onClick = { onAction("challenges") })
             }
         }
     }

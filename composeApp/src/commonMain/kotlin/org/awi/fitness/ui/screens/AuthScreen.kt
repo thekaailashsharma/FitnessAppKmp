@@ -97,6 +97,7 @@ class AuthScreen(
 
         if (showForgotPassword) {
             ForgotPasswordSheet(
+                languageViewModel = languageViewModel,
                 initialEmail = email,
                 onDismiss = { showForgotPassword = false },
                 onSend = { resetEmail ->
@@ -130,7 +131,7 @@ class AuthScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = if (isSignUp) "Create your account" else "Welcome back",
+                    text = if (isSignUp) languageViewModel.getString(StringKey.CREATE_ACCOUNT) else languageViewModel.getString(StringKey.WELCOME_BACK),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -160,7 +161,7 @@ class AuthScreen(
                                 modifier = Modifier.size(18.dp)
                             )
                             Text(
-                                "Password reset email sent. Check your inbox.",
+                                languageViewModel.getString(StringKey.AUTH_RESET_SENT),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = GreenAccent
                             )
@@ -213,7 +214,7 @@ class AuthScreen(
                             errorMessage = null
                             resetEmailSent = false
                         },
-                        label = "Email",
+                        label = languageViewModel.getString(StringKey.EMAIL),
                         languageViewModel = languageViewModel,
                         leadingIcon = TablerIcons.Mail,
                         keyboardOptions = KeyboardOptions(
@@ -229,7 +230,7 @@ class AuthScreen(
                             viewModel.updatePassword(it)
                             errorMessage = null
                         },
-                        label = "Password",
+                        label = languageViewModel.getString(StringKey.PASSWORD),
                         languageViewModel = languageViewModel,
                         leadingIcon = TablerIcons.Lock,
                         isPassword = true,
@@ -245,7 +246,7 @@ class AuthScreen(
                     AnimatedVisibility(visible = !isSignUp) {
                         Box(modifier = Modifier.fillMaxWidth()) {
                             Text(
-                                text = "Forgot password?",
+                                text = languageViewModel.getString(StringKey.FORGOT_PASSWORD),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = GreenAccent,
                                 fontWeight = FontWeight.Medium,
@@ -262,7 +263,7 @@ class AuthScreen(
 
                 // Primary action button
                 GoldButton(
-                    text = if (isSignUp) "Create account" else "Sign in",
+                    text = if (isSignUp) languageViewModel.getString(StringKey.CREATE_ACCOUNT) else languageViewModel.getString(StringKey.SIGN_IN),
                     onClick = {
                         scope.launch {
                             if (isSignUp) viewModel.signUp() else viewModel.signIn()
@@ -280,7 +281,7 @@ class AuthScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (isSignUp) "Already have an account?" else "Don't have an account?",
+                        text = if (isSignUp) languageViewModel.getString(StringKey.ALREADY_HAVE_ACCOUNT) else languageViewModel.getString(StringKey.DONT_HAVE_ACCOUNT),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -293,7 +294,7 @@ class AuthScreen(
                         modifier = Modifier.padding(start = 2.dp)
                     ) {
                         Text(
-                            text = if (isSignUp) "Sign in" else "Sign up",
+                            text = if (isSignUp) languageViewModel.getString(StringKey.SIGN_IN) else languageViewModel.getString(StringKey.SIGN_UP),
                             color = GreenAccent,
                             fontWeight = FontWeight.SemiBold,
                             style = MaterialTheme.typography.bodyMedium
@@ -305,7 +306,7 @@ class AuthScreen(
 
                 // Subscription reassurance
                 Text(
-                    text = "Free 14-day trial · Cancel anytime",
+                    text = languageViewModel.getString(StringKey.AUTH_TRIAL_LINE),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     textAlign = TextAlign.Center
@@ -318,6 +319,7 @@ class AuthScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ForgotPasswordSheet(
+    languageViewModel: LanguageViewModel,
     initialEmail: String,
     onDismiss: () -> Unit,
     onSend: (String) -> Unit
@@ -344,7 +346,7 @@ private fun ForgotPasswordSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Reset password",
+                    languageViewModel.getString(StringKey.FORGOT_PASSWORD_TITLE),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -354,7 +356,7 @@ private fun ForgotPasswordSheet(
             }
 
             Text(
-                "Enter your email and we'll send you a link to reset your password.",
+                languageViewModel.getString(StringKey.FORGOT_PASSWORD_DESC),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -362,7 +364,7 @@ private fun ForgotPasswordSheet(
             OutlinedTextField(
                 value = resetEmail,
                 onValueChange = { resetEmail = it },
-                label = { Text("Email address") },
+                label = { Text(languageViewModel.getString(StringKey.EMAIL)) },
                 leadingIcon = { Icon(TablerIcons.Mail, contentDescription = null) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -390,7 +392,7 @@ private fun ForgotPasswordSheet(
                         color = Color.White
                     )
                 } else {
-                    Text("Send reset link", fontWeight = FontWeight.SemiBold)
+                    Text(languageViewModel.getString(StringKey.SEND_RESET_LINK), fontWeight = FontWeight.SemiBold)
                 }
             }
         }

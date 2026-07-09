@@ -308,7 +308,7 @@ class CommunityProfileScreen(private val userId: String) : Screen {
                                                 )
                                             )
                                         }) {
-                                            Text("+ Add a bio", color = GoldPrimary)
+                                            Text(languageViewModel.getString(StringKey.CMX_ADD_BIO), color = GoldPrimary)
                                         }
                                     }
                                 }
@@ -458,7 +458,7 @@ class CommunityProfileScreen(private val userId: String) : Screen {
                                         message = if (isOwnProfile)
                                             languageViewModel.getString(StringKey.COMMUNITY_SHARE_FIRST_WIN)
                                         else
-                                            "${user.name} hasn't shared anything yet.",
+                                            "${user.name} ${languageViewModel.getString(StringKey.CMX_HASNT_SHARED)}",
                                         actionLabel = if (isOwnProfile) languageViewModel.getString(StringKey.COMMUNITY_CREATE_POST) else null,
                                         onAction = if (isOwnProfile) {
                                             { navigator.push(CreatePostScreen()) }

@@ -1,4 +1,6 @@
 package org.awi.fitness.ui.screens
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.viewmodel.LocalLanguageViewModel
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -149,7 +151,7 @@ private fun TipPage(tip: DailyTip, index: Int, onPrev: () -> Unit, onNext: () ->
             Spacer(Modifier.height(16.dp))
             Text(tip.tip, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color.White)
             Spacer(Modifier.height(20.dp))
-            Text("Tap to continue · swipe to browse", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.7f))
+            Text(LocalLanguageViewModel.current.getString(StringKey.TIP_TAP_HINT), style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.7f))
         }
     }
 }
@@ -161,10 +163,10 @@ private fun CaughtUpPage(colors: org.awi.fitness.theme.TajlyColors, onDone: () -
             Box(Modifier.size(88.dp).clip(CircleShape).background(Tajly.GoldGradient), contentAlignment = Alignment.Center) {
                 Icon(TablerIcons.Check, null, tint = OnGold, modifier = Modifier.size(44.dp))
             }
-            Text("You're all caught up", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = colors.textHi)
-            Text("That's every tip for today. Come back tomorrow for more.", style = MaterialTheme.typography.bodyMedium, color = colors.textMid, modifier = Modifier.padding(horizontal = 16.dp))
+            Text(LocalLanguageViewModel.current.getString(StringKey.TIP_CAUGHT_UP), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = colors.textHi)
+            Text(LocalLanguageViewModel.current.getString(StringKey.TIP_CAUGHT_UP_SUB), style = MaterialTheme.typography.bodyMedium, color = colors.textMid, modifier = Modifier.padding(horizontal = 16.dp))
             Box(Modifier.clip(RoundedCornerShape(16.dp)).background(Tajly.GoldGradient).clickable(onClick = onDone).padding(horizontal = 28.dp, vertical = 14.dp)) {
-                Text("Done", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = OnGold)
+                Text(LocalLanguageViewModel.current.getString(StringKey.TIP_DONE), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = OnGold)
             }
         }
     }

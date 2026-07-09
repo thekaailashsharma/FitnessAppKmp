@@ -1,4 +1,7 @@
 package org.awi.fitness.ui.screens
+import org.awi.fitness.data.tr
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.viewmodel.LocalLanguageViewModel
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -166,7 +169,7 @@ class BillingScreen : Screen {
                 scope.launch {
                     val result = repo.restorePurchases()
                     val ok = result.getOrDefault(false)
-                    message = if (ok) "Purchases restored" else "Nothing to restore"
+                    message = if (ok) tr(StringKey.BILL_RESTORED) else tr(StringKey.BILL_NOTHING_RESTORE)
                     if (ok) status = repo.getSubscriptionStatus()
                     restoring = false
                 }
@@ -183,7 +186,7 @@ class BillingScreen : Screen {
                         TopAppBar(
                             title = {
                                 Text(
-                                    text = "Subscription",
+                                    text = LocalLanguageViewModel.current.getString(StringKey.BILL_SUBSCRIPTION),
                                     style = MaterialTheme.typography.titleLarge,
                                     color = c.textHi
                                 )
@@ -247,7 +250,7 @@ class BillingScreen : Screen {
                                 item {
                                     GlassCard(modifier = Modifier.fillMaxWidth()) {
                                         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                                            SectionHeader(title = "Change plan")
+                                            SectionHeader(title = LocalLanguageViewModel.current.getString(StringKey.BILLING_CHANGE_PLAN))
                                             Spacer(modifier = Modifier.height(6.dp))
                                             otherPlans.forEachIndexed { index, plan ->
                                                 if (index > 0) RowDivider()
@@ -271,21 +274,21 @@ class BillingScreen : Screen {
                             item {
                                 GlassCard(modifier = Modifier.fillMaxWidth()) {
                                     Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                                        SectionHeader(title = "Manage")
+                                        SectionHeader(title = LocalLanguageViewModel.current.getString(StringKey.BILLING_MANAGE))
                                         Spacer(modifier = Modifier.height(6.dp))
 
                                         BillingRow(
                                             icon = TablerIcons.Settings,
-                                            title = "Manage or cancel subscription",
-                                            subtitle = "Opens your $store settings.",
+                                            title = LocalLanguageViewModel.current.getString(StringKey.BILL_MANAGE_SUB_ROW),
+                                            subtitle = "${LocalLanguageViewModel.current.getString(StringKey.BILL_OPENS_PRE)} $store ${LocalLanguageViewModel.current.getString(StringKey.BILL_OPENS_POST)}",
                                             trailingIcon = TablerIcons.ExternalLink,
                                             onClick = { openInAppBrowser(storeSubscriptionsUrl) }
                                         )
                                         RowDivider()
                                         BillingRow(
                                             icon = TablerIcons.Refresh,
-                                            title = "Restore purchases",
-                                            subtitle = "Already subscribed? Restore your Premium.",
+                                            title = LocalLanguageViewModel.current.getString(StringKey.PAYWALL_RESTORE_PURCHASES),
+                                            subtitle = LocalLanguageViewModel.current.getString(StringKey.BILL_RESTORE_SUB),
                                             trailingIcon = if (restoring) null else TablerIcons.ChevronRight,
                                             trailingText = if (restoring) "…" else null,
                                             onClick = restore
@@ -294,8 +297,8 @@ class BillingScreen : Screen {
                                             RowDivider()
                                             BillingRow(
                                                 icon = TablerIcons.List,
-                                                title = "Billing history",
-                                                subtitle = "View your purchases in the app.",
+                                                title = LocalLanguageViewModel.current.getString(StringKey.BILL_BILLING_HISTORY),
+                                                subtitle = LocalLanguageViewModel.current.getString(StringKey.BILL_VIEW_PURCHASES),
                                                 trailingIcon = TablerIcons.ChevronRight,
                                                 onClick = {
                                                     scope.launch {
@@ -309,8 +312,8 @@ class BillingScreen : Screen {
                                             RowDivider()
                                             BillingRow(
                                                 icon = TablerIcons.Scale,
-                                                title = "Request a refund",
-                                                subtitle = "Handled by $store.",
+                                                title = LocalLanguageViewModel.current.getString(StringKey.BILL_REQUEST_REFUND),
+                                                subtitle = "${LocalLanguageViewModel.current.getString(StringKey.BILL_HANDLED_BY)} $store.",
                                                 trailingIcon = TablerIcons.ExternalLink,
                                                 onClick = { openInAppBrowser(purchaseHistoryUrl) }
                                             )
@@ -337,28 +340,28 @@ class BillingScreen : Screen {
                             item {
                                 GlassCard(modifier = Modifier.fillMaxWidth()) {
                                     Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                                        SectionHeader(title = "Legal")
+                                        SectionHeader(title = LocalLanguageViewModel.current.getString(StringKey.BILL_LEGAL))
                                         Spacer(modifier = Modifier.height(6.dp))
                                         BillingRow(
                                             icon = TablerIcons.Blockquote,
-                                            title = "Terms of Use",
-                                            subtitle = "The agreement for using Tajly Premium.",
+                                            title = LocalLanguageViewModel.current.getString(StringKey.TERMS_OF_USE),
+                                            subtitle = LocalLanguageViewModel.current.getString(StringKey.BILL_TERMS_SUB),
                                             trailingIcon = TablerIcons.ExternalLink,
                                             onClick = { openInAppBrowser(LegalUrls.TERMS_OF_USE) }
                                         )
                                         RowDivider()
                                         BillingRow(
                                             icon = TablerIcons.EyeOff,
-                                            title = "Privacy Policy",
-                                            subtitle = "How we handle your data.",
+                                            title = LocalLanguageViewModel.current.getString(StringKey.PRIVACY_POLICY),
+                                            subtitle = LocalLanguageViewModel.current.getString(StringKey.BILL_PRIVACY_SUB),
                                             trailingIcon = TablerIcons.ExternalLink,
                                             onClick = { openInAppBrowser(LegalUrls.PRIVACY_POLICY) }
                                         )
                                         RowDivider()
                                         BillingRow(
                                             icon = TablerIcons.MessageCircle,
-                                            title = "Help & Support",
-                                            subtitle = "Questions about your plan? We're here.",
+                                            title = LocalLanguageViewModel.current.getString(StringKey.HELP_SUPPORT),
+                                            subtitle = LocalLanguageViewModel.current.getString(StringKey.BILL_HELP_SUB),
                                             trailingIcon = TablerIcons.ExternalLink,
                                             onClick = { openInAppBrowser(cfgSupportUrl) }
                                         )
@@ -397,11 +400,10 @@ class BillingScreen : Screen {
                 if (pending != null) {
                     AlertDialog(
                         onDismissRequest = { planToSwitch = null },
-                        title = { Text("Switch to ${pending.title}?") },
+                        title = { Text("${LocalLanguageViewModel.current.getString(StringKey.BILL_SWITCH_TO)} ${pending.title}?") },
                         text = {
                             Text(
-                                "You'll be charged ${pending.priceString} on your next cycle, " +
-                                    "prorated by your store."
+                                "${LocalLanguageViewModel.current.getString(StringKey.BILL_CHARGE_PRE)} ${pending.priceString} ${LocalLanguageViewModel.current.getString(StringKey.BILL_CHARGE_POST)}"
                             )
                         },
                         confirmButton = {
@@ -414,23 +416,23 @@ class BillingScreen : Screen {
                                     res.fold(
                                         onSuccess = { ok ->
                                             if (ok) {
-                                                message = "Plan changed"
+                                                message = tr(StringKey.BILL_PLAN_CHANGED)
                                                 status = repo.getSubscriptionStatus()
                                             } else {
-                                                message = "Couldn't change your plan."
+                                                message = tr(StringKey.BILL_CHANGE_FAILED)
                                             }
                                         },
                                         onFailure = { e ->
                                             if (e.message != "cancelled") {
-                                                message = "Couldn't change your plan. Please try again."
+                                                message = tr(StringKey.BILL_CHANGE_FAILED_RETRY)
                                             }
                                         }
                                     )
                                 }
-                            }) { Text("Switch") }
+                            }) { Text(LocalLanguageViewModel.current.getString(StringKey.BILL_SWITCH)) }
                         },
                         dismissButton = {
-                            TextButton(onClick = { planToSwitch = null }) { Text("Cancel") }
+                            TextButton(onClick = { planToSwitch = null }) { Text(LocalLanguageViewModel.current.getString(StringKey.CANCEL)) }
                         }
                     )
                 }
@@ -444,7 +446,7 @@ class BillingScreen : Screen {
                         text = {
                             val items = history ?: emptyList()
                             if (items.isEmpty()) {
-                                Text("No purchases to show yet.", color = c.textMid)
+                                Text(LocalLanguageViewModel.current.getString(StringKey.BILL_NO_PURCHASES), color = c.textMid)
                             } else {
                                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                     items.forEach { e ->
@@ -478,7 +480,7 @@ class BillingScreen : Screen {
                                     }
                                     Spacer(Modifier.height(4.dp))
                                     Text(
-                                        "Official receipts & invoices are issued by $store.",
+                                        "${LocalLanguageViewModel.current.getString(StringKey.BILL_RECEIPTS_PRE)} $store.",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = c.textLow
                                     )
@@ -489,10 +491,10 @@ class BillingScreen : Screen {
                             TextButton(onClick = {
                                 showHistory = false
                                 openInAppBrowser(purchaseHistoryUrl)
-                            }) { Text("Official receipt") }
+                            }) { Text(LocalLanguageViewModel.current.getString(StringKey.BILL_OFFICIAL_RECEIPT)) }
                         },
                         dismissButton = {
-                            TextButton(onClick = { showHistory = false }) { Text("Close") }
+                            TextButton(onClick = { showHistory = false }) { Text(LocalLanguageViewModel.current.getString(StringKey.CLOSE)) }
                         }
                     )
                 }
@@ -541,13 +543,13 @@ private fun StatusHeroCard(
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Current plan".uppercase(),
+                        text = LocalLanguageViewModel.current.getString(StringKey.BILLING_CURRENT_PLAN).uppercase(),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = c.textMid
                     )
                     Text(
-                        text = if (active) "Premium" else "Free plan",
+                        text = if (active) LocalLanguageViewModel.current.getString(StringKey.BILL_PLAN_PREMIUM) else LocalLanguageViewModel.current.getString(StringKey.BILL_FREE_PLAN),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = if (active) GoldBright else c.textHi
@@ -570,11 +572,11 @@ private fun StatusHeroCard(
                 val exp = status?.expirationRaw
                 val line = when {
                     status?.isInTrial == true ->
-                        if (exp != null) "Free trial — ends $exp" else "You're on a free trial."
+                        if (exp != null) "${LocalLanguageViewModel.current.getString(StringKey.BILL_FREE_TRIAL_ENDS)} $exp" else LocalLanguageViewModel.current.getString(StringKey.BILL_ON_FREE_TRIAL)
                     status?.willRenew == true ->
-                        if (exp != null) "Renews on $exp" else "Auto-renews with your plan."
+                        if (exp != null) "${LocalLanguageViewModel.current.getString(StringKey.BILL_RENEWS_ON)} $exp" else LocalLanguageViewModel.current.getString(StringKey.BILL_AUTO_RENEWS)
                     else ->
-                        if (exp != null) "Your plan ends $exp (won't renew)" else "Your plan won't renew."
+                        if (exp != null) "${LocalLanguageViewModel.current.getString(StringKey.BILL_PLAN_ENDS_PRE)} $exp ${LocalLanguageViewModel.current.getString(StringKey.BILL_WONT_RENEW_PAREN)}" else LocalLanguageViewModel.current.getString(StringKey.BILL_WONT_RENEW)
                 }
                 HairLine()
                 Text(
@@ -585,7 +587,7 @@ private fun StatusHeroCard(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Billed through $store",
+                    text = "${LocalLanguageViewModel.current.getString(StringKey.BILL_BILLED_THROUGH)} $store",
                     style = MaterialTheme.typography.bodySmall,
                     color = c.textMid
                 )
@@ -603,13 +605,13 @@ private fun StatusHeroCard(
                 Spacer(modifier = Modifier.height(6.dp))
                 HairLine()
                 Text(
-                    text = "Unlock AI coaching, unlimited personalised plans and every challenge.",
+                    text = LocalLanguageViewModel.current.getString(StringKey.BILL_UNLOCK_DESC),
                     style = MaterialTheme.typography.bodyMedium,
                     color = c.textMid
                 )
                 Spacer(modifier = Modifier.height(18.dp))
                 GoldButton(
-                    text = "Go Premium",
+                    text = LocalLanguageViewModel.current.getString(StringKey.GO_PREMIUM),
                     onClick = onGoPremium,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -622,13 +624,13 @@ private fun StatusHeroCard(
 private fun BenefitsCard() {
     GlassCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-            SectionHeader(title = "What's included")
+            SectionHeader(title = LocalLanguageViewModel.current.getString(StringKey.BILL_WHATS_INCLUDED))
             Spacer(modifier = Modifier.height(14.dp))
-            BenefitRow(TablerIcons.Bolt, "AI coaching", "Ask your coach anything, anytime")
+            BenefitRow(TablerIcons.Bolt, LocalLanguageViewModel.current.getString(StringKey.BILL_BENEFIT_AI_T), LocalLanguageViewModel.current.getString(StringKey.BILL_BENEFIT_AI_S))
             Spacer(modifier = Modifier.height(14.dp))
-            BenefitRow(TablerIcons.Leaf, "Unlimited plans", "Personalised workout & meal plans")
+            BenefitRow(TablerIcons.Leaf, LocalLanguageViewModel.current.getString(StringKey.BILL_BENEFIT_PLANS_T), LocalLanguageViewModel.current.getString(StringKey.BILL_BENEFIT_PLANS_S))
             Spacer(modifier = Modifier.height(14.dp))
-            BenefitRow(TablerIcons.Trophy, "Every challenge", "Join challenges and keep your streak")
+            BenefitRow(TablerIcons.Trophy, LocalLanguageViewModel.current.getString(StringKey.BILL_BENEFIT_CHAL_T), LocalLanguageViewModel.current.getString(StringKey.BILL_BENEFIT_CHAL_S))
         }
     }
 }
@@ -671,7 +673,7 @@ private fun BillingIssueBanner() {
             modifier = Modifier.size(22.dp)
         )
         Text(
-            text = "There's a billing issue with your subscription. Update your payment method to keep Premium.",
+            text = LocalLanguageViewModel.current.getString(StringKey.BILL_ISSUE_BANNER),
             style = MaterialTheme.typography.bodySmall,
             color = TajlyTheme.colors.textHi
         )

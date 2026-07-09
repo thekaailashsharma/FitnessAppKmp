@@ -1,4 +1,6 @@
 package org.awi.fitness.ui.screens
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.data.tr
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -116,7 +118,7 @@ fun FixPaymentScreen() {
 
                 Spacer(Modifier.height(24.dp))
                 Text(
-                    "Payment problem",
+                    tr(StringKey.FIXPAY_TITLE),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = c.textHi,
@@ -124,7 +126,7 @@ fun FixPaymentScreen() {
                 )
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    "We couldn't renew your Tajly Premium. Update your payment method in $storeLabel to keep your access.",
+                    "${tr(StringKey.FIXPAY_BODY_PRE)} $storeLabel ${tr(StringKey.FIXPAY_BODY_POST)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = c.textMid,
                     textAlign = TextAlign.Center
@@ -132,7 +134,7 @@ fun FixPaymentScreen() {
 
                 Spacer(Modifier.height(28.dp))
                 GoldButton(
-                    text = "Update payment method",
+                    text = tr(StringKey.FIXPAY_UPDATE_CTA),
                     onClick = { org.awi.fitness.utils.openInAppBrowser(status?.managementUrl ?: storeManageUrl) },
                     modifier = Modifier.fillMaxWidth().height(52.dp)
                 )

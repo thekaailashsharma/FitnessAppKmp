@@ -1,4 +1,6 @@
 package org.awi.fitness.ui.screens
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.viewmodel.LocalLanguageViewModel
 
 import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.animation.core.animateFloatAsState
@@ -110,13 +112,13 @@ fun ChallengesScreen() {
             item {
                 Column {
                     Text(
-                        text = "Challenges",
+                        text = LocalLanguageViewModel.current.getString(StringKey.CHALLENGES),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = c.textHi,
                     )
                     Text(
-                        text = "Compete, progress, win.",
+                        text = LocalLanguageViewModel.current.getString(StringKey.CHX_COMPETE_TAGLINE),
                         style = MaterialTheme.typography.bodyMedium,
                         color = c.textMid,
                     )
@@ -136,15 +138,15 @@ fun ChallengesScreen() {
             // ---- My Active Challenges ----
             item {
                 ChallengeSectionHeader(
-                    title = "Active Challenges",
-                    subtitle = "Keep the momentum going!"
+                    title = LocalLanguageViewModel.current.getString(StringKey.ACTIVE_CHALLENGES),
+                    subtitle = LocalLanguageViewModel.current.getString(StringKey.KEEP_MOMENTUM_GOING)
                 )
             }
 
             if (state.activeChallenges.isEmpty() && !state.isLoading) {
                 item {
                     ChallengesEmptyState(
-                        message = "No active challenges yet.\nJoin one below to get started!",
+                        message = LocalLanguageViewModel.current.getString(StringKey.CHX_NO_ACTIVE),
                         icon = Res.drawable.ic3d_flag
                     )
                 }
@@ -180,15 +182,15 @@ fun ChallengesScreen() {
             // ---- Available Challenges ----
             item {
                 ChallengeSectionHeader(
-                    title = "Available Challenges",
-                    subtitle = "Start a new journey"
+                    title = LocalLanguageViewModel.current.getString(StringKey.AVAILABLE_CHALLENGES),
+                    subtitle = LocalLanguageViewModel.current.getString(StringKey.START_NEW_JOURNEY)
                 )
             }
 
             if (state.availableChallenges.isEmpty() && !state.isLoading) {
                 item {
                     ChallengesEmptyState(
-                        message = "No available challenges right now.\nCheck back soon!",
+                        message = LocalLanguageViewModel.current.getString(StringKey.CHX_NO_AVAILABLE),
                         icon = Res.drawable.ic3d_star
                     )
                 }
@@ -210,11 +212,11 @@ fun ChallengesScreen() {
             // ---- Leaderboard (honest: reflects the first active challenge) ----
             item {
                 ChallengeSectionHeader(
-                    title = "Leaderboard",
+                    title = LocalLanguageViewModel.current.getString(StringKey.LEADERBOARD),
                     subtitle = if (state.activeChallenges.isNotEmpty())
-                        "Challenge: ${state.activeChallenges.first().title}"
+                        "${LocalLanguageViewModel.current.getString(StringKey.CHX_CHALLENGE_PREFIX)} ${state.activeChallenges.first().title}"
                     else
-                        "See how you rank"
+                        LocalLanguageViewModel.current.getString(StringKey.SEE_HOW_YOU_RANK)
                 )
             }
 
@@ -222,9 +224,9 @@ fun ChallengesScreen() {
                 item {
                     ChallengesEmptyState(
                         message = if (state.activeChallenges.isEmpty())
-                            "Join a challenge to appear on the leaderboard!"
+                            LocalLanguageViewModel.current.getString(StringKey.CHX_JOIN_TO_APPEAR)
                         else
-                            "No entries yet. Be the first!",
+                            LocalLanguageViewModel.current.getString(StringKey.CHX_NO_ENTRIES_FIRST),
                         icon = Res.drawable.ic3d_medal
                     )
                 }
@@ -278,7 +280,7 @@ fun ChallengesScreen() {
                     .padding(16.dp),
                 action = {
                     TextButton(onClick = { viewModel.clearError() }) {
-                        Text("Dismiss", color = GoldBright)
+                        Text(LocalLanguageViewModel.current.getString(StringKey.CHX_DISMISS), color = GoldBright)
                     }
                 }
             ) {
@@ -306,21 +308,21 @@ private fun QuickStatsRow(activeChallengesCount: Int, completedCount: Int, rank:
         QuickStatTile(
             icon = TablerIcons.Trophy,
             value = activeChallengesCount.toString(),
-            label = "Active",
+            label = LocalLanguageViewModel.current.getString(StringKey.ACTIVE),
             accent = Tajly.Violet,
             modifier = Modifier.weight(1f)
         )
         QuickStatTile(
             icon = TablerIcons.CircleCheck,
             value = completedCount.toString(),
-            label = "Completed",
+            label = LocalLanguageViewModel.current.getString(StringKey.COMPLETED),
             accent = Tajly.Green,
             modifier = Modifier.weight(1f)
         )
         QuickStatTile(
             icon = TablerIcons.Award,
             value = rank,
-            label = "Your rank",
+            label = LocalLanguageViewModel.current.getString(StringKey.CHX_YOUR_RANK),
             accent = GoldPrimary,
             modifier = Modifier.weight(1f)
         )
@@ -566,7 +568,7 @@ private fun JoinPill(
                     modifier = Modifier.size(16.dp),
                 )
                 Spacer(Modifier.width(4.dp))
-                Text("Joined", color = Tajly.Green, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                Text(LocalLanguageViewModel.current.getString(StringKey.CHX_JOINED), color = Tajly.Green, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
             }
         }
         isJoining -> Box(
@@ -584,7 +586,7 @@ private fun JoinPill(
             )
         }
         else -> GoldButton(
-            text = "Join",
+            text = LocalLanguageViewModel.current.getString(StringKey.CHX_JOIN),
             onClick = onJoin,
         )
     }
@@ -593,10 +595,10 @@ private fun JoinPill(
 @Composable
 private fun TypeChip(type: ChallengeType) {
     val (color, label) = when (type) {
-        ChallengeType.DAILY -> Tajly.Green to "Daily"
-        ChallengeType.WEEKLY -> Tajly.Blue to "Weekly"
-        ChallengeType.MONTHLY -> Tajly.Violet to "Monthly"
-        ChallengeType.CUSTOM -> Color(0xFFFF9800) to "Custom"
+        ChallengeType.DAILY -> Tajly.Green to LocalLanguageViewModel.current.getString(StringKey.CHALLENGE_TYPE_DAILY)
+        ChallengeType.WEEKLY -> Tajly.Blue to LocalLanguageViewModel.current.getString(StringKey.CHALLENGE_TYPE_WEEKLY)
+        ChallengeType.MONTHLY -> Tajly.Violet to LocalLanguageViewModel.current.getString(StringKey.CHALLENGE_TYPE_MONTHLY)
+        ChallengeType.CUSTOM -> Color(0xFFFF9800) to LocalLanguageViewModel.current.getString(StringKey.CHX_CUSTOM)
     }
     Box(
         modifier = Modifier

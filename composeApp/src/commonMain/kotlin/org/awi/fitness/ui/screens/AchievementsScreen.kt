@@ -1,4 +1,6 @@
 package org.awi.fitness.ui.screens
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.viewmodel.LocalLanguageViewModel
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -85,7 +87,7 @@ class AchievementsScreen : Screen {
                         }
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "Achievements",
+                            text = LocalLanguageViewModel.current.getString(StringKey.ACHIEVEMENTS),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = c.textHi,
@@ -100,10 +102,10 @@ class AchievementsScreen : Screen {
                             modifier = Modifier.fillMaxWidth().padding(20.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
-                            StatCell("Level", level.toString())
-                            StatCell("Total XP", totalXp.toString())
-                            StatCell("Streak", "$streak d")
-                            StatCell("Badges", "$earnedCount/${achievements.size}")
+                            StatCell(LocalLanguageViewModel.current.getString(StringKey.LEVEL), level.toString())
+                            StatCell(LocalLanguageViewModel.current.getString(StringKey.ACH_TOTAL_XP), totalXp.toString())
+                            StatCell(LocalLanguageViewModel.current.getString(StringKey.STREAK), "$streak d")
+                            StatCell(LocalLanguageViewModel.current.getString(StringKey.BADGES), "$earnedCount/${achievements.size}")
                         }
                     }
                 }
@@ -121,7 +123,7 @@ class AchievementsScreen : Screen {
 
                 item {
                     Text(
-                        text = "Badges",
+                        text = LocalLanguageViewModel.current.getString(StringKey.BADGES),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = c.textHi,

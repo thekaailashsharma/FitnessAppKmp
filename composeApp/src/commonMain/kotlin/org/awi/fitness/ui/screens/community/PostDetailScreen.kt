@@ -1,4 +1,6 @@
 package org.awi.fitness.ui.screens.community
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.viewmodel.LocalLanguageViewModel
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -148,7 +150,7 @@ class PostDetailScreen(private val postId: String) : Screen {
                         }
                         Spacer(Modifier.width(12.dp))
                         Text(
-                            text = "Post",
+                            text = LocalLanguageViewModel.current.getString(StringKey.POST),
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                             color = c.textHi,
@@ -166,7 +168,7 @@ class PostDetailScreen(private val postId: String) : Screen {
                         postDetailState.error != null -> {
                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 Text(
-                                    text = postDetailState.error ?: "Unknown error",
+                                    text = postDetailState.error ?: LocalLanguageViewModel.current.getString(StringKey.CMX_UNKNOWN_ERROR),
                                     color = MaterialTheme.colorScheme.error,
                                 )
                             }
@@ -285,7 +287,7 @@ class PostDetailScreen(private val postId: String) : Screen {
                                                     )
                                                     CommunityActionChip(
                                                         icon = TablerIcons.Share,
-                                                        label = "Share",
+                                                        label = LocalLanguageViewModel.current.getString(StringKey.SHARE),
                                                         onClick = {
                                                             // No native share util in-scope — open the
                                                             // post's canonical link in the in-app browser
@@ -305,7 +307,7 @@ class PostDetailScreen(private val postId: String) : Screen {
                                     // Comments header
                                     item {
                                         Text(
-                                            text = "Comments (${post.comments})",
+                                            text = "${LocalLanguageViewModel.current.getString(StringKey.COMMENTS)} (${post.comments})",
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.Bold,
                                             color = c.textHi,
@@ -317,7 +319,7 @@ class PostDetailScreen(private val postId: String) : Screen {
                                     if (postDetailState.comments.isEmpty()) {
                                         item {
                                             Text(
-                                                text = "No comments yet. Be the first to comment!",
+                                                text = LocalLanguageViewModel.current.getString(StringKey.NO_COMMENTS_YET),
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 color = c.textMid,
                                                 modifier = Modifier.padding(vertical = 12.dp),
@@ -361,7 +363,7 @@ class PostDetailScreen(private val postId: String) : Screen {
                                                 value = postDetailState.newCommentText,
                                                 onValueChange = { viewModel.updateNewCommentText(it) },
                                                 placeholder = {
-                                                    Text("Add a comment…", color = c.textLow)
+                                                    Text(LocalLanguageViewModel.current.getString(StringKey.ADD_A_COMMENT), color = c.textLow)
                                                 },
                                                 modifier = Modifier.fillMaxWidth(),
                                                 colors = TextFieldDefaults.colors(
@@ -538,12 +540,12 @@ fun CommentItem(
                     }
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                         DropdownMenuItem(
-                            text = { Text("Report comment") },
+                            text = { Text(LocalLanguageViewModel.current.getString(StringKey.CMX_REPORT_COMMENT)) },
                             leadingIcon = { Icon(TablerIcons.Flag, contentDescription = null, tint = c.textMid) },
                             onClick = { menuOpen = false; onReport() },
                         )
                         DropdownMenuItem(
-                            text = { Text("Block user") },
+                            text = { Text(LocalLanguageViewModel.current.getString(StringKey.CMX_BLOCK_USER)) },
                             leadingIcon = { Icon(TablerIcons.Ban, contentDescription = null, tint = c.textMid) },
                             onClick = { menuOpen = false; onBlock() },
                         )

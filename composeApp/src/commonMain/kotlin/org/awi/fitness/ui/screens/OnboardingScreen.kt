@@ -76,6 +76,8 @@ import org.awi.fitness.ui.components.GoldButton
 import org.awi.fitness.viewmodel.AuthState
 import org.awi.fitness.viewmodel.AuthViewModel
 import org.awi.fitness.viewmodel.LanguageViewModel
+import org.awi.fitness.viewmodel.LocalLanguageViewModel
+import org.awi.fitness.data.StringKey
 import org.awi.fitness.viewmodel.WorkoutViewModel
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -183,7 +185,7 @@ class OnboardingScreen(
                 WeighInEntry(
                     weight = weightKg.toFloat(),
                     date = currentTimeMillis() / 1000L,
-                    note = "Starting weight"
+                    note = languageViewModel.getString(StringKey.ONB_STARTING_WEIGHT)
                 )
             )
             scope.launch {
@@ -218,10 +220,10 @@ class OnboardingScreen(
             }
             // Client-side validation with clear inline errors.
             formError = when {
-                firstName.isBlank() -> "Please enter your first name"
-                !email.contains("@") || !email.contains(".") -> "Enter a valid email address"
-                password.length < 6 -> "Password must be at least 6 characters"
-                password != confirm -> "Passwords don't match"
+                firstName.isBlank() -> languageViewModel.getString(StringKey.ONB_ERR_FIRST_NAME)
+                !email.contains("@") || !email.contains(".") -> languageViewModel.getString(StringKey.ONB_ERR_EMAIL)
+                password.length < 6 -> languageViewModel.getString(StringKey.ONB_ERR_PASSWORD_LEN)
+                password != confirm -> languageViewModel.getString(StringKey.ONB_ERR_PASSWORD_MATCH)
                 else -> null
             }
             if (formError != null) return
@@ -252,9 +254,9 @@ class OnboardingScreen(
         }
 
         val label = when (step) {
-            3, 4, 5 -> "Confirm"
-            6 -> "Start training"
-            else -> "Continue"
+            3, 4, 5 -> languageViewModel.getString(StringKey.CONFIRM)
+            6 -> languageViewModel.getString(StringKey.ONB_START_TRAINING)
+            else -> languageViewModel.getString(StringKey.CONTINUE)
         }
         val overPhoto = step <= 1
 
@@ -264,6 +266,7 @@ class OnboardingScreen(
         val swipeAcc = remember { mutableStateOf(0f) }
         val swipeDragState = rememberDraggableState { delta -> swipeAcc.value += delta }
 
+        CompositionLocalProvider(LocalLanguageViewModel provides languageViewModel) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -299,21 +302,21 @@ class OnboardingScreen(
                     0 -> IntroStep(
                         image = Res.drawable.hero_dark_2,
                         titleParts = listOf(
-                            "Visualize " to false,
-                            "Your Fitness " to true,
-                            "Progress" to false
+                            languageViewModel.getString(StringKey.ONB_INTRO1_P1) to false,
+                            languageViewModel.getString(StringKey.ONB_INTRO1_P2) to true,
+                            languageViewModel.getString(StringKey.ONB_INTRO1_P3) to false
                         ),
-                        subtitle = "See every rep, every meal and every milestone come together in one clear picture.",
+                        subtitle = languageViewModel.getString(StringKey.ONB_INTRO1_SUB),
                         progress = 0.5f
                     )
                     1 -> IntroStep(
                         image = Res.drawable.card_fuel,
                         titleParts = listOf(
-                            "Your " to false,
-                            "Progress, Clearly " to true,
-                            "Shown" to false
+                            languageViewModel.getString(StringKey.ONB_INTRO2_P1) to false,
+                            languageViewModel.getString(StringKey.ONB_INTRO2_P2) to true,
+                            languageViewModel.getString(StringKey.ONB_INTRO2_P3) to false
                         ),
-                        subtitle = "Track your fuel and your form, side by side, so you always know your next move.",
+                        subtitle = languageViewModel.getString(StringKey.ONB_INTRO2_SUB),
                         progress = 1f
                     )
                     2 -> CreateAccountStep(
@@ -331,8 +334,8 @@ class OnboardingScreen(
                         gender = gender, onGender = { gender = it },
                         age = ageYears, onAge = { ageYears = it }
                     )
-                    4 -> MeasureStep("What's your height?", "Drag the ruler to set your height.", heightCm, "CM", HEIGHT_MIN, HEIGHT_MAX) { heightCm = it }
-                    5 -> MeasureStep("What's your weight?", "Drag the ruler to set your weight.", weightKg, "KG", WEIGHT_MIN, WEIGHT_MAX) { weightKg = it }
+                    4 -> MeasureStep(languageViewModel.getString(StringKey.ONB_HEIGHT_Q), languageViewModel.getString(StringKey.ONB_HEIGHT_HINT), heightCm, "CM", HEIGHT_MIN, HEIGHT_MAX) { heightCm = it }
+                    5 -> MeasureStep(languageViewModel.getString(StringKey.ONB_WEIGHT_Q), languageViewModel.getString(StringKey.ONB_WEIGHT_HINT), weightKg, "KG", WEIGHT_MIN, WEIGHT_MAX) { weightKg = it }
                     else -> ActivitiesStep(activities) { key ->
                         activities = if (key in activities) activities - key else activities + key
                     }
@@ -356,6 +359,7 @@ class OnboardingScreen(
                         .padding(horizontal = 20.dp, vertical = 18.dp)
                 )
             }
+        }
         }
     }
 }
@@ -473,6 +477,7 @@ private fun CreateAccountStep(
     onCreate: () -> Unit
 ) {
     val appNav = LocalAppNavigation.current
+    val lang = LocalLanguageViewModel.current
     Box(modifier = Modifier.fillMaxSize().background(OnbBg)) {
         // Faint hero photo at top
         Image(
@@ -510,28 +515,28 @@ private fun CreateAccountStep(
         ) {
             Spacer(Modifier.height(48.dp))
             Text(
-                "Let's get started",
+                lang.getString(StringKey.ONB_LETS_GET_STARTED),
                 fontSize = 30.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
             Text(
-                "Create your account to save your plan.",
+                lang.getString(StringKey.ONB_CREATE_ACCOUNT_SUB),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.White.copy(alpha = 0.6f)
             )
             Spacer(Modifier.height(4.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                TightField(firstName, onFirstName, "First name", Modifier.weight(1f),
+                TightField(firstName, onFirstName, lang.getString(StringKey.ONB_FIRST_NAME), Modifier.weight(1f),
                     caps = KeyboardCapitalization.Words)
-                TightField(lastName, onLastName, "Last name", Modifier.weight(1f),
+                TightField(lastName, onLastName, lang.getString(StringKey.ONB_LAST_NAME), Modifier.weight(1f),
                     caps = KeyboardCapitalization.Words)
             }
-            TightField(email, onEmail, "Email", Modifier.fillMaxWidth(),
+            TightField(email, onEmail, lang.getString(StringKey.EMAIL), Modifier.fillMaxWidth(),
                 keyboard = KeyboardOptions(imeAction = ImeAction.Next))
-            PasswordField(password, onPassword, "Password")
-            PasswordField(confirm, onConfirm, "Confirm password")
+            PasswordField(password, onPassword, lang.getString(StringKey.PASSWORD))
+            PasswordField(confirm, onConfirm, lang.getString(StringKey.ONB_CONFIRM_PASSWORD))
 
             val errorText = formError ?: (authState as? AuthState.Error)?.message
             if (errorText != null) {
@@ -553,7 +558,7 @@ private fun CreateAccountStep(
 
             Spacer(Modifier.height(4.dp))
             GoldButton(
-                text = if (alreadyLoggedIn) "Continue" else "Create account",
+                text = if (alreadyLoggedIn) lang.getString(StringKey.CONTINUE) else lang.getString(StringKey.CREATE_ACCOUNT),
                 onClick = onCreate,
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 loading = authState is AuthState.Loading
@@ -564,12 +569,12 @@ private fun CreateAccountStep(
                 horizontalArrangement = Arrangement.Center
             ) {
                 Text(
-                    "Already have an account? ",
+                    lang.getString(StringKey.ALREADY_HAVE_ACCOUNT) + " ",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.White.copy(alpha = 0.6f)
                 )
                 Text(
-                    "Sign in",
+                    lang.getString(StringKey.SIGN_IN),
                     style = MaterialTheme.typography.bodySmall,
                     color = Gold,
                     fontWeight = FontWeight.SemiBold,
@@ -648,31 +653,32 @@ private fun Modifier.verticalScrollCompat(): Modifier {
 private data class GoalRow(
     val goal: FitnessGoal,
     val res: DrawableResource,
-    val title: String,
-    val subtitle: String
+    val titleKey: StringKey,
+    val subtitleKey: StringKey
 )
 
 private val goalRows = listOf(
-    GoalRow(FitnessGoal.WEIGHT_LOSS, Res.drawable.ob_fig_run, "Lose weight", "Burn fat and feel lighter"),
-    GoalRow(FitnessGoal.MUSCLE_GAIN, Res.drawable.ob_fig_strength, "Build strength", "Get stronger and defined"),
-    GoalRow(FitnessGoal.ENDURANCE, Res.drawable.ob_fig_cycle, "Stay active", "Move more, every day"),
-    GoalRow(FitnessGoal.ENDURANCE, Res.drawable.ob_fig_swim, "Increase energy", "Feel fresher and fuelled"),
-    GoalRow(FitnessGoal.FLEXIBILITY, Res.drawable.ob_fig_yoga, "Reduce stress", "Unwind and move freely"),
+    GoalRow(FitnessGoal.WEIGHT_LOSS, Res.drawable.ob_fig_run, StringKey.ONB_GOAL_LOSE_T, StringKey.ONB_GOAL_LOSE_S),
+    GoalRow(FitnessGoal.MUSCLE_GAIN, Res.drawable.ob_fig_strength, StringKey.ONB_GOAL_STRENGTH_T, StringKey.ONB_GOAL_STRENGTH_S),
+    GoalRow(FitnessGoal.ENDURANCE, Res.drawable.ob_fig_cycle, StringKey.ONB_GOAL_ACTIVE_T, StringKey.ONB_GOAL_ACTIVE_S),
+    GoalRow(FitnessGoal.ENDURANCE, Res.drawable.ob_fig_swim, StringKey.ONB_GOAL_ENERGY_T, StringKey.ONB_GOAL_ENERGY_S),
+    GoalRow(FitnessGoal.FLEXIBILITY, Res.drawable.ob_fig_yoga, StringKey.ONB_GOAL_STRESS_T, StringKey.ONB_GOAL_STRESS_S),
 )
 
 @Composable
 private fun GoalStep(selected: FitnessGoal?, onSelect: (FitnessGoal) -> Unit) {
     // Track the exact row title so visually-distinct rows sharing an enum stay independent.
-    var selectedTitle by remember { mutableStateOf<String?>(null) }
-    StepScaffold(title = "What's your goal?", subtitle = "We'll build your plan around this.") {
+    val lang = LocalLanguageViewModel.current
+    var selectedKey by remember { mutableStateOf<StringKey?>(null) }
+    StepScaffold(title = lang.getString(StringKey.WHATS_YOUR_GOAL), subtitle = lang.getString(StringKey.ONB_GOAL_SUB)) {
         goalRows.forEach { row ->
             SelectRow(
                 res = row.res,
-                title = row.title,
-                subtitle = row.subtitle,
-                selected = selectedTitle == row.title,
+                title = lang.getString(row.titleKey),
+                subtitle = lang.getString(row.subtitleKey),
+                selected = selectedKey == row.titleKey,
                 onClick = {
-                    selectedTitle = row.title
+                    selectedKey = row.titleKey
                     onSelect(row.goal)
                 }
             )
@@ -685,26 +691,27 @@ private fun GoalStep(selected: FitnessGoal?, onSelect: (FitnessGoal) -> Unit) {
 private data class ActivityRow(
     val key: String,
     val res: DrawableResource,
-    val title: String,
-    val subtitle: String
+    val titleKey: StringKey,
+    val subtitleKey: StringKey
 )
 
 private val activityRows = listOf(
-    ActivityRow("run", Res.drawable.ob_fig_run, "Running", "Road, trail or treadmill"),
-    ActivityRow("cycle", Res.drawable.ob_fig_cycle, "Cycling", "Ride indoors or out"),
-    ActivityRow("swim", Res.drawable.ob_fig_swim, "Swimming", "Laps and open water"),
-    ActivityRow("yoga", Res.drawable.ob_fig_yoga, "Yoga", "Mobility and calm"),
-    ActivityRow("hike", Res.drawable.ob_fig_hike, "Hiking", "Explore the outdoors"),
+    ActivityRow("run", Res.drawable.ob_fig_run, StringKey.ONB_ACT_RUN_T, StringKey.ONB_ACT_RUN_S),
+    ActivityRow("cycle", Res.drawable.ob_fig_cycle, StringKey.ONB_ACT_CYCLE_T, StringKey.ONB_ACT_CYCLE_S),
+    ActivityRow("swim", Res.drawable.ob_fig_swim, StringKey.ONB_ACT_SWIM_T, StringKey.ONB_ACT_SWIM_S),
+    ActivityRow("yoga", Res.drawable.ob_fig_yoga, StringKey.YOGA, StringKey.ONB_ACT_YOGA_S),
+    ActivityRow("hike", Res.drawable.ob_fig_hike, StringKey.ONB_ACT_HIKE_T, StringKey.ONB_ACT_HIKE_S),
 )
 
 @Composable
 private fun ActivitiesStep(selected: Set<String>, onToggle: (String) -> Unit) {
-    StepScaffold(title = "Pick your activities", subtitle = "Choose everything you enjoy.") {
+    val lang = LocalLanguageViewModel.current
+    StepScaffold(title = lang.getString(StringKey.ONB_PICK_ACTIVITIES), subtitle = lang.getString(StringKey.ONB_ACTIVITIES_SUB)) {
         activityRows.forEach { row ->
             SelectRow(
                 res = row.res,
-                title = row.title,
-                subtitle = row.subtitle,
+                title = lang.getString(row.titleKey),
+                subtitle = lang.getString(row.subtitleKey),
                 selected = row.key in selected,
                 onClick = { onToggle(row.key) }
             )
@@ -721,12 +728,13 @@ private fun AboutYouStep(
     age: Int,
     onAge: (Int) -> Unit
 ) {
+    val lang = LocalLanguageViewModel.current
     StepScaffold(
-        title = "About you",
-        subtitle = "This fine-tunes your calorie and plan targets."
+        title = lang.getString(StringKey.ONB_ABOUT_YOU),
+        subtitle = lang.getString(StringKey.ONB_ABOUT_YOU_SUB)
     ) {
         Text(
-            "Biological sex",
+            lang.getString(StringKey.BIOLOGICAL_SEX),
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
             color = GoldBright,
@@ -736,13 +744,13 @@ private fun AboutYouStep(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            GenderCard("Male", "♂", gender == "MALE", Modifier.weight(1f)) { onGender("MALE") }
-            GenderCard("Female", "♀", gender == "FEMALE", Modifier.weight(1f)) { onGender("FEMALE") }
+            GenderCard(lang.getString(StringKey.GENDER_MALE), "♂", gender == "MALE", Modifier.weight(1f)) { onGender("MALE") }
+            GenderCard(lang.getString(StringKey.GENDER_FEMALE), "♀", gender == "FEMALE", Modifier.weight(1f)) { onGender("FEMALE") }
         }
 
         Spacer(Modifier.height(10.dp))
         Text(
-            "Age",
+            lang.getString(StringKey.AGE),
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
             color = GoldBright
@@ -760,7 +768,7 @@ private fun AboutYouStep(
             StepperButton("–") { if (age > AGE_MIN) onAge(age - 1) }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("$age", fontSize = 46.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                Text("years", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.5f))
+                Text(lang.getString(StringKey.ONB_YEARS), style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.5f))
             }
             StepperButton("+") { if (age < AGE_MAX) onAge(age + 1) }
         }

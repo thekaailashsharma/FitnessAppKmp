@@ -1,4 +1,6 @@
 package org.awi.fitness.viewmodel
+import org.awi.fitness.data.tr
+import org.awi.fitness.data.StringKey
 
 import org.awi.fitness.utils.currentTimeMillis
 import cafe.adriel.voyager.core.model.StateScreenModel
@@ -145,7 +147,7 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
                     mutableState.update {
                         it.copy(
                             isLoading = false,
-                            error = "Failed to load feed: ${error.message}"
+                            error = "${tr(StringKey.VME_LOAD_FEED_FAILED)}: ${error.message}"
                         )
                     }
                 }
@@ -154,7 +156,7 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
             mutableState.update {
                 it.copy(
                     isLoading = false,
-                    error = "Failed to load feed: ${e.message}"
+                    error = "${tr(StringKey.VME_LOAD_FEED_FAILED)}: ${e.message}"
                 )
             }
         }
@@ -236,7 +238,7 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
                     }
                 },
                 onFailure = { error ->
-                    mutableState.update { it.copy(error = "Failed to update like. Please try again.") }
+                    mutableState.update { it.copy(error = tr(StringKey.VME_UPDATE_LIKE_FAILED)) }
                 }
             )
         } catch (_: Exception) { }
@@ -269,19 +271,19 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
                         _postDetailState.update {
                             it.copy(
                                 isLoading = false,
-                                error = "Failed to load comments: ${error.message}"
+                                error = "${tr(StringKey.VME_LOAD_COMMENTS_FAILED)}: ${error.message}"
                             )
                         }
                     }
                 )
             } else {
                 _postDetailState.update {
-                    it.copy(isLoading = false, error = "Post not found")
+                    it.copy(isLoading = false, error = tr(StringKey.VME_POST_NOT_FOUND))
                 }
             }
         } catch (e: Exception) {
             _postDetailState.update {
-                it.copy(isLoading = false, error = "Failed to load post: ${e.message}")
+                it.copy(isLoading = false, error = "${tr(StringKey.VME_LOAD_POST_FAILED)}: ${e.message}")
             }
         }
     }
@@ -328,11 +330,11 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
                     }
                 },
                 onFailure = { error ->
-                    _postDetailState.update { it.copy(error = "Failed to post comment. Please try again.") }
+                    _postDetailState.update { it.copy(error = tr(StringKey.VME_POST_COMMENT_FAILED_RETRY)) }
                 }
             )
         } catch (e: Exception) {
-            _postDetailState.update { it.copy(error = "Failed to post comment: ${e.message}") }
+            _postDetailState.update { it.copy(error = "${tr(StringKey.VME_POST_COMMENT_FAILED)}: ${e.message}") }
         }
     }
     
@@ -392,7 +394,7 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
             _createPostState.update {
                 it.copy(
                     isLoading = false,
-                    error = "Failed to upload photo. Try again or post without a photo."
+                    error = tr(StringKey.VME_UPLOAD_PHOTO_FAILED)
                 )
             }
             return
@@ -433,7 +435,7 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
                     _createPostState.update {
                         it.copy(
                             isLoading = false,
-                            error = "Failed to create post: ${error.message}"
+                            error = "${tr(StringKey.VME_CREATE_POST_FAILED)}: ${error.message}"
                         )
                     }
                 }
@@ -442,7 +444,7 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
             _createPostState.update { 
                 it.copy(
                     isLoading = false,
-                    error = "Failed to create post: ${e.message}"
+                    error = "${tr(StringKey.VME_CREATE_POST_FAILED)}: ${e.message}"
                 )
             }
         }
@@ -467,7 +469,7 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
                     _findFriendsState.update { 
                         it.copy(
                             isLoading = false,
-                            error = "Failed to load suggested users: ${error.message}"
+                            error = "${tr(StringKey.VME_LOAD_SUGGESTED_USERS_FAILED)}: ${error.message}"
                         )
                     }
                 }
@@ -476,7 +478,7 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
             _findFriendsState.update { 
                 it.copy(
                     isLoading = false,
-                    error = "Failed to load suggested users: ${e.message}"
+                    error = "${tr(StringKey.VME_LOAD_SUGGESTED_USERS_FAILED)}: ${e.message}"
                 )
             }
         }
@@ -550,7 +552,7 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
                         val revertedUsers = state.suggestedUsers.map { user ->
                             if (user.id == userId) user.copy(isFollowing = false) else user
                         }
-                        state.copy(suggestedUsers = revertedUsers, error = "Failed to follow user. Please try again.")
+                        state.copy(suggestedUsers = revertedUsers, error = tr(StringKey.VME_FOLLOW_USER_FAILED_RETRY))
                     }
                 }
             )
@@ -559,7 +561,7 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
                 val revertedUsers = state.suggestedUsers.map { user ->
                     if (user.id == userId) user.copy(isFollowing = false) else user
                 }
-                state.copy(suggestedUsers = revertedUsers, error = "Failed to follow user: ${e.message}")
+                state.copy(suggestedUsers = revertedUsers, error = "${tr(StringKey.VME_FOLLOW_USER_FAILED)}: ${e.message}")
             }
         }
     }
@@ -584,7 +586,7 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
                     _activityState.update {
                         it.copy(
                             isLoading = false,
-                            error = "Failed to load notifications: ${error.message}"
+                            error = "${tr(StringKey.VME_LOAD_NOTIFICATIONS_FAILED)}: ${error.message}"
                         )
                     }
                 }
@@ -593,7 +595,7 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
             _activityState.update {
                 it.copy(
                     isLoading = false,
-                    error = "Failed to load notifications: ${e.message}"
+                    error = "${tr(StringKey.VME_LOAD_NOTIFICATIONS_FAILED)}: ${e.message}"
                 )
             }
         }
@@ -649,13 +651,13 @@ class CommunityViewModel : StateScreenModel<CommunityFeedState>(CommunityFeedSta
                 },
                 onFailure = { error ->
                     _profileState.update {
-                        it.copy(isLoading = false, error = "Failed to load profile: ${error.message}")
+                        it.copy(isLoading = false, error = "${tr(StringKey.VME_LOAD_PROFILE_FAILED)}: ${error.message}")
                     }
                 }
             )
         } catch (e: Exception) {
             _profileState.update {
-                it.copy(isLoading = false, error = "Failed to load profile: ${e.message}")
+                it.copy(isLoading = false, error = "${tr(StringKey.VME_LOAD_PROFILE_FAILED)}: ${e.message}")
             }
         }
     }

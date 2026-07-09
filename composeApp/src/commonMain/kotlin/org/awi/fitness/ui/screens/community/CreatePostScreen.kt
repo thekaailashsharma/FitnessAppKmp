@@ -1,4 +1,6 @@
 package org.awi.fitness.ui.screens.community
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.viewmodel.LocalLanguageViewModel
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -146,7 +148,7 @@ class CreatePostScreen(
                     }
                     Spacer(Modifier.width(12.dp))
                     Text(
-                        text = "New post",
+                        text = LocalLanguageViewModel.current.getString(StringKey.COMMUNITY_NEW_POST),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = c.textHi,
@@ -201,7 +203,7 @@ class CreatePostScreen(
                                         modifier = Modifier.size(13.dp),
                                     )
                                     Text(
-                                        "Visible to the community",
+                                        LocalLanguageViewModel.current.getString(StringKey.CMX_VISIBLE_TO_COMMUNITY),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = c.textMid,
                                     )
@@ -218,7 +220,7 @@ class CreatePostScreen(
                             .fillMaxWidth()
                             .heightIn(min = 150.dp),
                         placeholder = {
-                            Text("What did you accomplish today?", color = c.textLow)
+                            Text(LocalLanguageViewModel.current.getString(StringKey.CMX_COMPOSER_PLACEHOLDER), color = c.textLow)
                         },
                         textStyle = MaterialTheme.typography.bodyLarge,
                         shape = RoundedCornerShape(16.dp),
@@ -284,7 +286,7 @@ class CreatePostScreen(
                             )
                         }
                         Text(
-                            "Add photo",
+                            LocalLanguageViewModel.current.getString(StringKey.CMX_ADD_PHOTO),
                             style = MaterialTheme.typography.bodyLarge,
                             color = c.textHi,
                             modifier = Modifier.weight(1f),
@@ -308,7 +310,7 @@ class CreatePostScreen(
                             )
                         }
                         Text(
-                            "Add workout stats (optional)",
+                            LocalLanguageViewModel.current.getString(StringKey.CMX_ADD_WORKOUT_STATS),
                             style = MaterialTheme.typography.bodyLarge,
                             color = c.textHi,
                             modifier = Modifier.weight(1f),
@@ -364,7 +366,7 @@ class CreatePostScreen(
                             }
                             AnimatedVisibility(visible = durationOpen) {
                                 StatField(
-                                    label = "Duration (minutes)",
+                                    label = LocalLanguageViewModel.current.getString(StringKey.CMX_DURATION_MINUTES),
                                     value = createPostState.duration?.let { it / 60 }?.toString() ?: "",
                                     onValueChange = { minutes ->
                                         viewModel.updateCreatePostDuration(minutes.toIntOrNull()?.times(60))
@@ -377,7 +379,7 @@ class CreatePostScreen(
 
                 // ---- Primary on-screen action: gold Share button ----
                 GoldButton(
-                    text = "Share with community",
+                    text = LocalLanguageViewModel.current.getString(StringKey.SHARE_TO_COMMUNITY),
                     onClick = submit,
                     enabled = canPost,
                     loading = createPostState.isLoading,

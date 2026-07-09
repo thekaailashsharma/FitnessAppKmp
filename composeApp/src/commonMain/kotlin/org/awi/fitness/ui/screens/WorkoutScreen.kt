@@ -190,7 +190,7 @@ class WorkoutScreen : Screen {
                 ) {
                     Column {
                         Text(
-                            text = "Focus mode",
+                            text = LocalLanguageViewModel.current.getString(StringKey.WKX_FOCUS_MODE),
                             style = MaterialTheme.typography.labelMedium,
                             color = c.textLow,
                             fontWeight = FontWeight.Medium,
@@ -291,7 +291,7 @@ class WorkoutScreen : Screen {
                             var selectedDay by remember(selectedPlan.plan.id) {
                                 mutableStateOf(availableDays.firstOrNull() ?: 1)
                             }
-                            val dayNames = listOf("", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+                            val dayNames = listOf("", LocalLanguageViewModel.current.getString(StringKey.MONDAY), LocalLanguageViewModel.current.getString(StringKey.TUESDAY), LocalLanguageViewModel.current.getString(StringKey.WEDNESDAY), LocalLanguageViewModel.current.getString(StringKey.THURSDAY), LocalLanguageViewModel.current.getString(StringKey.FRIDAY), LocalLanguageViewModel.current.getString(StringKey.SATURDAY), LocalLanguageViewModel.current.getString(StringKey.SUNDAY))
                             val exercisesForDay = selectedPlan.exercises
                                 .filter { it.dayOfWeek == selectedDay }
                                 .sortedWith(compareBy({ it.isCompleted }, { it.orderInDay }))
@@ -417,10 +417,10 @@ class WorkoutScreen : Screen {
                                         val allDoneForDay = exercisesForDay.all { it.isCompleted }
                                         GoldButton(
                                             text = when {
-                                                isPremadeSelected -> "Start with my goals"
-                                                allDoneForDay -> "Workout complete"
-                                                exercisesForDay.any { it.isCompleted } -> "Finish workout"
-                                                else -> "Start workout"
+                                                isPremadeSelected -> LocalLanguageViewModel.current.getString(StringKey.WKX_START_WITH_GOALS)
+                                                allDoneForDay -> LocalLanguageViewModel.current.getString(StringKey.WKX_WORKOUT_COMPLETE)
+                                                exercisesForDay.any { it.isCompleted } -> LocalLanguageViewModel.current.getString(StringKey.WKX_FINISH_WORKOUT)
+                                                else -> LocalLanguageViewModel.current.getString(StringKey.START_WORKOUT)
                                             },
                                             enabled = isPremadeSelected || !allDoneForDay,
                                             onClick = {
@@ -623,7 +623,7 @@ private fun WorkingSetsCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Working sets",
+                    text = LocalLanguageViewModel.current.getString(StringKey.WKX_WORKING_SETS),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = c.textHi,
@@ -649,8 +649,8 @@ private fun WorkingSetsCard(
             // Header row
             SetRow(
                 col1 = "#",
-                weight = "WEIGHT",
-                reps = "REPS",
+                weight = LocalLanguageViewModel.current.getString(StringKey.WEIGHT_LABEL).uppercase(),
+                reps = LocalLanguageViewModel.current.getString(StringKey.REPS).uppercase(),
                 headerStyle = true,
                 trailing = { },
             )
@@ -790,9 +790,9 @@ private fun WorkoutStatsStrip(
                 .padding(vertical = 16.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
-            StatNumber(value = "${exercises.size}", label = "exercises", gold = false)
-            StatNumber(value = totalReps.toString(), label = "total reps", gold = true)
-            StatNumber(value = "$completedSets/$totalSets", label = "sets done", gold = true)
+            StatNumber(value = "${exercises.size}", label = LocalLanguageViewModel.current.getString(StringKey.EXERCISES).lowercase(), gold = false)
+            StatNumber(value = totalReps.toString(), label = LocalLanguageViewModel.current.getString(StringKey.WKX_TOTAL_REPS), gold = true)
+            StatNumber(value = "$completedSets/$totalSets", label = LocalLanguageViewModel.current.getString(StringKey.WKX_SETS_DONE), gold = true)
         }
     }
 }
@@ -954,7 +954,7 @@ private fun PremadeRibbon(modifier: Modifier = Modifier) {
             .padding(horizontal = 36.dp, vertical = 3.dp),
     ) {
         Text(
-            text = "PRE-MADE",
+            text = LocalLanguageViewModel.current.getString(StringKey.WKX_PREMADE),
             color = OnGold,
             fontSize = 9.sp,
             fontWeight = FontWeight.ExtraBold,
@@ -1218,7 +1218,7 @@ private fun WorkoutTipsCard(
     GlassCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             SectionHeader(
-                title = "Tips",
+                title = LocalLanguageViewModel.current.getString(StringKey.WKX_TIPS),
                 action = {
                     Box(
                         modifier = Modifier
@@ -1463,13 +1463,13 @@ private fun RestDayCard(activeChallenges: List<org.awi.fitness.model.Challenge>)
                 )
             }
             Text(
-                text = "Rest Day",
+                text = LocalLanguageViewModel.current.getString(StringKey.WKX_REST_DAY),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = c.textHi
             )
             Text(
-                text = "Recovery is part of the process.\nYour muscles grow when you rest.",
+                text = LocalLanguageViewModel.current.getString(StringKey.WKX_REST_DAY_MESSAGE),
                 style = MaterialTheme.typography.bodyLarge,
                 color = c.textMid,
                 textAlign = TextAlign.Center
@@ -1486,7 +1486,7 @@ private fun RestDayCard(activeChallenges: List<org.awi.fitness.model.Challenge>)
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
-                        "Active Challenges",
+                        LocalLanguageViewModel.current.getString(StringKey.ACTIVE_CHALLENGES),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = c.textHi,

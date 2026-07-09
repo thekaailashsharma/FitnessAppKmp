@@ -1,4 +1,6 @@
 package org.awi.fitness.viewmodel
+import org.awi.fitness.data.tr
+import org.awi.fitness.data.StringKey
 
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -83,7 +85,7 @@ class ChallengesViewModel {
                 onFailure = { e ->
                     _state.value = _state.value.copy(
                         joiningChallengeIds = _state.value.joiningChallengeIds - challengeId,
-                        error = "Failed to join challenge: ${e.message}"
+                        error = "${tr(StringKey.VME_JOIN_CHALLENGE_FAILED)}: ${e.message}"
                     )
                 }
             )

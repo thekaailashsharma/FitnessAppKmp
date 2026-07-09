@@ -1,4 +1,6 @@
 package org.awi.fitness.viewmodel
+import org.awi.fitness.data.tr
+import org.awi.fitness.data.StringKey
 
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -87,7 +89,7 @@ class WorkoutViewModel {
             _state.update { 
                 it.copy(
                     isLoading = false,
-                    error = "Failed to create workout plan: ${e.message}"
+                    error = "${tr(StringKey.VME_CREATE_WORKOUT_PLAN_FAILED)}: ${e.message}"
                 )
             }
         }
@@ -147,7 +149,7 @@ class WorkoutViewModel {
                     _state.update {
                         it.copy(
                             isLoading = false,
-                            error = "Failed to load workout plans: ${error.message}"
+                            error = "${tr(StringKey.VME_LOAD_WORKOUT_PLANS_FAILED)}: ${error.message}"
                         )
                     }
                 }
@@ -156,7 +158,7 @@ class WorkoutViewModel {
             _state.update {
                 it.copy(
                     isLoading = false,
-                    error = "Failed to load workout plans: ${e.message}"
+                    error = "${tr(StringKey.VME_LOAD_WORKOUT_PLANS_FAILED)}: ${e.message}"
                 )
             }
         }
@@ -171,7 +173,7 @@ class WorkoutViewModel {
             loadWorkoutPlans() // Reload to update UI
         } catch (e: Exception) {
             _state.update { 
-                it.copy(error = "Failed to update exercise: ${e.message}")
+                it.copy(error = "${tr(StringKey.VME_UPDATE_EXERCISE_FAILED)}: ${e.message}")
             }
         }
     }
@@ -189,7 +191,7 @@ class WorkoutViewModel {
                     _state.update { 
                         it.copy(
                             isLoading = false,
-                            error = "Failed to delete workout plan: ${error.message}"
+                            error = "${tr(StringKey.VME_DELETE_WORKOUT_PLAN_FAILED)}: ${error.message}"
                         )
                     }
                     Result.failure(error)
@@ -199,7 +201,7 @@ class WorkoutViewModel {
             _state.update { 
                 it.copy(
                     isLoading = false,
-                    error = "Failed to delete workout plan: ${e.message}"
+                    error = "${tr(StringKey.VME_DELETE_WORKOUT_PLAN_FAILED)}: ${e.message}"
                 )
             }
             Result.failure(e)
@@ -222,7 +224,7 @@ class WorkoutViewModel {
             loadWorkoutPlans()
             Result.success(Unit)
         } catch (e: Exception) {
-            _state.update { it.copy(error = "Failed to finish workout: ${e.message}") }
+            _state.update { it.copy(error = "${tr(StringKey.VME_FINISH_WORKOUT_FAILED)}: ${e.message}") }
             Result.failure(e)
         }
     }

@@ -275,7 +275,7 @@ class PurchaseSuccessScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "✦ PREMIUM UNLOCKED ✦",
+                            text = "✦ ${languageViewModel.getString(StringKey.PS_PREMIUM_UNLOCKED)} ✦",
                             color = OnGold,
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 13.sp,

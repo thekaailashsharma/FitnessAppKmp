@@ -696,7 +696,7 @@ private fun StickyCta(
             Text("•", color = colors.textLow, fontSize = 8.sp)
 
             Text(
-                text = "Terms of Use",
+                text = localizedString(StringKey.TERMS_OF_USE, language),
                 color = Gold,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
@@ -707,7 +707,7 @@ private fun StickyCta(
             Text("•", color = colors.textLow, fontSize = 8.sp)
 
             Text(
-                text = "Privacy Policy",
+                text = localizedString(StringKey.PRIVACY_POLICY, language),
                 color = Gold,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,

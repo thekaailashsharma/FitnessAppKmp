@@ -1,4 +1,6 @@
 package org.awi.fitness.ui.screens.community
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.viewmodel.LocalLanguageViewModel
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -112,7 +114,7 @@ class CommunityIntroScreen(private val avatarUrls: List<String>) : Screen {
                 Spacer(Modifier.height(20.dp))
 
                 Text(
-                    text = "Move together",
+                    text = LocalLanguageViewModel.current.getString(StringKey.CMX_MOVE_TOGETHER),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = c.textHi,
@@ -120,7 +122,7 @@ class CommunityIntroScreen(private val avatarUrls: List<String>) : Screen {
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "Join a community that shows up with you — cheer each other on, share every win.",
+                    text = LocalLanguageViewModel.current.getString(StringKey.CMX_INTRO_SUBTITLE),
                     style = MaterialTheme.typography.bodyLarge,
                     color = c.textMid,
                     textAlign = TextAlign.Center,
@@ -128,7 +130,7 @@ class CommunityIntroScreen(private val avatarUrls: List<String>) : Screen {
 
                 Spacer(Modifier.height(28.dp))
                 GoldButton(
-                    text = "Enter the community",
+                    text = LocalLanguageViewModel.current.getString(StringKey.CMX_ENTER_COMMUNITY),
                     onClick = { navigator.pop() },
                 )
                 Spacer(Modifier.height(40.dp))

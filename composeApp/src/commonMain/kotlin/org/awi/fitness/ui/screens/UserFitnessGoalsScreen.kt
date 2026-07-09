@@ -142,7 +142,7 @@ fun UserFitnessGoalsBottomSheet(
 
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        text = "Build your plan".uppercase(),
+                        text = languageViewModel.getString(StringKey.UFG_BUILD_YOUR_PLAN).uppercase(),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = GoldBright,

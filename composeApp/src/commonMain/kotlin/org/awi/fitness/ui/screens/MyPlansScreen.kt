@@ -1,4 +1,5 @@
 package org.awi.fitness.ui.screens
+import org.awi.fitness.viewmodel.LocalLanguageViewModel
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -229,6 +230,7 @@ class MyPlansScreen(
 /** Gold hero CTA — the primary way to spin up a fresh AI meal plan. */
 @Composable
 private fun GeneratePlanCta(onClick: () -> Unit) {
+    val lang = LocalLanguageViewModel.current
     val c = TajlyTheme.colors
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
@@ -252,20 +254,20 @@ private fun GeneratePlanCta(onClick: () -> Unit) {
             Spacer(Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Generate a new plan",
+                    text = lang.getString(StringKey.MEALX_GENERATE_NEW_PLAN),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = c.textHi
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = "Fresh meals, tuned to your goals.",
+                    text = lang.getString(StringKey.MEALX_FRESH_MEALS),
                     style = MaterialTheme.typography.bodySmall,
                     color = c.textMid
                 )
             }
             Spacer(Modifier.width(12.dp))
-            GoldButton(text = "Generate", onClick = onClick)
+            GoldButton(text = lang.getString(StringKey.MEALX_GENERATE), onClick = onClick)
         }
     }
 }

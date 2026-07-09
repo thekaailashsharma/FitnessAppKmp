@@ -1,4 +1,6 @@
 package org.awi.fitness.ui.screens.community
+import org.awi.fitness.data.StringKey
+import org.awi.fitness.viewmodel.LocalLanguageViewModel
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
@@ -214,7 +216,7 @@ fun CommunityComposerStrip(
     ) {
         CommunityAvatar(name = userName, imageUrl = liveProfileImageUrl, size = 32.dp)
         Text(
-            text = "Share your win…",
+            text = LocalLanguageViewModel.current.getString(StringKey.CMX_SHARE_YOUR_WIN),
             style = MaterialTheme.typography.bodyMedium,
             color = c.textMid,
             modifier = Modifier.weight(1f),
@@ -248,7 +250,7 @@ fun SuggestedMembersRail(
     onOpenProfile: (String) -> Unit,
     onFollow: (String) -> Unit,
     modifier: Modifier = Modifier,
-    title: String = "Suggested members",
+    title: String = LocalLanguageViewModel.current.getString(StringKey.CMX_SUGGESTED_MEMBERS),
 ) {
     val c = TajlyTheme.colors
     Column(modifier = modifier.fillMaxWidth()) {
@@ -485,14 +487,14 @@ fun CommunityPostCard(
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                             onReport?.let { report ->
                                 DropdownMenuItem(
-                                    text = { Text("Report post", color = c.textHi) },
+                                    text = { Text(LocalLanguageViewModel.current.getString(StringKey.CMX_REPORT_POST), color = c.textHi) },
                                     leadingIcon = { Icon(TablerIcons.Flag, contentDescription = null, tint = c.textMid) },
                                     onClick = { menuOpen = false; report() },
                                 )
                             }
                             onBlock?.let { block ->
                                 DropdownMenuItem(
-                                    text = { Text("Block user", color = c.textHi) },
+                                    text = { Text(LocalLanguageViewModel.current.getString(StringKey.CMX_BLOCK_USER), color = c.textHi) },
                                     leadingIcon = { Icon(TablerIcons.Ban, contentDescription = null, tint = c.textMid) },
                                     onClick = { menuOpen = false; block() },
                                 )
@@ -591,7 +593,7 @@ fun KudosButton(
         !liked && isLiked -> -1
         else -> 0
     }
-    val label = if (count > 0) "$count" else "Kudos"
+    val label = if (count > 0) "$count" else LocalLanguageViewModel.current.getString(StringKey.CMX_KUDOS)
 
     Row(
         modifier = Modifier

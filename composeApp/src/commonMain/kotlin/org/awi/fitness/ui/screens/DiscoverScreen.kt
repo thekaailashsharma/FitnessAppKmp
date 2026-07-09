@@ -1,4 +1,5 @@
 package org.awi.fitness.ui.screens
+import org.awi.fitness.viewmodel.LocalLanguageViewModel
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -110,7 +111,7 @@ class DiscoverScreen : Screen {
                 // HEADER — title + refresh affordance.
                 item {
                     DiscoverHeader(
-                        eyebrow = "Fresh reads".uppercase(),
+                        eyebrow = LocalLanguageViewModel.current.getString(StringKey.DISC_FRESH_READS).uppercase(),
                         title = languageViewModel.getString(StringKey.DISCOVER),
                         onRefresh = { viewModel.refresh() },
                         modifier = Modifier.graphicsLayer {
@@ -309,7 +310,7 @@ private fun FilterChipsRow(
     ) {
         item {
             GlassChip(
-                text = "All",
+                text = LocalLanguageViewModel.current.getString(StringKey.ALL_TAB),
                 selected = selected == null,
                 onClick = { selected?.let(onSelect) },
             )

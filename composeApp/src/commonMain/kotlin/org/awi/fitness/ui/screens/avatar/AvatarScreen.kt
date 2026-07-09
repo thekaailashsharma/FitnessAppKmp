@@ -1,4 +1,5 @@
 package org.awi.fitness.ui.screens.avatar
+import org.awi.fitness.viewmodel.LocalLanguageViewModel
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
@@ -393,7 +394,7 @@ class AvatarScreen(
                                                 navigator.popUntilRoot()
                                             }
                                             "checkin" -> {
-                                                viewModel.sendUserMessage("I'd like to do my daily check-in")
+                                                viewModel.sendUserMessage(languageViewModel.getString(StringKey.AV_DAILY_CHECKIN))
                                                 keyboardController?.hide()
                                                 focusManager.clearFocus()
                                             }
@@ -689,13 +690,13 @@ private fun InlineWorkoutCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Suggested",
+                        text = LocalLanguageViewModel.current.getString(StringKey.SUGGESTED_TAB),
                         style = MaterialTheme.typography.labelSmall,
                         color = c.textMid
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Leg day · 5 exercises",
+                        text = "${LocalLanguageViewModel.current.getString(StringKey.WKX_LEG_DAY)} · 5 ${LocalLanguageViewModel.current.getString(StringKey.EXERCISES).lowercase()}",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = c.textHi
@@ -710,7 +711,7 @@ private fun InlineWorkoutCard(
             }
             Spacer(modifier = Modifier.height(12.dp))
             GoldButton(
-                text = "Start workout",
+                text = LocalLanguageViewModel.current.getString(StringKey.START_WORKOUT),
                 onClick = onStartWorkout,
                 modifier = Modifier.fillMaxWidth()
             )

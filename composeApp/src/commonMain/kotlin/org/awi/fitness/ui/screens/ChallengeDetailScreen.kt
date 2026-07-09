@@ -1,4 +1,5 @@
 package org.awi.fitness.ui.screens
+import org.awi.fitness.viewmodel.LocalLanguageViewModel
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseOutCubic
@@ -231,7 +232,7 @@ class ChallengeDetailScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Leaderboard",
+                        text = LocalLanguageViewModel.current.getString(StringKey.LEADERBOARD),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = c.textHi,
@@ -261,7 +262,7 @@ class ChallengeDetailScreen(
                             )
                             Spacer(modifier = Modifier.height(10.dp))
                             Text(
-                                text = "No entries yet — join & be the first!",
+                                text = LocalLanguageViewModel.current.getString(StringKey.CDX_NO_ENTRIES),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = c.textMid
                             )
@@ -393,7 +394,7 @@ private fun ChallengeHeroCard(
             modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(20.dp),
         ) {
             Text(
-                text = "CHALLENGE",
+                text = LocalLanguageViewModel.current.getString(StringKey.CDX_CHALLENGE_LABEL),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = GoldBright,
@@ -428,13 +429,13 @@ private fun JoinChallengeCard(isLoading: Boolean, onJoin: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Text(
-                text = "Ready to take the challenge?",
+                text = LocalLanguageViewModel.current.getString(StringKey.CDX_READY),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = c.textHi
             )
             GoldButton(
-                text = "Join Challenge",
+                text = LocalLanguageViewModel.current.getString(StringKey.CDX_JOIN_CHALLENGE),
                 onClick = onJoin,
                 loading = isLoading,
                 modifier = Modifier.fillMaxWidth()
@@ -513,7 +514,7 @@ private fun CompletionCelebrationCard(
                 )
             }
             Text(
-                text = "You won!",
+                text = LocalLanguageViewModel.current.getString(StringKey.CDX_YOU_WON),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = c.textHi,
@@ -547,7 +548,7 @@ private fun CompletionCelebrationCard(
                     )
                     Spacer(Modifier.width(10.dp))
                     Text(
-                        text = "Share to Community",
+                        text = LocalLanguageViewModel.current.getString(StringKey.SHARE_TO_COMMUNITY),
                         color = OnGold,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
@@ -597,17 +598,17 @@ private fun AutoTrackingCard(challenge: Challenge, currentProgress: Int) {
     val c = TajlyTheme.colors
     val (icon, triggerText) = when (challenge.targetType) {
         org.awi.fitness.model.ChallengeTargetType.WORKOUTS ->
-            challenge3dIcon(challenge) to "Progress updates automatically when you complete a workout day in the Train tab."
+            challenge3dIcon(challenge) to LocalLanguageViewModel.current.getString(StringKey.CDX_AUTO_WORKOUT)
         org.awi.fitness.model.ChallengeTargetType.MEALS ->
-            challenge3dIcon(challenge) to "Progress updates automatically when you mark a meal as eaten in the Meals tab."
+            challenge3dIcon(challenge) to LocalLanguageViewModel.current.getString(StringKey.CDX_AUTO_MEAL)
         org.awi.fitness.model.ChallengeTargetType.POSTS ->
-            challenge3dIcon(challenge) to "Progress updates automatically when you create a post in the Community tab."
+            challenge3dIcon(challenge) to LocalLanguageViewModel.current.getString(StringKey.CDX_AUTO_POST)
         org.awi.fitness.model.ChallengeTargetType.STREAK ->
-            challenge3dIcon(challenge) to "Progress updates automatically each day you check in or complete a workout."
+            challenge3dIcon(challenge) to LocalLanguageViewModel.current.getString(StringKey.CDX_AUTO_CHECKIN)
         // No tracking source exists for these types; kept only for exhaustiveness (never seeded).
         org.awi.fitness.model.ChallengeTargetType.CALORIES,
         org.awi.fitness.model.ChallengeTargetType.STEPS ->
-            challenge3dIcon(challenge) to "Progress updates automatically as you use the app."
+            challenge3dIcon(challenge) to LocalLanguageViewModel.current.getString(StringKey.CDX_AUTO_GENERIC)
     }
 
     GlassCard(modifier = Modifier.fillMaxWidth()) {
@@ -625,7 +626,7 @@ private fun AutoTrackingCard(challenge: Challenge, currentProgress: Int) {
                     modifier = Modifier.size(28.dp),
                 )
                 Text(
-                    "Auto-tracked",
+                    LocalLanguageViewModel.current.getString(StringKey.CDX_AUTO_TRACKED),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = c.textHi
@@ -642,7 +643,7 @@ private fun AutoTrackingCard(challenge: Challenge, currentProgress: Int) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Current progress",
+                    LocalLanguageViewModel.current.getString(StringKey.CDX_CURRENT_PROGRESS),
                     style = MaterialTheme.typography.bodySmall,
                     color = c.textLow
                 )
@@ -663,7 +664,7 @@ private fun ChallengeInfoSection(challenge: Challenge, modifier: Modifier = Modi
     GlassCard(modifier = modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
             Text(
-                text = "Challenge Info",
+                text = LocalLanguageViewModel.current.getString(StringKey.CHALLENGE_INFO),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = c.textHi
@@ -671,38 +672,38 @@ private fun ChallengeInfoSection(challenge: Challenge, modifier: Modifier = Modi
             Spacer(modifier = Modifier.height(14.dp))
             InfoRow(
                 icon = Res.drawable.ic3d_tick_check,
-                title = "Type",
+                title = LocalLanguageViewModel.current.getString(StringKey.CDX_TYPE),
                 value = challenge.type.name.lowercase().replaceFirstChar { it.uppercase() }
             )
             InfoRow(
                 icon = Res.drawable.ic3d_target,
-                title = "Target",
+                title = LocalLanguageViewModel.current.getString(StringKey.CDX_TARGET),
                 value = "${challenge.target} ${challenge.unit}"
             )
             // Only show a real difficulty / duration; hide when the template didn't specify one.
             if (challenge.hasDifficulty) {
                 InfoRow(
                     icon = Res.drawable.ic3d_chart,
-                    title = "Difficulty",
+                    title = LocalLanguageViewModel.current.getString(StringKey.CDX_DIFFICULTY),
                     value = challenge.difficulty.name.lowercase().replaceFirstChar { it.uppercase() }
                 )
             }
             if (challenge.duration > 0) {
                 InfoRow(
                     icon = Res.drawable.ic3d_tick_check,
-                    title = "Duration",
-                    value = "${challenge.duration} ${if (challenge.duration == 1) "day" else "days"}"
+                    title = LocalLanguageViewModel.current.getString(StringKey.DURATION),
+                    value = "${challenge.duration} ${if (challenge.duration == 1) LocalLanguageViewModel.current.getString(StringKey.CDX_DAY) else LocalLanguageViewModel.current.getString(StringKey.DAYS)}"
                 )
             }
             InfoRow(
                 icon = Res.drawable.ic3d_thumb_up,
-                title = "Participants",
+                title = LocalLanguageViewModel.current.getString(StringKey.CDX_PARTICIPANTS),
                 value = challenge.participantIds.size.toString()
             )
             if (challenge.createdBy.isNotBlank()) {
                 InfoRow(
                     icon = Res.drawable.ic3d_chart,
-                    title = "Created by",
+                    title = LocalLanguageViewModel.current.getString(StringKey.CDX_CREATED_BY),
                     value = if (challenge.createdBy == "system") "TAJLY" else challenge.createdBy
                 )
             }
@@ -749,7 +750,7 @@ private fun RewardsSection(challenge: Challenge, modifier: Modifier = Modifier) 
     GlassCard(modifier = modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
             Text(
-                text = "Rewards",
+                text = LocalLanguageViewModel.current.getString(StringKey.REWARDS),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = c.textHi
@@ -782,7 +783,7 @@ private fun RewardsSection(challenge: Challenge, modifier: Modifier = Modifier) 
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "Challenge badge",
+                        text = LocalLanguageViewModel.current.getString(StringKey.CDX_CHALLENGE_BADGE),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = c.textHi
