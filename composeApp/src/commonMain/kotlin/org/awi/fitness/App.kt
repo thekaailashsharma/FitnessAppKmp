@@ -104,6 +104,8 @@ fun App() {
 
                 // Refresh server-driven subscription config (button visibility, grace window, support URL).
                 org.awi.fitness.repository.SubscriptionConfigRepository().fetchAndStore()
+                // Freemium control plane — which features are free/paid, daily limits, paywall.
+                org.awi.fitness.repository.FeatureGatingRepository().fetchAndStore()
 
                 try {
                     // Log user into RevenueCat for cross-device entitlements

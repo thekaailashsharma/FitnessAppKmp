@@ -21,3 +21,7 @@ composeApp/release/
 
 # Node deps (regenerable via npm install)
 **/node_modules/
+
+# Google Play service account credentials (SECRET — never commit)
+*service-account*.json
+google-play-service-account.json

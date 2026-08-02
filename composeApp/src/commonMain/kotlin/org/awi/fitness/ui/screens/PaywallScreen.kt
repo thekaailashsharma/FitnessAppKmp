@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -111,7 +112,15 @@ class PaywallScreen(
             ) {
                 key(currentLanguageCode) {
                     // ── Single-screen layout (no scroll) ──────────────────────
-                    Column(modifier = Modifier.fillMaxSize()) {
+                    // Cap content width + center it so the iPhone layout never stretches
+                    // or crops on larger canvases (iPad / Stage Manager) — Apple Guideline 4.
+                    // No-op on phones (they're narrower than 480dp).
+                    Column(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .widthIn(max = 480.dp)
+                            .align(Alignment.TopCenter)
+                    ) {
                         // Cinematic hero with headline
                         AnimatedVisibility(
                             visible = visible,
@@ -222,6 +231,26 @@ class PaywallScreen(
                             onStartTrial = { if (!state.isPurchasing) viewModel.purchaseSelectedPlan() },
                             onRestore = { viewModel.restorePurchases() }
                         )
+
+                        // Freemium: let users dismiss the paywall into the app. Required so the
+                        // whole app (incl. account deletion) is reachable without paying — Apple
+                        // 5.1.1(v). Visibility is remote-controlled via config/features paywall.dismissible.
+                        if (org.awi.fitness.repository.FeatureGatingRepository.currentConfig().paywall.dismissible) {
+                            TextButton(
+                                onClick = { appNavigation.navigateTo(RootRoute.Main) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .navigationBarsPadding()
+                                    .padding(bottom = 8.dp)
+                            ) {
+                                Text(
+                                    text = if (language == Language.DUTCH) "Misschien later" else "Maybe later",
+                                    color = c.textMid,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
                     }
 
                     PaywallLanguageToggle(
@@ -519,12 +548,22 @@ private fun PlanCard(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // COMPLIANCE: full billed price is the most prominent element
+                // COMPLIANCE: full billed price is the most prominent element.
+                // Explicit line box (Trim.None + generous lineHeight) so the tall/bold
+                // glyphs are never vertically clipped on any device/scale — Apple Guideline 4.
                 Text(
                     text = plan.priceString,
                     color = colors.textHi,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.ExtraBold
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        lineHeight = 40.sp,
+                        lineHeightStyle = LineHeightStyle(
+                            alignment = LineHeightStyle.Alignment.Center,
+                            trim = LineHeightStyle.Trim.None
+                        )
+                    ),
+                    maxLines = 1,
+                    softWrap = false
                 )
 
                 // Secondary: monthly-equivalent + strikethrough of monthly price (annual only)

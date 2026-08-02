@@ -68,6 +68,13 @@ import kotlinx.serialization.json.Json
 import org.awi.fitness.data.UserSettings
 import org.awi.fitness.repository.GeminiRepository
 import org.awi.fitness.repository.ScannedMeal
+import org.awi.fitness.repository.FeatureGatingRepository
+import org.awi.fitness.repository.SubscriptionRepository
+import org.awi.fitness.model.Feature
+import org.awi.fitness.model.FeatureGate
+import org.awi.fitness.model.GateResult
+import org.awi.fitness.navigation.LocalAppNavigation
+import org.awi.fitness.navigation.RootRoute
 import org.awi.fitness.theme.GoldBright
 import org.awi.fitness.theme.GoldPrimary
 import org.awi.fitness.theme.Tajly
@@ -109,6 +116,7 @@ class MealScanScreen : Screen {
     override fun Content() {
         val lang = LocalLanguageViewModel.current
         val navigator = LocalNavigator.currentOrThrow
+        val appNav = LocalAppNavigation.current
         val scope = rememberCoroutineScope()
         val repository = remember { GeminiRepository() }
         val userSettings = remember { UserSettings.getInstance() }
@@ -116,6 +124,8 @@ class MealScanScreen : Screen {
 
         var state by remember { mutableStateOf<ScanState>(ScanState.Idle) }
         var pickedImage by remember { mutableStateOf<ByteArray?>(null) }
+        // Whether the in-flight scan counts against the free daily limit (set at gate time).
+        var scanCountsAsFree by remember { mutableStateOf(false) }
 
         val imagePicker = rememberImagePickerLauncher { bytes ->
             if (bytes == null) return@rememberImagePickerLauncher
@@ -123,10 +133,30 @@ class MealScanScreen : Screen {
             state = ScanState.Analyzing
             scope.launch {
                 val result = repository.analyzeMealPhoto(bytes)
+                result.onSuccess {
+                    if (scanCountsAsFree) userSettings.incrementFeatureUsage(Feature.AI_MEAL_SCAN)
+                }
                 state = result.fold(
                     onSuccess = { ScanState.Success(it) },
                     onFailure = { ScanState.Error },
                 )
+            }
+        }
+
+        // Feature gate: AI meal scan is free up to config's daily limit, then premium.
+        // Controlled remotely via config/features. Premium always passes.
+        fun attemptScan() {
+            scope.launch {
+                val premium = runCatching { SubscriptionRepository().checkPremiumAccess() }.getOrDefault(false)
+                val cfg = FeatureGatingRepository.currentConfig()
+                val used = userSettings.featureUsageToday(Feature.AI_MEAL_SCAN)
+                when (FeatureGate.evaluate(cfg, Feature.AI_MEAL_SCAN, premium, used)) {
+                    GateResult.Allowed -> {
+                        scanCountsAsFree = !premium
+                        imagePicker.launch()
+                    }
+                    is GateResult.Blocked -> appNav.navigateTo(RootRoute.Paywall)
+                }
             }
         }
 
@@ -162,9 +192,9 @@ class MealScanScreen : Screen {
                 Spacer(Modifier.height(24.dp))
 
                 when (val s = state) {
-                    ScanState.Idle -> IdleActions(onPick = { imagePicker.launch() })
+                    ScanState.Idle -> IdleActions(onPick = { attemptScan() })
                     ScanState.Analyzing -> AnalyzingBlock()
-                    ScanState.Error -> ErrorBlock(onRetry = { imagePicker.launch() })
+                    ScanState.Error -> ErrorBlock(onRetry = { attemptScan() })
                     is ScanState.Success -> ResultBlock(
                         meal = s.meal,
                         saved = s.saved,

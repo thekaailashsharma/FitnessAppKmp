@@ -4,11 +4,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-    <!-- Photo picker — Android 13+ uses READ_MEDIA_IMAGES; older versions use READ_EXTERNAL_STORAGE -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission
-        android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
+    <!-- Photo selection uses the Android Photo Picker (PickVisualMedia), which grants
+         per-photo access with NO storage permission — so READ_MEDIA_IMAGES /
+         READ_EXTERNAL_STORAGE are intentionally NOT declared (Play policy compliant). -->
 
     <!-- Camera permission for in-app photo capture -->
     <uses-permission android:name="android.permission.CAMERA" />
@@ -20,7 +18,7 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
-        android:name=".FitnessApp"
+        android:name="org.awi.fitness.FitnessApp"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -40,7 +38,7 @@
         <activity
             android:exported="true"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|mcc|navigation|smallestScreenSize|touchscreen|uiMode"
-            android:name=".MainActivity">
+            android:name="org.awi.fitness.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

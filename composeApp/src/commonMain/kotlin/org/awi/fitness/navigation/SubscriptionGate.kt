@@ -7,6 +7,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import kotlinx.coroutines.launch
 import org.awi.fitness.data.UserSettings
+import org.awi.fitness.repository.FeatureGatingRepository
 import org.awi.fitness.repository.SubscriptionRepository
 import org.awi.fitness.utils.currentTimeMillis
 
@@ -82,7 +83,12 @@ fun SubscriptionGate(appNavigation: AppNavigationController) {
                 PremiumGate.BILLING_ISSUE ->
                     if (route != RootRoute.FixPayment) appNavigation.navigateTo(RootRoute.FixPayment)
                 PremiumGate.LOCKED ->
-                    appNavigation.navigateTo(RootRoute.Paywall)
+                    // Freemium: if the paywall is dismissible, a non-premium user is allowed to
+                    //    stay in the app on the free tier — don't bounce them out on every resume.
+                    //    Only hard-gate to the paywall when it's configured non-dismissible.
+                    if (!FeatureGatingRepository.currentConfig().paywall.dismissible) {
+                        appNavigation.navigateTo(RootRoute.Paywall)
+                    }
                 PremiumGate.ALLOWED ->
                     if (route == RootRoute.FixPayment) appNavigation.navigateTo(RootRoute.Main)
             }

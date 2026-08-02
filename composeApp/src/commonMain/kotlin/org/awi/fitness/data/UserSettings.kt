@@ -15,6 +15,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.datetime.toLocalDateTime
+import org.awi.fitness.utils.currentTimeMillis
 
 @Serializable
 data class WeighInEntry(
@@ -129,6 +130,9 @@ class UserSettings internal constructor(internal val settings: Settings) {
         private const val KEY_SUBCFG_SHOW_PURCHASE_HISTORY = "subcfg_show_purchase_history"
         private const val KEY_SUBCFG_SHOW_INVOICES = "subcfg_show_invoices"
         private const val KEY_SUBCFG_SUPPORT_URL = "subcfg_support_url"
+        private const val KEY_FEATURE_CONFIG_JSON = "feature_config_json"
+        private const val KEY_FEATURE_USAGE_DAY = "feature_usage_day"
+        private const val KEY_FEATURE_USAGE_COUNTS = "feature_usage_counts"
 
         private var instance: UserSettings? = null
 
@@ -526,6 +530,34 @@ class UserSettings internal constructor(internal val settings: Settings) {
     var subCfgSupportUrl: String
         get() = settings[KEY_SUBCFG_SUPPORT_URL, ""]
         set(value) { settings[KEY_SUBCFG_SUPPORT_URL] = value }
+
+    // ── Feature gating (freemium control plane) ──────────────────────────────
+    // Raw JSON of the remote feature config (config/features). Empty → use bundled default.
+    var featureConfigJson: String
+        get() = settings[KEY_FEATURE_CONFIG_JSON, ""]
+        set(value) { settings[KEY_FEATURE_CONFIG_JSON] = value }
+
+    // Per-day free-usage counters (for freeDailyLimit gates). Auto-reset each calendar day
+    //    (day bucket = epoch-ms / 86_400_000). Stored as a small JSON map feature→count.
+    private fun currentDayBucket(): Long = currentTimeMillis() / 86_400_000L
+
+    private fun featureCountsToday(): MutableMap<String, Int> {
+        if (settings[KEY_FEATURE_USAGE_DAY, 0L] != currentDayBucket()) return mutableMapOf()
+        val raw = settings[KEY_FEATURE_USAGE_COUNTS, ""]
+        return if (raw.isBlank()) mutableMapOf()
+        else try { Json.decodeFromString<Map<String, Int>>(raw).toMutableMap() } catch (_: Exception) { mutableMapOf() }
+    }
+
+    /** How many times the free user has used [featureKey] today (resets daily). */
+    fun featureUsageToday(featureKey: String): Int = featureCountsToday()[featureKey] ?: 0
+
+    /** Record one use of [featureKey] today (call after a successful free use). */
+    fun incrementFeatureUsage(featureKey: String) {
+        val counts = featureCountsToday()
+        counts[featureKey] = (counts[featureKey] ?: 0) + 1
+        settings[KEY_FEATURE_USAGE_DAY] = currentDayBucket()
+        settings[KEY_FEATURE_USAGE_COUNTS] = Json.encodeToString<Map<String, Int>>(counts)
+    }
 
     var appleIdentityToken: String?
         get() = settings[KEY_APPLE_IDENTITY_TOKEN]
